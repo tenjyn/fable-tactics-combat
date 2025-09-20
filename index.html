@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fable Tactics – Tiny Turn-Based Combat</title>
+<style>
+  :root { --bg:#0e0f12; --panel:#171922; --accent:#7fe6a2; --muted:#9aa3b2; --bad:#ff7a7a; --good:#8bd5ff; }
+  * { box-sizing: border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  body { margin:0; background:linear-gradient(180deg,#0b0c0f,#12131a); color:white; }
+  header { padding:16px 20px; border-bottom:1px solid #222633; background:#12141c; position:sticky; top:0; z-index:5; }
+  header h1 { margin:0; font-size:18px; letter-spacing:.5px; }
+  main { max-width:1100px; margin:0 auto; padding:20px; display:grid; gap:16px; grid-template-columns: 1fr 1fr; grid-template-areas:
+    "party enemies"
+    "controls log"; }
+  .panel { background:var(--panel); border:1px solid #24283a; border-radius:10px; padding:14px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+  .party { grid-area:party; }
+  .enemies { grid-area:enemies; }
+  .controls { grid-area:controls; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; }
+  .log { grid-area:log; max-height:320px; overflow:auto; background:#12141c; }
+  h2 { margin:0 0 8px; font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.12em; }
+  .unit { display:flex; align-items:center; gap:10px; padding:8px; margin:6px 0; background:#11131a; border:1px solid #1f2330; border-radius:8px; }
+  .unit.dead { opacity:.45; filter:grayscale(1); }
+  .badge { font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid #2b3144; color:var(--muted); }
+  .hpbar { width:100%; height:14px; background:#1b1f2b; border-radius:6px; overflow:hidden; border:1px solid #2a2f41; }
+  .hp { height:100%; background:linear-gradient(90deg, #4ade80, #22c55e); }
+  .row { display:flex; gap:10px; align-items:center; width:100%; }
+  .col { flex:1; }
+  .stats { font-size:12px; color:var(--muted); }
+  .tag { font-size:11px; padding:1px 6px; border-radius:6px; background:#1b2230; border:1px solid #2a3347; margin-left:4px; }
+  button { background:#1c2636; color:white; border:1px solid #2b3144; padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:600; }
+  button:hover { border-color:#3a425d; }
+  button.primary { background:#1e2e3d; border-color:#405a62; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .targetRow { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .targetBtn { padding:6px 10px; font-size:12px; border-radius:8px; background:#232a3b; border:1px solid #2f3750; }
+  .turnbar { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 0; }
+  .pill { font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid #2b3144; background:#111520; opacity:.9; }
+  .pill.active { border-color:var(--accent); color:var(--accent); }
+  .toast { padding:8px 12px; border-bottom:1px solid #20263a; font-size:14px; line-height:1.35; }
+  .hit { color:#ffd08a; }
+  .heal { color:#8bf0a6; }
+  .dmg { color:#ff9b9b; }
+  .small { font-size:12px; color:var(--muted); }
+  .divider { height:1px; background:#222634; margin:10px 0; }
+</style>
+</head>
+<body>
+  <header><h1>Fable Tactics • Tiny Turn-Based Combat</h1></header>
+  <main>
+    <section class="panel party">
+      <h2>Party</h2>
+      <div id="partyList"></div>
+      <div class="divider"></div>
+      <div>
+        <div class="small">Turn Order</div>
+        <div id="turnbar" class="turnbar"></div>
+      </div>
+    </section>
+
+    <section class="panel enemies">
+      <h2>Enemies</h2>
+      <div id="enemyList"></div>
+      <div class="divider"></div>
+      <div class="small">Tip: Abilities can apply status (Guard, Bleed). Defend = temporary armor.</div>
+    </section>
+
+    <section class="panel controls">
+      <div class="col">
+        <h2>Actions</h2>
+        <div id="actionRow">
+          <button id="attackBtn" class="primary">Attack</button>
+          <button id="abilityBtn">Ability</button>
+          <button id="defendBtn">Defend</button>
+          <button id="endBtn">End Turn</button>
+          <button id="autoBtn" title="Let the AI play for you">Auto-Play</button>
+        </div>
+        <div id="abilityRow" class="targetRow"></div>
+        <div id="targetRow" class="targetRow"></div>
+      </div>
+    </section>
+
+    <section class="panel log">
+      <h2>Combat Log</h2>
+      <div id="log"></div>
+    </section>
+  </main>
+
+<script>
+/* ---------------------------
+   Minimal Battle Engine
+---------------------------- */
+
+// Helpers
+const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+const rand = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice = (arr)=>arr[Math.floor(Math.random()*arr.length)];
+
+// Status effect templates
+const StatusLib = {
+  Guard: {
+    name: "Guard",
+    desc: "Increase DEF by 50% for 1 turn.",
+    apply(u){ u.temp.defBonus = (u.temp.defBonus||0) + Math.ceil(u.stats.def*0.5); },
+    remove(u){ u.temp.defBonus = 0; },
+    duration: 1, tick(){ /* no dot */ }
+  },
+  Bleed: {
+    name: "Bleed",
+    desc: "Lose 5 HP at start of turn for 2 turns.",
+    apply(){},
+    remove(){},
+    duration: 2,
+    tick(u, log){ const dmg = 5; u.hp = clamp(u.hp - dmg, 0, u.stats.maxHp); log(`${u.name} bleeds for <span class="dmg">-${dmg}</span>.`); }
+  }
+};
+
+// Ability templates
+const AbilityLib = {
+  PowerStrike: {
+    name:"Power Strike",
+    desc:"+50% ATK single hit. 1-turn cooldown.",
+    cooldown:1,
+    user:"enemy|ally", target:"enemy",
+    use(user, target, log){
+      const atk = Math.ceil(user.stats.atk*1.5);
+      const dmg = computeDamage(atk, target.stats.def + (target.temp.defBonus||0));
+      dealDamage(target, dmg, `${user.name} uses Power Strike on ${target.name} for <span class="dmg">-${dmg}</span>.`, log);
+    }
+  },
+  Guard: {
+    name:"Guard",
+    desc:"Gain Guard (DEF up) for 1 turn.",
+    cooldown:2,
+    user:"self", target:"self",
+    use(user, _t, log){
+      addStatus(user, "Guard", log);
+      log(`${user.name} braces and gains <span class="hit">Guard</span>.`);
+    }
+  },
+  BleedingShot: {
+    name:"Bleeding Shot",
+    desc:"Light hit + Bleed (2 turns).",
+    cooldown:2,
+    user:"enemy|ally", target:"enemy",
+    use(user, target, log){
+      const atk = Math.ceil(user.stats.atk*0.8);
+      const dmg = computeDamage(atk, target.stats.def + (target.temp.defBonus||0));
+      dealDamage(target, dmg, `${user.name} uses Bleeding Shot on ${target.name} for <span class="dmg">-${dmg}</span>.`, log);
+      if(!target.dead) { addStatus(target, "Bleed", log); log(`${target.name} is now <span class="hit">Bleeding</span>.`); }
+    }
+  },
+  Recover: {
+    name:"Recover",
+    desc:"Restore 12 HP to self.",
+    cooldown:2,
+    user:"self", target:"self",
+    use(user,_t, log){
+      const heal = 12;
+      const before = user.hp;
+      user.hp = clamp(user.hp + heal, 0, user.stats.maxHp);
+      log(`${user.name} recovers <span class="heal">+${user.hp - before}</span> HP.`);
+    }
+  }
+};
+
+// Data
+const party = [
+  makeUnit("Tallis (Knight)", "ally", {maxHp: 60, atk: 14, def: 10, spd: 7}, ["PowerStrike","Guard"]),
+  makeUnit("Clover (Ranger)", "ally", {maxHp: 44, atk: 11, def: 7, spd: 12}, ["BleedingShot","Recover"])
+];
+
+const enemies = [
+  makeUnit("Goblin Bruiser", "enemy", {maxHp: 40, atk: 12, def: 6, spd: 8}, ["PowerStrike"]),
+  makeUnit("Woad Imp", "enemy", {maxHp: 32, atk: 9,  def: 5, spd: 11}, ["BleedingShot"])
+];
+
+// State
+const G = {
+  units: [...party, ...enemies],
+  turnIndex: 0,
+  round: 1,
+  acting: null,
+  auto: false
+};
+
+// Unit factory
+function makeUnit(name, team, {maxHp, atk, def, spd}, abilityKeys){
+  return {
+    id: crypto.randomUUID(),
+    name, team,
+    stats: { maxHp, atk, def, spd },
+    hp: maxHp,
+    dead: false,
+    temp: { defBonus: 0, defend: false },
+    statuses: [], // {key, turnsLeft}
+    abilities: abilityKeys.map(k => ({ key: k, cd: 0 })),
+  };
+}
+
+// Damage math
+function computeDamage(atk, def){
+  const base = Math.max(1, atk - Math.floor(def*0.7));
+  const variance = rand(-2, 2);
+  return Math.max(1, base + variance);
+}
+
+function dealDamage(target, dmg, msg, log){
+  target.hp = clamp(target.hp - dmg, 0, target.stats.maxHp);
+  if (msg) log(msg);
+  if (target.hp === 0) { target.dead = true; log(`<b>${target.name}</b> is defeated.`); }
+}
+
+// Status helpers
+function addStatus(u, key, log){
+  const tpl = StatusLib[key];
+  if (!tpl) return;
+  // If exists, refresh duration
+  const existing = u.statuses.find(s => s.key === key);
+  if (existing) existing.turnsLeft = tpl.duration;
+  else u.statuses.push({ key, turnsLeft: tpl.duration });
+  tpl.apply(u, log);
+}
+
+function tickStatusesStart(u, log){
+  // start-of-turn ticks (Bleed, etc.)
+  for (const s of [...u.statuses]) {
+    const tpl = StatusLib[s.key];
+    if (tpl && tpl.tick) tpl.tick(u, log);
+    if (u.hp === 0) break;
+  }
+}
+
+function cleanupStatusesEnd(u, log){
+  // end-of-turn: decrease duration, remove expired, clear Defend
+  for (const s of [...u.statuses]) {
+    s.turnsLeft -= 1;
+    if (s.turnsLeft <= 0) {
+      const tpl = StatusLib[s.key];
+      if (tpl && tpl.remove) tpl.remove(u, log);
+      u.statuses = u.statuses.filter(x => x !== s);
+    }
+  }
+  // Defend only lasts one turn
+  u.temp.defend = false;
+  u.temp.defBonus = 0; // Guard is managed via status; raw defend resets here
+}
+
+// Initiative & targeting
+function living(team){ return G.units.filter(u => u.team === team && !u.dead); }
+function anyLiving(team){ return living(team).length > 0; }
+function initiativeOrder(){
+  // Descending by SPD; break ties randomly once per round
+  return G.units
+    .filter(u => !u.dead)
+    .slice()
+    .sort((a,b) => b.stats.spd - a.stats.spd || (a.id > b.id ? 1 : -1));
+}
+
+function log(msg){
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = msg;
+  LOG.appendChild(el);
+  LOG.scrollTop = LOG.scrollHeight;
+}
+
+function render(){
+  // Party
+  PARTY.innerHTML = '';
+  for (const u of party) PARTY.appendChild(renderUnit(u));
+  // Enemies
+  ENEMIES.innerHTML = '';
+  for (const u of enemies) ENEMIES.appendChild(renderUnit(u));
+  // Turnbar
+  TURNBAR.innerHTML = '';
+  for (const u of initiativeOrder()) {
+    const pill = document.createElement('span');
+    pill.className = 'pill' + (G.acting && G.acting.id === u.id ? ' active' : '');
+    pill.textContent = u.name.split(' ')[0];
+    TURNBAR.appendChild(pill);
+  }
+  // Controls: enable only on player's turn
+  const playerTurn = G.acting && G.acting.team === 'ally' && !G.acting.dead;
+  ATTACK.disabled = !playerTurn;
+  ABILITY.disabled = !playerTurn;
+  DEFEND.disabled = !playerTurn;
+  END.disabled = !playerTurn;
+}
+
+function renderUnit(u){
+  const wrap = document.createElement('div');
+  wrap.className = 'unit' + (u.dead ? ' dead' : '');
+  const side = document.createElement('div');
+  side.className = 'badge';
+  side.textContent = u.team === 'ally' ? 'ALLY' : 'ENEMY';
+  const info = document.createElement('div'); info.className = 'col';
+  const name = document.createElement('div'); name.innerHTML = `<b>${u.name}</b>`;
+  const stats = document.createElement('div'); stats.className = 'stats';
+  const defNow = u.stats.def + (u.temp.defBonus||0) + (u.temp.defend?2:0);
+  stats.innerHTML = `ATK ${u.stats.atk} • DEF ${defNow} • SPD ${u.stats.spd}`;
+  const hpbar = document.createElement('div'); hpbar.className='hpbar';
+  const hp = document.createElement('div'); hp.className='hp';
+  const pct = Math.round((u.hp/u.stats.maxHp)*100);
+  hp.style.width = pct + '%';
+  hpbar.appendChild(hp);
+  const statusLine = document.createElement('div');
+  statusLine.className = 'small';
+  statusLine.style.marginTop = '6px';
+  statusLine.innerHTML = u.statuses.map(s => `<span class="tag">${s.key} ${s.turnsLeft}</span>`).join(' ');
+  info.appendChild(name); info.appendChild(stats); info.appendChild(hpbar); info.appendChild(statusLine);
+  wrap.appendChild(side); wrap.appendChild(info);
+  return wrap;
+}
+
+// Turn loop
+function nextTurn(){
+  if (!anyLiving('ally') || !anyLiving('enemy')) return endBattle();
+  const order = initiativeOrder();
+  // Find next unit after current acting; if none, new round
+  if (!G.acting) G.acting = order[0];
+  else {
+    const idx = order.findIndex(u => u.id === G.acting.id);
+    G.acting = order[(idx + 1) % order.length];
+    if ((idx + 1) % order.length === 0) G.round++;
+  }
+  render();
+  // Skip dead (edge case) and process start-of-turn
+  if (G.acting.dead) return nextTurn();
+  log(`<span class="small">— Round ${G.round} • ${G.acting.name}'s turn —</span>`);
+  tickStatusesStart(G.acting, log);
+  if (G.acting.dead) { render(); return nextTurn(); }
+  // Reduce cooldowns
+  for (const a of G.acting.abilities) a.cd = Math.max(0, a.cd - 1);
+  render();
+  // If enemy, AI acts automatically
+  if (G.acting.team === 'enemy' || G.auto) aiAct();
+}
+
+function endTurn(){
+  cleanupStatusesEnd(G.acting, log);
+  render();
+  nextTurn();
+}
+
+function endBattle(){
+  const win = anyLiving('ally') && !anyLiving('enemy');
+  const lose = !anyLiving('ally') && anyLiving('enemy');
+  const text = win ? "<b>Victory!</b> All enemies defeated." :
+               lose ? "<b>Defeat.</b> The party has fallen." :
+                      "<b>Battle Ends.</b>";
+  log(text);
+  ATTACK.disabled = ABILITY.disabled = DEFEND.disabled = END.disabled = true;
+  AUTO.textContent = "Auto-Play";
+  G.auto = false;
+}
+
+function validTargets(user, scope){
+  if (scope === 'self') return [user];
+  if (scope === 'enemy') return user.team === 'ally' ? living('enemy') : living('ally');
+  /* 'ally' scope could be added later */
+  return [];
+}
+
+/* ---------------------------
+   Player Controls
+---------------------------- */
+const PARTY   = document.getElementById('partyList');
+const ENEMIES = document.getElementById('enemyList');
+const TURNBAR = document.getElementById('turnbar');
+const LOG     = document.getElementById('log');
+
+const ATTACK  = document.getElementById('attackBtn');
+const ABILITY = document.getElementById('abilityBtn');
+const DEFEND  = document.getElementById('defendBtn');
+const END     = document.getElementById('endBtn');
+const AUTO    = document.getElementById('autoBtn');
+
+const TARGETS = document.getElementById('targetRow');
+const ABILROW = document.getElementById('abilityRow');
+
+ATTACK.addEventListener('click', () => {
+  if (!G.acting || G.acting.team !== 'ally') return;
+  TARGETS.innerHTML = '';
+  ABILROW.innerHTML = '';
+  const foes = validTargets(G.acting, 'enemy');
+  foes.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'targetBtn';
+    b.textContent = t.name.split(' ')[0];
+    b.onclick = () => {
+      const atk = G.acting.stats.atk;
+      const def = t.stats.def + (t.temp.defBonus||0);
+      if (t.temp.defend) def += 2;
+      const dmg = computeDamage(atk, def);
+      dealDamage(t, dmg, `${G.acting.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`, log);
+      render();
+      endTurn();
+    };
+    TARGETS.appendChild(b);
+  });
+});
+
+ABILITY.addEventListener('click', () => {
+  if (!G.acting || G.acting.team !== 'ally') return;
+  TARGETS.innerHTML = '';
+  ABILROW.innerHTML = '';
+  for (const a of G.acting.abilities) {
+    const tpl = AbilityLib[a.key];
+    const b = document.createElement('button');
+    b.className = 'targetBtn';
+    b.title = `${tpl.name}: ${tpl.desc}`;
+    b.textContent = `${tpl.name}${a.cd ? ` (${a.cd})` : ''}`;
+    b.disabled = a.cd > 0;
+    b.onclick = () => {
+      // choose target(s) based on scope
+      const scope = tpl.target;
+      const candidates = validTargets(G.acting, scope);
+      // If only self or single candidate, resolve instantly
+      if (scope === 'self' || candidates.length === 1) {
+        const target = candidates[0];
+        tpl.use(G.acting, target, log);
+        a.cd = tpl.cooldown || 0;
+        render();
+        endTurn();
+      } else {
+        // prompt target
+        TARGETS.innerHTML = '';
+        candidates.forEach(t => {
+          const tb = document.createElement('button');
+          tb.className = 'targetBtn';
+          tb.textContent = t.name.split(' ')[0];
+          tb.onclick = () => {
+            tpl.use(G.acting, t, log);
+            a.cd = tpl.cooldown || 0;
+            render();
+            endTurn();
+          };
+          TARGETS.appendChild(tb);
+        });
+      }
+    };
+    ABILROW.appendChild(b);
+  }
+});
+
+DEFEND.addEventListener('click', () => {
+  if (!G.acting || G.acting.team !== 'ally') return;
+  G.acting.temp.defend = true; // +2 DEF until end of turn
+  log(`${G.acting.name} takes a defensive stance (+2 DEF this turn).`);
+  render();
+  endTurn();
+});
+
+END.addEventListener('click', () => {
+  if (!G.acting || G.acting.team !== 'ally') return;
+  log(`${G.acting.name} ends their turn.`);
+  endTurn();
+});
+
+AUTO.addEventListener('click', () => {
+  G.auto = !G.auto;
+  AUTO.textContent = G.auto ? "Auto-Play: ON" : "Auto-Play";
+  if (G.auto && G.acting && G.acting.team === 'ally') aiAct();
+});
+
+/* ---------------------------
+   Enemy / Auto AI
+---------------------------- */
+function aiAct(){
+  // Simple heuristics:
+  // 1) If low HP and has Recover, 40% chance to Recover
+  // 2) If damaging ability ready, 70% chance to use it
+  // 3) Otherwise Attack
+  const u = G.acting; if (!u || u.dead) return;
+
+  setTimeout(() => {
+    // pick ability
+    const ready = u.abilities.filter(a => a.cd === 0).map(a => ({a, tpl:AbilityLib[a.key]}));
+    const recover = ready.find(x => x.tpl === AbilityLib.Recover);
+    const damaging = ready.filter(x => x.tpl.target === 'enemy' && x.tpl.use);
+
+    // maybe recover
+    if (recover && u.hp <= Math.ceil(u.stats.maxHp*0.5) && Math.random() < 0.4) {
+      recover.tpl.use(u, u, log);
+      recover.a.cd = recover.tpl.cooldown || 0;
+      render(); return endTurn();
+    }
+
+    // damaging?
+    if (damaging.length && Math.random() < 0.7) {
+      const pick = choice(damaging);
+      const candidates = validTargets(u, 'enemy');
+      if (candidates.length) {
+        const t = choice(candidates);
+        pick.tpl.use(u, t, log);
+        pick.a.cd = pick.tpl.cooldown || 0;
+        render(); return endTurn();
+      }
+    }
+
+    // fallback: attack weakest
+    const foes = validTargets(u, 'enemy');
+    if (foes.length) {
+      const t = foes.slice().sort((a,b)=> (a.hp/a.stats.maxHp) - (b.hp/b.stats.maxHp))[0];
+      const atk = u.stats.atk;
+      const def = t.stats.def + (t.temp.defBonus||0) + (t.temp.defend?2:0);
+      const dmg = computeDamage(atk, def);
+      dealDamage(t, dmg, `${u.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`, log);
+    }
+    render();
+    endTurn();
+  }, 450); // tiny delay for readability
+}
+
+/* ---------------------------
+   Boot
+---------------------------- */
+(function boot(){
+  render();
+  log("<i>The battle begins.</i>");
+  nextTurn();
+})();
+</script>
+</body>
+</html>
