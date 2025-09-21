@@ -47,8 +47,18 @@
   .targetRow { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
   .targetBtn { padding:6px 10px; font-size:12px; border-radius:8px; background:#232a3b; border:1px solid #2f3750; }
 
-  /* Board grid */
-  .grid { display:grid; grid-template-columns: repeat(var(--w), 1fr); grid-template-rows: repeat(var(--h), 64px); gap:6px; }
+  /* Board grid (resizable + zoom) */
+  .grid {
+    --cell: 64px;
+    display:grid;
+    grid-template-columns: repeat(var(--w), var(--cell));
+    grid-template-rows: repeat(var(--h), var(--cell));
+    gap:6px;
+    overflow:auto;
+    max-height:70vh;
+    padding:4px;
+    border-radius:12px;
+  }
   .cell { position:relative; border:1px solid #2a2f41; background:#0f1420; border-radius:8px; display:flex; align-items:center; justify-content:center; }
   .cell.coord { font-size:10px; color:#445; position:absolute; left:6px; top:4px; }
   .cell.move-ok { outline:2px dashed var(--accent); outline-offset:-4px; }
@@ -85,6 +95,20 @@
         </div>
 
         <div class="btn-row" id="buildRow"></div>
+
+        <div class="divider"></div>
+
+        <!-- Grid size + zoom -->
+        <div class="btn-row" style="flex-wrap:wrap; align-items:center">
+          <div class="small">Grid:</div>
+          <label class="small">W <input id="gridW" type="number" min="4" max="16" value="6" style="width:64px; margin-left:6px; padding:6px; background:#0f1420; border:1px solid #2a3246; border-radius:8px; color:#fff"></label>
+          <label class="small">H <input id="gridH" type="number" min="3" max="12" value="4" style="width:64px; margin-left:6px; padding:6px; background:#0f1420; border:1px solid #2a3246; border-radius:8px; color:#fff"></label>
+          <button id="applyGridBtn" class="ghost">Apply</button>
+
+          <div class="small" style="margin-left:16px">Zoom:</div>
+          <input id="zoomRange" type="range" min="44" max="84" value="64" step="2" style="width:160px">
+          <span id="zoomVal" class="small mono">64px</span>
+        </div>
 
         <div class="divider"></div>
         <div class="btn-row">
@@ -140,7 +164,7 @@
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const choice=(arr)=>arr[Math.floor(Math.random()*arr.length)];
-const GRID_W=6, GRID_H=4;
+const GRID = { w: 6, h: 4, cell: 64 }; // dynamic grid
 const dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const inRange=(u,t,r)=>dist(u.pos,t.pos)<=r;
 const isAdjacent=(a,b)=>dist(a,b)===1;
@@ -188,7 +212,7 @@ const UnitTemplates = {
   Sharpshooter:{ label:"Sharpshooter",name:"Sharpshooter",    stats:{maxHp:42,atk:14,def:6, spd:10},abilities:["BleedingShot","Recover"], range:3 },
   Slinger:     { label:"Slinger",     name:"Slinger",         stats:{maxHp:40,atk:11,def:6, spd:13},abilities:["BleedingShot","Recover"], range:3 },
 
-  // support (placeholder kit)
+  // support
   Magician:    { label:"Magician",    name:"Magician",        stats:{maxHp:40,atk:11,def:6, spd:11},abilities:["BleedingShot","Recover"], range:3 },
   Warlock:     { label:"Warlock",     name:"Warlock",         stats:{maxHp:38,atk:12,def:5, spd:10},abilities:["BleedingShot","Recover"], range:3 },
   Cleric:      { label:"Cleric",      name:"Cleric",          stats:{maxHp:46,atk:9, def:8, spd:9}, abilities:["BleedingShot","Recover"], range:3 },
@@ -260,6 +284,12 @@ const fromSelectorBtn=document.getElementById('fromSelectorBtn');
 const clearBtn=document.getElementById('clearBtn');
 const startBtn=document.getElementById('startBtn');
 
+const gridWInput = document.getElementById('gridW');
+const gridHInput = document.getElementById('gridH');
+const applyGridBtn = document.getElementById('applyGridBtn');
+const zoomRange = document.getElementById('zoomRange');
+const zoomVal = document.getElementById('zoomVal');
+
 /* ========= Setup: builds UI ========= */
 let activeBuild="Knight";
 function renderBuildButtons(){
@@ -277,13 +307,32 @@ function getSelectedTeam(){
   const r=radios.find(x=>x.checked); return r? r.value : "ally";
 }
 
+/* ========= Grid controls ========= */
+function applyGridSize(w,h){
+  GRID.w = Math.max(4, Math.min(16, parseInt(w)||GRID.w));
+  GRID.h = Math.max(3, Math.min(12, parseInt(h)||GRID.h));
+  for(const u of G.units){
+    if(!u.pos) continue;
+    u.pos.x = Math.max(0, Math.min(GRID.w-1, u.pos.x));
+    u.pos.y = Math.max(0, Math.min(GRID.h-1, u.pos.y));
+  }
+  render();
+}
+applyGridBtn.onclick = ()=> applyGridSize(gridWInput.value, gridHInput.value);
+zoomRange.oninput = ()=>{
+  GRID.cell = parseInt(zoomRange.value,10) || GRID.cell;
+  zoomVal.textContent = GRID.cell + 'px';
+  BOARD.style.setProperty('--cell', GRID.cell+'px');
+};
+
 /* ========= Rendering ========= */
 function log(msg){ const el=document.createElement('div'); el.className='toast'; el.innerHTML=msg; LOG.appendChild(el); LOG.scrollTop=LOG.scrollHeight; }
 
 function render(){
   PHASE.textContent = G.phase==="setup" ? "Setup: Place Units" : "Battle";
-  BOARD.style.setProperty('--w', GRID_W);
-  BOARD.style.setProperty('--h', GRID_H);
+  BOARD.style.setProperty('--w', GRID.w);
+  BOARD.style.setProperty('--h', GRID.h);
+  BOARD.style.setProperty('--cell', GRID.cell + 'px');
 
   if(G.phase==="setup"){
     SETUP_PANEL.style.display="";
@@ -345,15 +394,14 @@ function renderBoard(){
     ? `Placing: <b>${UnitTemplates[activeBuild].label}</b> for <b>${getSelectedTeam()==='ally'?'Allies':'Enemies'}</b>. Click a tile to place; click a token to remove.`
     : `Melee requires adjacency (range 1). Move first if no targets are in range.`;
 
-  // Precompute in-range (battle only, for glow)
   const inRangeIds=new Set();
   if(G.phase==="battle" && G.acting){
     const foes = G.acting.team==='ally' ? living('enemy') : living('ally');
     for(const t of foes){ if(inRange(G.acting,t,G.acting.range)) inRangeIds.add(t.id); }
   }
 
-  for(let y=0;y<GRID_H;y++){
-    for(let x=0;x<GRID_W;x++){
+  for(let y=0;y<GRID.h;y++){
+    for(let x=0;x<GRID.w;x++){
       const cell=document.createElement('div'); cell.className='cell';
       const label=document.createElement('div'); label.className='cell coord'; label.textContent=`${x},${y}`; cell.appendChild(label);
       const u=getUnitAt(x,y);
@@ -398,8 +446,8 @@ presetBtn.onclick=()=>{
   G.units=[];
   G.units.push(makeUnit("Knight","ally",{x:0,y:1}));
   G.units.push(makeUnit("Archer","ally",{x:0,y:2}));
-  G.units.push(makeUnit("Bruiser","enemy",{x:5,y:1}));
-  G.units.push(makeUnit("Imp","enemy",{x:5,y:2}));
+  G.units.push(makeUnit("Bruiser","enemy",{x:GRID.w-1,y:1}));
+  G.units.push(makeUnit("Imp","enemy",{x:GRID.w-1,y:2}));
   render();
 };
 clearBtn.onclick=()=>{ G.units=[]; render(); };
@@ -416,8 +464,7 @@ fromSelectorBtn.onclick = () => {
     function placeList(list, team){
       for(const u of list){
         const guess = title(u.tpl);
-        const T = UnitTemplates[guess] || UnitTemplates.Knight;
-        const pos = u.pos && typeof u.pos.x==='number' ? {x:u.pos.x,y:u.pos.y} : null;
+        const pos = u.pos && typeof u.pos.x==='number' ? {x:Math.max(0,Math.min(GRID.w-1,u.pos.x)),y:Math.max(0,Math.min(GRID.h-1,u.pos.y))} : null;
         const made = makeUnit(guess, team, pos);
         if(u.name) made.name = u.name;
         G.units.push(made);
@@ -435,17 +482,30 @@ startBtn.onclick=()=>{
   const a=living('ally').length, e=living('enemy').length;
   if(a===0 || e===0){ alert("Place at least one Ally and one Enemy."); return; }
   G.phase="battle";
-  for(const u of G.units){ u.dead=false; u.hp=u.stats.maxHp; u.statuses=[]; u.temp={defBonus:0,defend:false}; for(const a of u.abilities) a.cd=0; if(!u.pos){ /* if no pos, auto-place to sides */ autoPlace(u); } }
+  for(const u of G.units){ u.dead=false; u.hp=u.stats.maxHp; u.statuses=[]; u.temp={defBonus:0,defend:false}; for(const a of u.abilities) a.cd=0; if(!u.pos){ autoPlace(u); } }
   log("<i>The battle begins.</i>");
   nextTurn_init();
 };
 
 function autoPlace(u){
-  // simple fallback: allies left, enemies right, find first free slot scanning rows
+  const leftCols = 2, rightCols = 2;
   if(u.team==='ally'){
-    for(let y=0;y<GRID_H;y++){ for(let x=0;x<2;x++){ if(!getUnitAt(x,y)){ u.pos={x,y}; return; } } }
+    for(let y=0;y<GRID.h;y++){
+      for(let x=0;x<Math.min(leftCols, GRID.w); x++){
+        if(!getUnitAt(x,y)){ u.pos={x,y}; return; }
+      }
+    }
   } else {
-    for(let y=0;y<GRID_H;y++){ for(let x=GRID_W-1;x>=GRID_W-2;x--){ if(!getUnitAt(x,y)){ u.pos={x,y}; return; } } }
+    for(let y=0;y<GRID.h;y++){
+      for(let x=GRID.w-1; x>=Math.max(0, GRID.w - rightCols); x--){
+        if(!getUnitAt(x,y)){ u.pos={x,y}; return; }
+      }
+    }
+  }
+  for(let y=0;y<GRID.h;y++){
+    for(let x=0;x<GRID.w;x++){
+      if(!getUnitAt(x,y)){ u.pos={x,y}; return; }
+    }
   }
 }
 
@@ -592,14 +652,14 @@ function aiAct(){
     }
 
     u.temp.defend=true; log(`${u.name} defends.`); render(); endTurn();
-  }, 420);
+  }, 400);
 }
 function stepToward(a,b){
   const dx=b.x-a.x, dy=b.y-a.y;
   const opts=[];
   if(Math.abs(dx)>=Math.abs(dy)){ if(dx!==0) opts.push({x:a.x+Math.sign(dx),y:a.y}); if(dy!==0) opts.push({x:a.x,y:a.y+Math.sign(dy)}); }
   else { if(dy!==0) opts.push({x:a.x,y:a.y+Math.sign(dy)}); if(dx!==0) opts.push({x:a.x+Math.sign(dx),y:a.y}); }
-  for(const p of opts){ if(p.x>=0&&p.x<GRID_W&&p.y>=0&&p.y<GRID_H) return p; }
+  for(const p of opts){ if(p.x>=0 && p.x<GRID.w && p.y>=0 && p.y<GRID.h) return p; }
   return null;
 }
 
@@ -607,6 +667,12 @@ function stepToward(a,b){
 (function boot(){
   renderBuildButtons();
   render();
+  // init zoom + inputs
+  BOARD.style.setProperty('--cell', GRID.cell + 'px');
+  gridWInput.value = GRID.w;
+  gridHInput.value = GRID.h;
+  zoomRange.value = GRID.cell;
+  zoomVal.textContent = GRID.cell + 'px';
 })();
 </script>
 </body>
