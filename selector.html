@@ -36,6 +36,7 @@
   .split { display:flex; justify-content:space-between; align-items:center; gap:8px; }
   .footer { display:flex; gap:8px; flex-wrap:wrap; }
   textarea { width:100%; min-height:120px; background:#0f1420; color:white; border:1px solid #2a3246; border-radius:10px; padding:10px; }
+  a.btn { display:inline-block; }
 </style>
 </head>
 <body>
@@ -100,31 +101,45 @@
 </main>
 
 <script>
-/* ========= Base classes (mapped to your current engine abilities) =========
-   We classify broadly for now:
-   - MELEE (range 1): uses PowerStrike + Guard
-   - RANGED/SUPPORT (range 3): uses BleedingShot + Recover
+/* ========= Base classes (expanded) =========
+   Roles map to current ability kits:
+   - MELEE (range 1): PowerStrike + Guard
+   - RANGED (range 3): BleedingShot + Recover
+   - SUPPORT (range 3): BleedingShot + Recover (placeholder until we add real support skills)
 */
 const CLASSES = [
-  // Combat melee
-  B('Knight','melee',{maxHp:60,atk:14,def:10,spd:7}, ['PowerStrike','Guard'], 1, 'Armored frontline defender'),
-  B('Fighter','melee',{maxHp:54,atk:13,def:9, spd:9}, ['PowerStrike','Guard'], 1, 'Versatile melee combatant'),
-  B('Rogue','melee',{maxHp:42,atk:12,def:6, spd:13},['PowerStrike','Guard'], 1, 'Evasive striker'),
-  B('Monk','melee',{maxHp:46,atk:12,def:7, spd:12}, ['PowerStrike','Guard'], 1, 'Martial artist'),
+  // Frontline / melee (range 1)
+  B('Knight','melee',{maxHp:60,atk:14,def:10,spd:7},  ['PowerStrike','Guard'],1,'Armored defender'),
+  B('Fighter','melee',{maxHp:54,atk:13,def:9, spd:9}, ['PowerStrike','Guard'],1,'Balanced striker'),
+  B('Rogue','melee',{maxHp:42,atk:12,def:6, spd:13}, ['PowerStrike','Guard'],1,'Evasive finisher'),
+  B('Monk','melee',{maxHp:46,atk:12,def:7, spd:12},  ['PowerStrike','Guard'],1,'Martial artist'),
+  B('Paladin','melee',{maxHp:62,atk:13,def:11,spd:6},['PowerStrike','Guard'],1,'Holy bulwark'),
+  B('Berserker','melee',{maxHp:58,atk:16,def:6, spd:8},['PowerStrike','Guard'],1,'All-in bruiser'),
+  B('Spearmaster','melee',{maxHp:50,atk:13,def:8, spd:10},['PowerStrike','Guard'],1,'Disciplined lancer'),
+  B('Sentinel','melee',{maxHp:64,atk:12,def:12,spd:5},['PowerStrike','Guard'],1,'Immovable wall'),
+  B('Duelist','melee',{maxHp:45,atk:14,def:7, spd:12}, ['PowerStrike','Guard'],1,'Agile blade'),
+  B('Assassin','melee',{maxHp:38,atk:15,def:5, spd:14},['PowerStrike','Guard'],1,'Glass-cannon skirmisher'),
 
-  // Ranged
-  B('Archer','ranged',{maxHp:44,atk:11,def:7, spd:12}, ['BleedingShot','Recover'], 3, 'Ranged physical attacker'),
-  B('Scout','ranged',{maxHp:40,atk:10,def:6, spd:14}, ['BleedingShot','Recover'], 3, 'Mobile skirmisher'),
+  // Ranged (range 3)
+  B('Archer','ranged',{maxHp:44,atk:11,def:7, spd:12}, ['BleedingShot','Recover'],3,'Bow specialist'),
+  B('Scout','ranged',{maxHp:40,atk:10,def:6, spd:14},  ['BleedingShot','Recover'],3,'Mobile skirmisher'),
+  B('Hunter','ranged',{maxHp:46,atk:12,def:7, spd:11}, ['BleedingShot','Recover'],3,'Tracker & trapper'),
+  B('Sharpshooter','ranged',{maxHp:42,atk:14,def:6,spd:10},['BleedingShot','Recover'],3,'High crit archer'),
+  B('Slinger','ranged',{maxHp:40,atk:11,def:6, spd:13}, ['BleedingShot','Recover'],3,'Stone & sap shots'),
 
-  // Casters & support → use ranged kit for now
-  B('Magician','support',{maxHp:40,atk:11,def:6, spd:11}, ['BleedingShot','Recover'], 3, 'Elemental/arcane caster'),
-  B('Warlock','support',{maxHp:38,atk:12,def:5, spd:10}, ['BleedingShot','Recover'], 3, 'Debuffs & life-drain vibes'),
-  B('Cleric','support',{maxHp:46,atk:9, def:8, spd:9 }, ['BleedingShot','Recover'], 3, 'Healer & buffer'),
-  B('Druid','support',{maxHp:44,atk:10,def:7, spd:10}, ['BleedingShot','Recover'], 3, 'Nature caster'),
+  // Casters / support (range 3 placeholder kit)
+  B('Magician','support',{maxHp:40,atk:11,def:6, spd:11}, ['BleedingShot','Recover'],3,'Elementalist'),
+  B('Warlock','support',{maxHp:38,atk:12,def:5, spd:10},  ['BleedingShot','Recover'],3,'Hexes & drains'),
+  B('Cleric','support',{maxHp:46,atk:9, def:8, spd:9},   ['BleedingShot','Recover'],3,'Healer/support'),
+  B('Druid','support',{maxHp:44,atk:10,def:7, spd:10},   ['BleedingShot','Recover'],3,'Nature caster'),
+  B('Bard','support',{maxHp:42,atk:9, def:7, spd:12},    ['BleedingShot','Recover'],3,'Buffer/debuffer'),
+  B('Shaman','support',{maxHp:44,atk:11,def:7, spd:10},  ['BleedingShot','Recover'],3,'Spirits & wards'),
+  B('Alchemist','support',{maxHp:40,atk:12,def:6, spd:11},['BleedingShot','Recover'],3,'Potions & bombs'),
+  B('Enchanter','support',{maxHp:38,atk:10,def:6, spd:11},['BleedingShot','Recover'],3,'Boons & banes'),
 
-  // Example enemy basics (you can still add as Allies if desired)
-  B('Bruiser','melee',{maxHp:40,atk:12,def:6, spd:8}, ['PowerStrike'], 1, 'Goblin bruiser archetype'),
-  B('Imp','ranged',{maxHp:32,atk:9, def:5, spd:11},['BleedingShot'], 3, 'Woad imp archetype'),
+  // Enemy archetypes (still available to Allies if desired)
+  B('Bruiser','melee',{maxHp:40,atk:12,def:6, spd:8},    ['PowerStrike'],1,'Goblin bruiser'),
+  B('Imp','ranged',{maxHp:32,atk:9, def:5, spd:11},      ['BleedingShot'],3,'Woad imp'),
 ];
 
 function B(name, role, stats, abilities, range, blurb){
@@ -190,12 +205,10 @@ function renderClasses(){
 }
 
 function renderRoster(){
-  // Allies
   allyList.innerHTML = '';
   state.allies.forEach((u, i) => allyList.appendChild(renderRow(u, i, 'ally')));
   allyCount.textContent = `${state.allies.length} selected`;
 
-  // Enemies
   enemyList.innerHTML = '';
   state.enemies.forEach((u, i) => enemyList.appendChild(renderRow(u, i, 'enemy')));
   enemyCount.textContent = `${state.enemies.length} selected`;
@@ -226,7 +239,6 @@ function addUnit(team, cls){
     stats: {...cls.stats},
     abilities: [...cls.abilities],
     range: cls.range,
-    // pos is chosen later on the battle Setup board; we leave it null here
     pos: null
   };
   state[team==='ally'?'allies':'enemies'].push(u);
@@ -292,7 +304,6 @@ search.addEventListener('input', (e)=>{ state.query = e.target.value; renderClas
 
 /* ========= Boot ========= */
 (function boot(){
-  // Load draft if any
   try{
     const prev = JSON.parse(localStorage.getItem('ft_setup')||'null');
     if(prev && prev.allies && prev.enemies){
