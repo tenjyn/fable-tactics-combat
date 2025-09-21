@@ -327,4 +327,287 @@ function renderUnit(u){
   const name=document.createElement('div'); name.innerHTML=`<b>${u.name}</b>`;
   const stats=document.createElement('div'); stats.className='stats';
   const defNow=u.stats.def + (u.temp.defBonus||0) + (u.temp.defend?2:0);
-  const pos
+  const posTxt = u.pos? ` • POS (${u.pos.x},${u.pos.y})` : '';
+  stats.innerHTML = `ATK ${u.stats.atk} • DEF ${defNow} • SPD ${u.stats.spd} • RNG ${u.range}${posTxt}`;
+  const hpbar=document.createElement('div'); hpbar.className='hpbar';
+  const hp=document.createElement('div'); hp.className='hp'; const pct=Math.round((u.hp/u.stats.maxHp)*100); hp.style.width=pct+'%'; hpbar.appendChild(hp);
+  const statusLine=document.createElement('div'); statusLine.className='small'; statusLine.style.marginTop='6px';
+  statusLine.innerHTML = u.statuses.map(s=>`<span class="tag">${s.key} ${s.turnsLeft}</span>`).join(' ');
+  info.appendChild(name); info.appendChild(stats); info.appendChild(hpbar); info.appendChild(statusLine);
+  wrap.appendChild(side); wrap.appendChild(info);
+  return wrap;
+}
+
+function renderBoard(){
+  BOARD.innerHTML='';
+  const placing = (G.phase==="setup");
+  BOARD_HINT.innerHTML = placing
+    ? `Placing: <b>${UnitTemplates[activeBuild].label}</b> for <b>${getSelectedTeam()==='ally'?'Allies':'Enemies'}</b>. Click a tile to place; click a token to remove.`
+    : `Melee requires adjacency (range 1). Move first if no targets are in range.`;
+
+  // Precompute in-range (battle only, for glow)
+  const inRangeIds=new Set();
+  if(G.phase==="battle" && G.acting){
+    const foes = G.acting.team==='ally' ? living('enemy') : living('ally');
+    for(const t of foes){ if(inRange(G.acting,t,G.acting.range)) inRangeIds.add(t.id); }
+  }
+
+  for(let y=0;y<GRID_H;y++){
+    for(let x=0;x<GRID_W;x++){
+      const cell=document.createElement('div'); cell.className='cell';
+      const label=document.createElement('div'); label.className='cell coord'; label.textContent=`${x},${y}`; cell.appendChild(label);
+      const u=getUnitAt(x,y);
+
+      if(placing){
+        if(!u){
+          cell.classList.add('place');
+          cell.onclick=()=>{ const team=getSelectedTeam(); G.units.push(makeUnit(activeBuild, team, {x,y})); render(); };
+        }else{
+          const token=renderToken(u, inRangeIds);
+          token.classList.add('removable');
+          token.title="Remove unit";
+          token.onclick=()=>{ G.units=G.units.filter(z=>z!==u); render(); };
+          cell.appendChild(token);
+        }
+      } else {
+        if(u){ cell.appendChild(renderToken(u, inRangeIds)); }
+        if(G.moveMode && G.acting && !u && isAdjacent(G.acting.pos,{x,y})){
+          cell.classList.add('move-ok');
+          cell.style.cursor='pointer';
+          cell.onclick=()=>{ G.acting.pos={x,y}; log(`${G.acting.name} moves to (${x},${y}).`); G.moveMode=false; render(); endTurn(); };
+        }
+      }
+
+      BOARD.appendChild(cell);
+    }
+  }
+}
+function renderToken(unit, inRangeIds){
+  const token=document.createElement('div');
+  token.className=`token ${unit.team}`+(G.acting&&G.acting.id===unit.id?' active':'')+(inRangeIds.has(unit.id)?' inrange':'');
+  const name=document.createElement('div'); name.className='name'; name.textContent=shortName(unit.name);
+  const hpmini=document.createElement('div'); hpmini.className='hpmini';
+  const span=document.createElement('span'); span.style.width = Math.round((unit.hp/unit.stats.maxHp)*100)+'%';
+  hpmini.appendChild(span);
+  token.appendChild(name); token.appendChild(hpmini);
+  return token;
+}
+
+/* ========= Setup controls ========= */
+presetBtn.onclick=()=>{
+  G.units=[];
+  G.units.push(makeUnit("Knight","ally",{x:0,y:1}));
+  G.units.push(makeUnit("Archer","ally",{x:0,y:2}));
+  G.units.push(makeUnit("Bruiser","enemy",{x:5,y:1}));
+  G.units.push(makeUnit("Imp","enemy",{x:5,y:2}));
+  render();
+};
+clearBtn.onclick=()=>{ G.units=[]; render(); };
+
+fromSelectorBtn.onclick = () => {
+  try{
+    const data = JSON.parse(localStorage.getItem('ft_setup') || 'null');
+    if(!data || !Array.isArray(data.allies) || !Array.isArray(data.enemies)){
+      alert('No selector setup found. Build one in selector.html first.');
+      return;
+    }
+    G.units = [];
+    const title = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+    function placeList(list, team){
+      for(const u of list){
+        const guess = title(u.tpl);
+        const T = UnitTemplates[guess] || UnitTemplates.Knight;
+        const pos = u.pos && typeof u.pos.x==='number' ? {x:u.pos.x,y:u.pos.y} : null;
+        const made = makeUnit(guess, team, pos);
+        if(u.name) made.name = u.name;
+        G.units.push(made);
+      }
+    }
+    placeList(data.allies, 'ally');
+    placeList(data.enemies, 'enemy');
+    render();
+  }catch(e){
+    alert('Could not load selector setup.');
+  }
+};
+
+startBtn.onclick=()=>{
+  const a=living('ally').length, e=living('enemy').length;
+  if(a===0 || e===0){ alert("Place at least one Ally and one Enemy."); return; }
+  G.phase="battle";
+  for(const u of G.units){ u.dead=false; u.hp=u.stats.maxHp; u.statuses=[]; u.temp={defBonus:0,defend:false}; for(const a of u.abilities) a.cd=0; if(!u.pos){ /* if no pos, auto-place to sides */ autoPlace(u); } }
+  log("<i>The battle begins.</i>");
+  nextTurn_init();
+};
+
+function autoPlace(u){
+  // simple fallback: allies left, enemies right, find first free slot scanning rows
+  if(u.team==='ally'){
+    for(let y=0;y<GRID_H;y++){ for(let x=0;x<2;x++){ if(!getUnitAt(x,y)){ u.pos={x,y}; return; } } }
+  } else {
+    for(let y=0;y<GRID_H;y++){ for(let x=GRID_W-1;x>=GRID_W-2;x--){ if(!getUnitAt(x,y)){ u.pos={x,y}; return; } } }
+  }
+}
+
+/* ========= Battle controls ========= */
+ATTACK.onclick=()=>{
+  if(!(G.acting && G.acting.team==='ally')) return;
+  TARGETS.innerHTML=''; ABILROW.innerHTML=''; G.moveMode=false;
+  const foes=living('enemy').filter(t=>inRange(G.acting,t,G.acting.range));
+  if(!foes.length){ log(`No targets in range (R${G.acting.range}). Move to get adjacent (R1) for melee.`); return; }
+  foes.forEach(t=>{
+    const b=document.createElement('button'); b.className='targetBtn';
+    b.textContent=`${shortName(t.name)} (d=${dist(G.acting.pos,t.pos)})`;
+    b.onclick=()=>{
+      const atk=G.acting.stats.atk;
+      const def=t.stats.def+(t.temp.defBonus||0)+(t.temp.defend?2:0);
+      const dmg=computeDamage(atk,def);
+      dealDamage(t,dmg,`${G.acting.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`,log);
+      render(); endTurn();
+    };
+    TARGETS.appendChild(b);
+  });
+};
+
+ABILITY.onclick=()=>{
+  if(!(G.acting && G.acting.team==='ally')) return;
+  TARGETS.innerHTML=''; ABILROW.innerHTML=''; G.moveMode=false;
+  for(const a of G.acting.abilities){
+    const tpl=AbilityLib[a.key];
+    const b=document.createElement('button');
+    b.className='targetBtn'; b.title=`${tpl.name}: ${tpl.desc}`;
+    b.textContent=`${tpl.name}${a.cd ? ` (${a.cd})` : ''}`;
+    b.disabled=a.cd>0;
+    b.onclick=()=>{
+      if(tpl.target==='self'){ tpl.use(G.acting, G.acting, log); a.cd=tpl.cooldown||0; render(); return endTurn(); }
+      const rng=tpl.range||1;
+      const cands=living('enemy').filter(t=>inRange(G.acting,t,rng));
+      if(!cands.length){ log(`No valid targets in ability range (R${rng}). Move first.`); return; }
+      TARGETS.innerHTML='';
+      cands.forEach(t=>{
+        const tb=document.createElement('button'); tb.className='targetBtn';
+        tb.textContent=`${shortName(t.name)} (d=${dist(G.acting.pos,t.pos)})`;
+        tb.onclick=()=>{ tpl.use(G.acting, t, log); a.cd=tpl.cooldown||0; render(); endTurn(); };
+        TARGETS.appendChild(tb);
+      });
+    };
+    ABILROW.appendChild(b);
+  }
+};
+
+DEFEND.onclick=()=>{
+  if(!(G.acting && G.acting.team==='ally')) return;
+  G.moveMode=false;
+  G.acting.temp.defend=true;
+  log(`${G.acting.name} takes a defensive stance (+2 DEF this turn).`);
+  render(); endTurn();
+};
+
+MOVE.onclick=()=>{
+  if(!(G.acting && G.acting.team==='ally')) return;
+  G.moveMode=!G.moveMode;
+  if(G.moveMode) log(`Select an adjacent tile for ${G.acting.name} to move.`);
+  render();
+};
+
+END.onclick=()=>{
+  if(!(G.acting && G.acting.team==='ally')) return;
+  G.moveMode=false; log(`${G.acting.name} ends their turn.`); endTurn();
+};
+
+AUTO.onclick=()=>{
+  G.auto=!G.auto;
+  AUTO.textContent=G.auto?"Auto-Play: ON":"Auto-Play";
+  if(G.auto && G.acting && G.acting.team==='ally') aiAct();
+};
+
+/* ========= Turn flow ========= */
+function nextTurn_init(){
+  const order=initiativeOrder();
+  G.acting=order[0]||null;
+  render(); if(G.acting) startTurn();
+}
+function nextTurn_advance(){
+  if(!anyLiving('ally')||!anyLiving('enemy')) return endBattle();
+  const order=initiativeOrder();
+  const idx=order.findIndex(u=>u.id===G.acting.id);
+  G.acting=order[(idx+1)%order.length];
+  if((idx+1)%order.length===0) G.round++;
+  render(); startTurn();
+}
+function startTurn(){
+  if(G.acting.dead) { return nextTurn_advance(); }
+  log(`<span class="small">— Round ${G.round} • ${G.acting.name}'s turn —</span>`);
+  tickStatusesStart(G.acting, log);
+  if(G.acting.dead){ render(); return nextTurn_advance(); }
+  for(const a of G.acting.abilities) a.cd=Math.max(0,a.cd-1);
+  render();
+  if(G.acting.team==='enemy' || G.auto) aiAct();
+}
+function endTurn(){ cleanupStatusesEnd(G.acting, log); render(); nextTurn_advance(); }
+
+function endBattle(){
+  const win=anyLiving('ally') && !anyLiving('enemy');
+  const lose=!anyLiving('ally') && anyLiving('enemy');
+  log(win? "<b>Victory!</b> All enemies defeated."
+      : lose? "<b>Defeat.</b> The party has fallen."
+      : "<b>Battle Ends.</b>");
+  ATTACK.disabled = ABILITY.disabled = DEFEND.disabled = MOVE.disabled = END.disabled = true;
+  AUTO.textContent="Auto-Play"; G.auto=false;
+}
+
+/* ========= AI must move if out of range ========= */
+function aiAct(){
+  const u=G.acting; if(!u || u.dead) return;
+  setTimeout(()=>{
+    const foes=living(u.team==='ally'?'enemy':'ally');
+    const ready=u.abilities.filter(a=>a.cd===0).map(a=>({a,tpl:AbilityLib[a.key]}));
+    const recover=ready.find(x=>x.tpl===AbilityLib.Recover);
+    const damaging=ready.filter(x=>x.tpl.target==='enemy');
+    const usable=damaging.find(x=>foes.some(t=>inRange(u,t,x.tpl.range||1)));
+
+    if(recover && u.hp<=Math.ceil(u.stats.maxHp*0.5) && Math.random()<0.4){
+      recover.tpl.use(u,u,log); recover.a.cd=recover.tpl.cooldown||0; render(); return endTurn();
+    }
+    if(usable){
+      const rng=usable.tpl.range||1;
+      const cands=foes.filter(t=>inRange(u,t,rng));
+      const t=choice(cands);
+      usable.tpl.use(u,t,log); usable.a.cd=usable.tpl.cooldown||0; render(); return endTurn();
+    }
+
+    const attackables=foes.filter(t=>inRange(u,t,u.range));
+    if(attackables.length){
+      const t=attackables.slice().sort((a,b)=>(a.hp/a.stats.maxHp)-(b.hp/b.stats.maxHp))[0];
+      const atk=u.stats.atk, def=t.stats.def+(t.temp.defBonus||0)+(t.temp.defend?2:0);
+      const dmg=computeDamage(atk,def);
+      dealDamage(t,dmg,`${u.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`,log);
+      render(); return endTurn();
+    }
+
+    const nearest=foes.slice().sort((a,b)=>dist(u.pos,a.pos)-dist(u.pos,b.pos))[0];
+    if(nearest){
+      const step=stepToward(u.pos, nearest.pos);
+      if(step && !getUnitAt(step.x,step.y)){ u.pos=step; log(`${u.name} advances to (${step.x},${step.y}).`); render(); return endTurn(); }
+    }
+
+    u.temp.defend=true; log(`${u.name} defends.`); render(); endTurn();
+  }, 420);
+}
+function stepToward(a,b){
+  const dx=b.x-a.x, dy=b.y-a.y;
+  const opts=[];
+  if(Math.abs(dx)>=Math.abs(dy)){ if(dx!==0) opts.push({x:a.x+Math.sign(dx),y:a.y}); if(dy!==0) opts.push({x:a.x,y:a.y+Math.sign(dy)}); }
+  else { if(dy!==0) opts.push({x:a.x,y:a.y+Math.sign(dy)}); if(dx!==0) opts.push({x:a.x+Math.sign(dx),y:a.y}); }
+  for(const p of opts){ if(p.x>=0&&p.x<GRID_W&&p.y>=0&&p.y<GRID_H) return p; }
+  return null;
+}
+
+/* ========= Boot ========= */
+(function boot(){
+  renderBuildButtons();
+  render();
+})();
+</script>
+</body>
+</html>
