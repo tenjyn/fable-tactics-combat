@@ -1,85 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fable Tactics – Setup + Grid Combat</title>
+<style>
+  :root { --bg:#0e0f12; --panel:#171922; --accent:#7fe6a2; --muted:#9aa3b2; --bad:#ff7a7a; --good:#8bd5ff; --ally:#7fe6a2; --enemy:#ff9b9b;}
+  * { box-sizing:border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  body { margin:0; background:linear-gradient(180deg,#0b0c0f,#12131a); color:white; }
+  header { padding:16px 20px; border-bottom:1px solid #222633; background:#12141c; position:sticky; top:0; z-index:5; }
+  header h1 { margin:0; font-size:18px; letter-spacing:.5px; }
+  main { max-width:1200px; margin:0 auto; padding:20px; display:grid; gap:16px;
+    grid-template-columns: 1.1fr 0.9fr; grid-template-areas:
+    "board side"
+    "controls log"; }
+  .panel { background:var(--panel); border:1px solid #24283a; border-radius:10px; padding:14px; box-shadow:0 6px 20px rgba(0,0,0,.25); }
+  .board { grid-area:board; }
+  .side { grid-area:side; display:grid; gap:16px; }
+  .controls { grid-area:controls; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; }
+  .log { grid-area:log; max-height:320px; overflow:auto; background:#12141c; }
+  h2 { margin:0 0 8px; font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.12em; }
+  .small { font-size:12px; color:var(--muted); }
+  .divider { height:1px; background:#222634; margin:10px 0; }
+
+  /* Roster & party lists */
+  .unit { display:flex; align-items:center; gap:10px; padding:8px; margin:6px 0; background:#11131a; border:1px solid #1f2330; border-radius:8px; }
+  .unit.dead { opacity:.45; filter:grayscale(1); }
+  .badge { font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid #2b3144; color:var(--muted); }
+  .hpbar { width:100%; height:14px; background:#1b1f2b; border-radius:6px; overflow:hidden; border:1px solid #2a2f41; }
+  .hp { height:100%; background:linear-gradient(90deg, #4ade80, #22c55e); }
+  .row { display:flex; gap:10px; align-items:center; width:100%; }
+  .col { flex:1; }
+  .stats { font-size:12px; color:var(--muted); }
+  .tag { font-size:11px; padding:1px 6px; border-radius:6px; background:#1b2230; border:1px solid #2a3347; margin-left:4px; }
+  .turnbar { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 0; }
+  .pill { font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid #2b3144; background:#111520; opacity:.9; }
+  .pill.active { border-color:var(--accent); color:var(--accent); }
+
+  /* Buttons & inputs */
+  button { background:#1c2636; color:white; border:1px solid #2b3144; padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:600; }
+  button:hover { border-color:#3a425d; }
+  button.primary { background:#1e2e3d; border-color:#405a62; }
+  button.ghost { background:transparent; border-color:#2b3144; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .btn-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .targetRow { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .targetBtn { padding:6px 10px; font-size:12px; border-radius:8px; background:#232a3b; border:1px solid #2f3750; }
+
+  /* Board grid */
+  .grid { display:grid; grid-template-columns: repeat(var(--w), 1fr); grid-template-rows: repeat(var(--h), 64px); gap:6px; }
+  .cell { position:relative; border:1px solid #2a2f41; background:#0f1420; border-radius:8px; display:flex; align-items:center; justify-content:center; }
+  .cell.coord { font-size:10px; color:#445; position:absolute; left:6px; top:4px; }
+  .cell.move-ok { outline:2px dashed var(--accent); outline-offset:-4px; }
+  .cell.place { outline:2px dashed #3a7; outline-offset:-4px; cursor:pointer; }
+  .token { display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 8px; border-radius:10px; border:1px solid #2b3144; background:#121a26; box-shadow:0 6px 12px rgba(0,0,0,.25); }
+  .token.ally { border-color:#2c4; }
+  .token.enemy { border-color:#c44; }
+  .token .name { font-size:12px; font-weight:700; }
+  .token .hpmini { width:56px; height:6px; border-radius:4px; background:#1b1f2b; border:1px solid #2a2f41; overflow:hidden; }
+  .token .hpmini > span { display:block; height:100%; background:linear-gradient(90deg,#4ade80,#22c55e); }
+  .token.active { box-shadow:0 0 0 2px var(--accent), 0 8px 16px rgba(0,0,0,.35); }
+  .token.inrange { box-shadow: 0 0 0 2px rgba(127,230,162,.8), 0 8px 16px rgba(0,0,0,.35); }
+  .token.removable { cursor:pointer; outline:2px dashed #a55; outline-offset:-4px; }
+</style>
+</head>
+<body>
+  <header><h1>Fable Tactics • Quick Setup + Grid Combat</h1></header>
+  <main>
+    <section class="panel board">
+      <h2 id="phaseTitle">Setup: Place Units</h2>
+      <div id="board" class="grid"></div>
+      <div id="boardHint" class="small" style="margin-top:8px"></div>
+    </section>
+
+    <section class="side">
+      <section class="panel" id="setupPanel">
+        <h2>Quick Setup</h2>
+        <div class="small">Pick a build, choose a team, then click a tile to place. Click a token to remove.</div>
+        <div class="divider"></div>
+
+        <div class="btn-row" style="margin-bottom:8px">
+          <label><input type="radio" name="team" value="ally" checked> Allies</label>
+          <label><input type="radio" name="team" value="enemy"> Enemies</label>
+        </div>
+
+        <div class="btn-row" id="buildRow"></div>
+
+        <div class="divider"></div>
+        <div class="btn-row">
+          <button id="presetBtn" class="ghost">Preset: Skirmish 2v2</button>
+          <button id="clearBtn" class="ghost">Clear Board</button>
+          <button id="startBtn" class="primary">Start Battle</button>
+        </div>
+      </section>
+
+      <section class="panel" id="partyPanel" style="display:none">
+        <h2>Allies</h2>
+        <div id="partyList"></div>
+        <div class="divider"></div>
+        <div>
+          <div class="small">Turn Order</div>
+          <div id="turnbar" class="turnbar"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="enemyPanel" style="display:none">
+        <h2>Enemies</h2>
+        <div id="enemyList"></div>
+        <div class="divider"></div>
+        <div class="small">Melee needs adjacency. Use <b>Move</b> first.</div>
+      </section>
+    </section>
+
+    <section class="panel controls">
+      <div class="col">
+        <h2>Actions</h2>
+        <div id="actionRow" class="btn-row">
+          <button id="attackBtn" class="primary" disabled>Attack</button>
+          <button id="abilityBtn" disabled>Ability</button>
+          <button id="defendBtn" disabled>Defend</button>
+          <button id="moveBtn" disabled>Move</button>
+          <button id="endBtn" disabled>End Turn</button>
+          <button id="autoBtn" title="Let the AI play for you" disabled>Auto-Play</button>
+        </div>
+        <div id="abilityRow" class="targetRow"></div>
+        <div id="targetRow" class="targetRow"></div>
+      </div>
+    </section>
+
+    <section class="panel log">
+      <h2>Combat Log</h2>
+      <div id="log"></div>
+    </section>
+  </main>
+
 <script>
-/* ---------------------------
-   Minimal Battle Engine + Grid + Ranges
----------------------------- */
-const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
-const rand = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
-const choice = (arr)=>arr[Math.floor(Math.random()*arr.length)];
+/* ========= Core helpers ========= */
+const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=(arr)=>arr[Math.floor(Math.random()*arr.length)];
+const GRID_W=6, GRID_H=4;
+const dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+const inRange=(u,t,r)=>dist(u.pos,t.pos)<=r;
+const isAdjacent=(a,b)=>dist(a,b)===1;
+function shortName(n){ return n.replace(/\(.*?\)/,'').trim().split(' ')[0]; }
+function getUnitAt(x,y){ return G.units.find(u=>!u.dead && u.pos && u.pos.x===x && u.pos.y===y); }
 
-const GRID_W = 6, GRID_H = 4;
-
-// Manhattan distance + helpers
-const dist = (a,b)=> Math.abs(a.x-b.x) + Math.abs(a.y-b.y);
-const inRange = (user, target, r)=> dist(user.pos, target.pos) <= r;
-
-const StatusLib = {
-  Guard: { name:"Guard", desc:"Increase DEF by 50% for 1 turn.", apply(u){ u.temp.defBonus=(u.temp.defBonus||0)+Math.ceil(u.stats.def*0.5); }, remove(u){ u.temp.defBonus=0; }, duration:1, tick(){} },
-  Bleed: { name:"Bleed", desc:"Lose 5 HP at start for 2 turns.", apply(){}, remove(){}, duration:2, tick(u,log){ const dmg=5; u.hp=clamp(u.hp-dmg,0,u.stats.maxHp); log(`${u.name} bleeds for <span class="dmg">-${dmg}</span>.`); } }
+/* ========= Libraries ========= */
+const StatusLib={
+  Guard:{name:"Guard",desc:"Increase DEF by 50% for 1 turn.",duration:1,
+    apply(u){u.temp.defBonus=(u.temp.defBonus||0)+Math.ceil(u.stats.def*0.5);},
+    remove(u){u.temp.defBonus=0;},tick(){}},
+  Bleed:{name:"Bleed",desc:"Lose 5 HP at start for 2 turns.",duration:2,
+    apply(){},remove(){},tick(u,log){const dmg=5;u.hp=clamp(u.hp-dmg,0,u.stats.maxHp);log(`${u.name} bleeds for <span class="dmg">-${dmg}</span>.`);}}
 };
 
-// Ability ranges: self=0, melee=1, ranger-ish=3
-const AbilityLib = {
-  PowerStrike: { name:"Power Strike", desc:"+50% ATK single hit. 1-turn CD. (range 1)", cooldown:1, range:1, user:"enemy|ally", target:"enemy",
-    use(user,target,log){ const atk=Math.ceil(user.stats.atk*1.5); const dmg=computeDamage(atk, target.stats.def + (target.temp.defBonus||0)); dealDamage(target,dmg,`${user.name} uses Power Strike on ${target.name} for <span class="dmg">-${dmg}</span>.`,log); } },
-  Guard: { name:"Guard", desc:"Gain Guard for 1 turn.", cooldown:2, range:0, user:"self", target:"self",
-    use(user,_t,log){ addStatus(user,"Guard",log); log(`${user.name} braces and gains <span class="hit">Guard</span>.`); } },
-  BleedingShot: { name:"Bleeding Shot", desc:"Light hit + Bleed. (range 3)", cooldown:2, range:3, user:"enemy|ally", target:"enemy",
-    use(user,target,log){ const atk=Math.ceil(user.stats.atk*0.8); const dmg=computeDamage(atk, target.stats.def + (target.temp.defBonus||0)); dealDamage(target,dmg,`${user.name} uses Bleeding Shot on ${target.name} for <span class="dmg">-${dmg}</span>.`,log); if(!target.dead){ addStatus(target,"Bleed",log); log(`${target.name} is now <span class="hit">Bleeding</span>.`);} } },
-  Recover: { name:"Recover", desc:"Restore 12 HP to self.", cooldown:2, range:0, user:"self", target:"self",
-    use(user,_t,log){ const heal=12; const before=user.hp; user.hp=clamp(user.hp+heal,0,user.stats.maxHp); log(`${user.name} recovers <span class="heal">+${user.hp-before}</span> HP.`);} }
+const AbilityLib={
+  PowerStrike:{name:"Power Strike",desc:"+50% ATK single hit. 1-turn CD. (range 1)",cooldown:1,range:1,target:"enemy",
+    use(user,target,log){const atk=Math.ceil(user.stats.atk*1.5);const dmg=computeDamage(atk,target.stats.def+(target.temp.defBonus||0));dealDamage(target,dmg,`${user.name} uses Power Strike on ${target.name} for <span class="dmg">-${dmg}</span>.`,log);}},
+  Guard:{name:"Guard",desc:"Gain Guard for 1 turn.",cooldown:2,range:0,target:"self",
+    use(user,_t,log){addStatus(user,"Guard",log);log(`${user.name} braces and gains <span class="hit">Guard</span>.`);}},
+  BleedingShot:{name:"Bleeding Shot",desc:"Light hit + Bleed. (range 3)",cooldown:2,range:3,target:"enemy",
+    use(user,target,log){const atk=Math.ceil(user.stats.atk*0.8);const dmg=computeDamage(atk,target.stats.def+(target.temp.defBonus||0));dealDamage(target,dmg,`${user.name} uses Bleeding Shot on ${target.name} for <span class="dmg">-${dmg}</span>.`,log);if(!target.dead){addStatus(target,"Bleed",log);log(`${target.name} is now <span class="hit">Bleeding</span>.`);}}},
+  Recover:{name:"Recover",desc:"Restore 12 HP to self.",cooldown:2,range:0,target:"self",
+    use(user,_t,log){const heal=12;const before=user.hp;user.hp=clamp(user.hp+heal,0,user.stats.maxHp);log(`${user.name} recovers <span class="heal">+${user.hp-before}</span> HP.`);}}
 };
 
-function makeUnit(name, team, stats, abilityKeys, pos, attackRange){
+/* ========= Unit templates (basic builds) ========= */
+const UnitTemplates={
+  Knight:{ label:"Knight", name:"Tallis (Knight)", stats:{maxHp:60,atk:14,def:10,spd:7}, abilities:["PowerStrike","Guard"], range:1 },
+  Ranger:{ label:"Ranger", name:"Clover (Ranger)", stats:{maxHp:44,atk:11,def:7,spd:12}, abilities:["BleedingShot","Recover"], range:3 },
+  Bruiser:{ label:"Bruiser", name:"Goblin Bruiser", stats:{maxHp:40,atk:12,def:6,spd:8}, abilities:["PowerStrike"], range:1 },
+  Imp:{ label:"Imp", name:"Woad Imp", stats:{maxHp:32,atk:9,def:5,spd:11}, abilities:["BleedingShot"], range:3 }
+};
+
+function makeUnit(tplKey, team, pos){
+  const T=UnitTemplates[tplKey];
   return {
-    id: crypto.randomUUID(), name, team,
-    stats: {...stats}, hp: stats.maxHp, dead:false,
-    temp:{ defBonus:0, defend:false }, statuses:[],
-    abilities: abilityKeys.map(k=>({ key:k, cd:0 })),
-    pos: {...pos},          // {x,y}
-    range: attackRange||1   // basic attack range
+    id: crypto.randomUUID(),
+    name: T.name, team,
+    stats: {...T.stats}, hp:T.stats.maxHp, dead:false,
+    temp:{defBonus:0,defend:false}, statuses:[],
+    abilities: T.abilities.map(k=>({key:k,cd:0})),
+    range: T.range,
+    pos: pos? {...pos} : null
   };
 }
 
-// Party: Knight melee(1), Ranger ranged(3)
-const party = [
-  makeUnit("Tallis (Knight)", "ally",  {maxHp:60, atk:14, def:10, spd:7},  ["PowerStrike","Guard"],       {x:0,y:1}, 1),
-  makeUnit("Clover (Ranger)", "ally",  {maxHp:44, atk:11, def:7,  spd:12}, ["BleedingShot","Recover"],    {x:0,y:2}, 3),
-];
-const enemies = [
-  makeUnit("Goblin Bruiser", "enemy",  {maxHp:40, atk:12, def:6, spd:8},   ["PowerStrike"],               {x:5,y:1}, 1),
-  makeUnit("Woad Imp",       "enemy",  {maxHp:32, atk:9,  def:5, spd:11},  ["BleedingShot"],              {x:5,y:2}, 3),
-];
+/* ========= Global State ========= */
+const G={
+  phase:"setup", // "setup" | "battle"
+  units:[],
+  acting:null,
+  round:1,
+  moveMode:false,
+  auto:false
+};
 
-const G = { units:[...party, ...enemies], turnIndex:0, round:1, acting:null, auto:false, moveMode:false };
-
-function computeDamage(atk, def){ const base=Math.max(1, atk - Math.floor(def*0.7)); const variance=rand(-2,2); return Math.max(1, base+variance); }
+/* ========= Math / Effects ========= */
+function computeDamage(atk,def){ const base=Math.max(1, atk - Math.floor(def*0.7)); const variance=rand(-2,2); return Math.max(1, base+variance); }
 function dealDamage(target,dmg,msg,log){ target.hp=clamp(target.hp-dmg,0,target.stats.maxHp); if(msg) log(msg); if(target.hp===0){ target.dead=true; log(`<b>${target.name}</b> is defeated.`);} }
 function addStatus(u,key,log){ const tpl=StatusLib[key]; if(!tpl) return; const ex=u.statuses.find(s=>s.key===key); if(ex) ex.turnsLeft=tpl.duration; else u.statuses.push({key,turnsLeft:tpl.duration}); tpl.apply(u,log); }
 function tickStatusesStart(u,log){ for(const s of [...u.statuses]){ const tpl=StatusLib[s.key]; if(tpl&&tpl.tick) tpl.tick(u,log); if(u.hp===0) break; } }
 function cleanupStatusesEnd(u,log){ for(const s of [...u.statuses]){ s.turnsLeft-=1; if(s.turnsLeft<=0){ const tpl=StatusLib[s.key]; if(tpl&&tpl.remove) tpl.remove(u,log); u.statuses=u.statuses.filter(x=>x!==s);} } u.temp.defend=false; u.temp.defBonus=0; }
+
+/* ========= Turn & Teams ========= */
 function living(team){ return G.units.filter(u=>u.team===team && !u.dead); }
 function anyLiving(team){ return living(team).length>0; }
-function getUnitAt(x,y){ return G.units.find(u=>!u.dead && u.pos.x===x && u.pos.y===y); }
-
 function initiativeOrder(){
   return G.units.filter(u=>!u.dead).slice().sort((a,b)=> b.stats.spd - a.stats.spd || (a.id > b.id ? 1 : -1));
 }
 
+/* ========= UI elements ========= */
+const BOARD=document.getElementById('board');
+const PHASE=document.getElementById('phaseTitle');
+const BOARD_HINT=document.getElementById('boardHint');
+const SETUP_PANEL=document.getElementById('setupPanel');
+const PARTY_PANEL=document.getElementById('partyPanel');
+const ENEMY_PANEL=document.getElementById('enemyPanel');
+
+const PARTY=document.getElementById('partyList');
+const ENEMIES=document.getElementById('enemyList');
+const TURNBAR=document.getElementById('turnbar');
+const LOG=document.getElementById('log');
+
+const ATTACK=document.getElementById('attackBtn');
+const ABILITY=document.getElementById('abilityBtn');
+const DEFEND=document.getElementById('defendBtn');
+const MOVE=document.getElementById('moveBtn');
+const END=document.getElementById('endBtn');
+const AUTO=document.getElementById('autoBtn');
+
+const TARGETS=document.getElementById('targetRow');
+const ABILROW=document.getElementById('abilityRow');
+
+const buildRow=document.getElementById('buildRow');
+const presetBtn=document.getElementById('presetBtn');
+const clearBtn=document.getElementById('clearBtn');
+const startBtn=document.getElementById('startBtn');
+
+/* ========= Setup: builds UI ========= */
+let activeBuild="Knight";
+function renderBuildButtons(){
+  buildRow.innerHTML="";
+  Object.keys(UnitTemplates).forEach(key=>{
+    const b=document.createElement('button');
+    b.textContent=UnitTemplates[key].label;
+    b.className = key===activeBuild ? "primary" : "";
+    b.onclick=()=>{ activeBuild=key; renderBuildButtons(); renderBoard(); };
+    buildRow.appendChild(b);
+  });
+}
+function getSelectedTeam(){
+  const radios=[...document.querySelectorAll('input[name="team"]')];
+  const r=radios.find(x=>x.checked); return r? r.value : "ally";
+}
+
+/* ========= Rendering ========= */
 function log(msg){ const el=document.createElement('div'); el.className='toast'; el.innerHTML=msg; LOG.appendChild(el); LOG.scrollTop=LOG.scrollHeight; }
 
 function render(){
-  // Lists
-  PARTY.innerHTML=''; for(const u of party) PARTY.appendChild(renderUnit(u));
-  ENEMIES.innerHTML=''; for(const u of enemies) ENEMIES.appendChild(renderUnit(u));
+  PHASE.textContent = G.phase==="setup" ? "Setup: Place Units" : "Battle";
+  BOARD.style.setProperty('--w', GRID_W);
+  BOARD.style.setProperty('--h', GRID_H);
+
+  // Panels visibility
+  if(G.phase==="setup"){
+    SETUP_PANEL.style.display="";
+    PARTY_PANEL.style.display="none";
+    ENEMY_PANEL.style.display="none";
+    ATTACK.disabled=ABILITY.disabled=DEFEND.disabled=MOVE.disabled=END.disabled=AUTO.disabled=true;
+  }else{
+    SETUP_PANEL.style.display="none";
+    PARTY_PANEL.style.display="";
+    ENEMY_PANEL.style.display="";
+    const playerTurn=G.acting && G.acting.team==='ally' && !G.acting.dead;
+    ATTACK.disabled = !playerTurn;
+    ABILITY.disabled = !playerTurn;
+    DEFEND.disabled = !playerTurn;
+    MOVE.disabled   = !playerTurn;
+    END.disabled    = !playerTurn;
+    AUTO.disabled   = false;
+  }
+
+  // Roster lists
+  PARTY.innerHTML=''; for(const u of living('ally')) PARTY.appendChild(renderUnit(u));
+  ENEMIES.innerHTML=''; for(const u of living('enemy')) ENEMIES.appendChild(renderUnit(u));
+
   // Turnbar
-  TURNBAR.innerHTML=''; for(const u of initiativeOrder()){ const pill=document.createElement('span'); pill.className='pill'+(G.acting&&G.acting.id===u.id?' active':''); pill.textContent=u.name.split(' ')[0]; TURNBAR.appendChild(pill); }
-  // Controls
-  const playerTurn=G.acting && G.acting.team==='ally' && !G.acting.dead;
-  ATTACK.disabled = !playerTurn;
-  ABILITY.disabled = !playerTurn;
-  DEFEND.disabled = !playerTurn;
-  MOVE.disabled = !playerTurn;
-  END.disabled = !playerTurn;
+  TURNBAR.innerHTML='';
+  if(G.phase==="battle"){
+    for(const u of initiativeOrder()){
+      const pill=document.createElement('span');
+      pill.className='pill'+(G.acting&&G.acting.id===u.id?' active':'');
+      pill.textContent=shortName(u.name);
+      TURNBAR.appendChild(pill);
+    }
+  }
+
   // Board
   renderBoard();
 }
@@ -92,7 +310,8 @@ function renderUnit(u){
   const name=document.createElement('div'); name.innerHTML=`<b>${u.name}</b>`;
   const stats=document.createElement('div'); stats.className='stats';
   const defNow=u.stats.def + (u.temp.defBonus||0) + (u.temp.defend?2:0);
-  stats.innerHTML = `ATK ${u.stats.atk} • DEF ${defNow} • SPD ${u.stats.spd} • POS (${u.pos.x},${u.pos.y}) • RNG ${u.range}`;
+  const posTxt = u.pos? ` • POS (${u.pos.x},${u.pos.y})` : '';
+  stats.innerHTML = `ATK ${u.stats.atk} • DEF ${defNow} • SPD ${u.stats.spd} • RNG ${u.range}${posTxt}`;
   const hpbar=document.createElement('div'); hpbar.className='hpbar';
   const hp=document.createElement('div'); hp.className='hp'; const pct=Math.round((u.hp/u.stats.maxHp)*100); hp.style.width=pct+'%'; hpbar.appendChild(hp);
   const statusLine=document.createElement('div'); statusLine.className='small'; statusLine.style.marginTop='6px';
@@ -102,115 +321,101 @@ function renderUnit(u){
   return wrap;
 }
 
-/* ---------- Board UI ---------- */
 function renderBoard(){
-  BOARD.style.setProperty('--w', GRID_W);
-  BOARD.style.setProperty('--h', GRID_H);
   BOARD.innerHTML='';
+  const placing = (G.phase==="setup");
+  BOARD_HINT.innerHTML = placing
+    ? `Placing: <b>${UnitTemplates[activeBuild].label}</b> for <b>${getSelectedTeam()==='ally'?'Allies':'Enemies'}</b>. Click a tile to place; click a token to remove.`
+    : `Melee requires adjacency (range 1). Move first if no targets are in range.`;
 
-  // Precompute "in-range" targets for the acting unit (basic attack lens)
-  const inRangeIds = new Set();
-  if(G.acting){
+  // Precompute in-range (battle only, for glow)
+  const inRangeIds=new Set();
+  if(G.phase==="battle" && G.acting){
     const foes = G.acting.team==='ally' ? living('enemy') : living('ally');
-    for(const t of foes){ if(inRange(G.acting, t, G.acting.range)) inRangeIds.add(t.id); }
+    for(const t of foes){ if(inRange(G.acting,t,G.acting.range)) inRangeIds.add(t.id); }
   }
 
   for(let y=0;y<GRID_H;y++){
     for(let x=0;x<GRID_W;x++){
-      const cell=document.createElement('div'); cell.className='cell'; cell.dataset.x=x; cell.dataset.y=y;
+      const cell=document.createElement('div'); cell.className='cell';
       const label=document.createElement('div'); label.className='cell coord'; label.textContent=`${x},${y}`; cell.appendChild(label);
-      const unit=getUnitAt(x,y);
-      if(unit){
-        const token=document.createElement('div'); token.className=`token ${unit.team}`+(G.acting&&G.acting.id===unit.id?' active':'')+(inRangeIds.has(unit.id)?' inrange':'');
-        const name=document.createElement('div'); name.className='name'; name.textContent=shortName(unit.name);
-        const hpmini=document.createElement('div'); hpmini.className='hpmini';
-        const span=document.createElement('span'); span.style.width = Math.round((unit.hp/unit.stats.maxHp)*100)+'%';
-        hpmini.appendChild(span);
-        token.appendChild(name); token.appendChild(hpmini);
-        cell.appendChild(token);
+      const u=getUnitAt(x,y);
+
+      // Setup: place/remove
+      if(placing){
+        if(!u){
+          cell.classList.add('place');
+          cell.onclick=()=>{
+            const team=getSelectedTeam();
+            G.units.push(makeUnit(activeBuild, team, {x,y}));
+            render();
+          };
+        }else{
+          // Click token to remove
+          const token=renderToken(u, inRangeIds);
+          token.classList.add('removable');
+          token.title="Remove unit";
+          token.onclick=()=>{ G.units=G.units.filter(z=>z!==u); render(); };
+          cell.appendChild(token);
+        }
+      } else {
+        // Battle tokens
+        if(u){
+          const token=renderToken(u, inRangeIds);
+          cell.appendChild(token);
+        }
+        // Move highlights (when moving)
+        if(G.moveMode && G.acting && !u && isAdjacent(G.acting.pos,{x,y})){
+          cell.classList.add('move-ok');
+          cell.style.cursor='pointer';
+          cell.onclick=()=>{ G.acting.pos={x,y}; log(`${G.acting.name} moves to (${x},${y}).`); G.moveMode=false; render(); endTurn(); };
+        }
       }
-      // Move highlights
-      if(G.moveMode && G.acting && !unit && isAdjacent(G.acting.pos, {x,y})){
-        cell.classList.add('move-ok');
-        cell.style.cursor='pointer';
-        cell.onclick=()=>{ G.acting.pos={x,y}; log(`${G.acting.name} moves to (${x},${y}).`); G.moveMode=false; render(); endTurn(); };
-      }
+
       BOARD.appendChild(cell);
     }
   }
 }
-function shortName(n){ return n.replace(/\(.*?\)/,'').trim().split(' ')[0]; }
-function isAdjacent(a,b){ return Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1; }
+function renderToken(unit, inRangeIds){
+  const token=document.createElement('div');
+  token.className=`token ${unit.team}`+(G.acting&&G.acting.id===unit.id?' active':'')+(inRangeIds.has(unit.id)?' inrange':'');
+  const name=document.createElement('div'); name.className='name'; name.textContent=shortName(unit.name);
+  const hpmini=document.createElement('div'); hpmini.className='hpmini';
+  const span=document.createElement('span'); span.style.width = Math.round((unit.hp/unit.stats.maxHp)*100)+'%';
+  hpmini.appendChild(span);
+  token.appendChild(name); token.appendChild(hpmini);
+  return token;
+}
 
-/* ---------- Turn Loop ---------- */
-function nextTurn(){
-  if(!anyLiving('ally')||!anyLiving('enemy')) return endBattle();
-  const order=initiativeOrder();
-  if(!G.acting) G.acting=order[0];
-  else{
-    const idx=order.findIndex(u=>u.id===G.acting.id);
-    G.acting=order[(idx+1)%order.length];
-    if((idx+1)%order.length===0) G.round++;
-  }
+/* ========= Setup controls ========= */
+presetBtn.onclick=()=>{
+  // Clear and place a quick 2v2
+  G.units=[];
+  G.units.push(makeUnit("Knight","ally",{x:0,y:1}));
+  G.units.push(makeUnit("Ranger","ally",{x:0,y:2}));
+  G.units.push(makeUnit("Bruiser","enemy",{x:5,y:1}));
+  G.units.push(makeUnit("Imp","enemy",{x:5,y:2}));
   render();
-  if(G.acting.dead) return nextTurn();
-  log(`<span class="small">— Round ${G.round} • ${G.acting.name}'s turn —</span>`);
-  tickStatusesStart(G.acting, log);
-  if(G.acting.dead){ render(); return nextTurn(); }
-  for(const a of G.acting.abilities) a.cd=Math.max(0,a.cd-1);
-  render();
-  if(G.acting.team==='enemy' || G.auto) aiAct();
-}
+};
+clearBtn.onclick=()=>{ G.units=[]; render(); };
+startBtn.onclick=()=>{
+  const a=living('ally').length, e=living('enemy').length;
+  if(a===0 || e===0){ alert("Place at least one Ally and one Enemy."); return; }
+  G.phase="battle";
+  // Ensure all have positions (they do in this setup), reduce CDs to 0, reset statuses
+  for(const u of G.units){ u.dead=false; u.hp=u.stats.maxHp; u.statuses=[]; u.temp={defBonus:0,defend:false}; for(const a of u.abilities) a.cd=0; }
+  log("<i>The battle begins.</i>");
+  nextTurn_init();
+};
 
-function endTurn(){
-  cleanupStatusesEnd(G.acting, log);
-  render();
-  nextTurn();
-}
-
-function endBattle(){
-  const win=anyLiving('ally') && !anyLiving('enemy');
-  const lose=!anyLiving('ally') && anyLiving('enemy');
-  const text= win ? "<b>Victory!</b> All enemies defeated."
-             : lose ? "<b>Defeat.</b> The party has fallen."
-             : "<b>Battle Ends.</b>";
-  log(text);
-  ATTACK.disabled = ABILITY.disabled = DEFEND.disabled = MOVE.disabled = END.disabled = true;
-  AUTO.textContent="Auto-Play"; G.auto=false;
-}
-
-/* ---------- Targeting ---------- */
-function validTargets(user, scope){
-  if(scope==='self') return [user];
-  if(scope==='enemy') return user.team==='ally' ? living('enemy') : living('ally');
-  return [];
-}
-
-/* ---------- Controls ---------- */
-const PARTY   = document.getElementById('partyList');
-const ENEMIES = document.getElementById('enemyList');
-const TURNBAR = document.getElementById('turnbar');
-const LOG     = document.getElementById('log');
-const BOARD   = document.getElementById('board');
-
-const ATTACK  = document.getElementById('attackBtn');
-const ABILITY = document.getElementById('abilityBtn');
-const DEFEND  = document.getElementById('defendBtn');
-const MOVE    = document.getElementById('moveBtn');
-const END     = document.getElementById('endBtn');
-const AUTO    = document.getElementById('autoBtn');
-
-const TARGETS = document.getElementById('targetRow');
-const ABILROW = document.getElementById('abilityRow');
-
-ATTACK.addEventListener('click', () => {
-  if(!G.acting || G.acting.team!=='ally') return;
-  G.moveMode=false; TARGETS.innerHTML=''; ABILROW.innerHTML='';
-  const foes=validTargets(G.acting,'enemy').filter(t => inRange(G.acting, t, G.acting.range));
-  if(!foes.length){ log(`No targets in range (R${G.acting.range}). Try <b>Move</b>.`); return; }
+/* ========= Battle controls ========= */
+ATTACK.onclick=()=>{
+  if(!(G.acting && G.acting.team==='ally')) return;
+  TARGETS.innerHTML=''; ABILROW.innerHTML=''; G.moveMode=false;
+  const foes=living('enemy').filter(t=>inRange(G.acting,t,G.acting.range));
+  if(!foes.length){ log(`No targets in range (R${G.acting.range}). Move to get adjacent (R1) for melee.`); return; }
   foes.forEach(t=>{
-    const b=document.createElement('button');
-    b.className='targetBtn';
+    const b=document.createElement('button'); b.className='targetBtn';
     b.textContent=`${shortName(t.name)} (d=${dist(G.acting.pos,t.pos)})`;
     b.onclick=()=>{
       const atk=G.acting.stats.atk;
@@ -221,11 +426,11 @@ ATTACK.addEventListener('click', () => {
     };
     TARGETS.appendChild(b);
   });
-});
+};
 
-ABILITY.addEventListener('click', () => {
-  if(!G.acting || G.acting.team!=='ally') return;
-  G.moveMode=false; TARGETS.innerHTML=''; ABILROW.innerHTML='';
+ABILITY.onclick=()=>{
+  if(!(G.acting && G.acting.team==='ally')) return;
+  TARGETS.innerHTML=''; ABILROW.innerHTML=''; G.moveMode=false;
   for(const a of G.acting.abilities){
     const tpl=AbilityLib[a.key];
     const b=document.createElement('button');
@@ -233,13 +438,12 @@ ABILITY.addEventListener('click', () => {
     b.textContent=`${tpl.name}${a.cd ? ` (${a.cd})` : ''}`;
     b.disabled=a.cd>0;
     b.onclick=()=>{
-      const scope=tpl.target; 
-      if(scope==='self'){ tpl.use(G.acting, G.acting, log); a.cd=tpl.cooldown||0; render(); return endTurn(); }
-      // enemy-targeted: filter by ability range
-      const candidates = validTargets(G.acting,'enemy').filter(t => inRange(G.acting, t, tpl.range||1));
-      if(!candidates.length){ log(`No valid targets in ability range (R${tpl.range||1}). Try <b>Move</b>.`); return; }
+      if(tpl.target==='self'){ tpl.use(G.acting, G.acting, log); a.cd=tpl.cooldown||0; render(); return endTurn(); }
+      const rng=tpl.range||1;
+      const cands=living('enemy').filter(t=>inRange(G.acting,t,rng));
+      if(!cands.length){ log(`No valid targets in ability range (R${rng}). Move first.`); return; }
       TARGETS.innerHTML='';
-      candidates.forEach(t=>{
+      cands.forEach(t=>{
         const tb=document.createElement('button'); tb.className='targetBtn';
         tb.textContent=`${shortName(t.name)} (d=${dist(G.acting.pos,t.pos)})`;
         tb.onclick=()=>{ tpl.use(G.acting, t, log); a.cd=tpl.cooldown||0; render(); endTurn(); };
@@ -248,101 +452,127 @@ ABILITY.addEventListener('click', () => {
     };
     ABILROW.appendChild(b);
   }
-});
+};
 
-DEFEND.addEventListener('click', () => {
-  if(!G.acting || G.acting.team!=='ally') return;
+DEFEND.onclick=()=>{
+  if(!(G.acting && G.acting.team==='ally')) return;
   G.moveMode=false;
   G.acting.temp.defend=true;
   log(`${G.acting.name} takes a defensive stance (+2 DEF this turn).`);
   render(); endTurn();
-});
+};
 
-MOVE.addEventListener('click', () => {
-  if(!G.acting || G.acting.team!=='ally') return;
-  G.moveMode = !G.moveMode;
+MOVE.onclick=()=>{
+  if(!(G.acting && G.acting.team==='ally')) return;
+  G.moveMode=!G.moveMode;
   if(G.moveMode) log(`Select an adjacent tile for ${G.acting.name} to move.`);
   render();
-});
+};
 
-END.addEventListener('click', () => {
-  if(!G.acting || G.acting.team!=='ally') return;
-  G.moveMode=false;
-  log(`${G.acting.name} ends their turn.`);
-  endTurn();
-});
+END.onclick=()=>{
+  if(!(G.acting && G.acting.team==='ally')) return;
+  G.moveMode=false; log(`${G.acting.name} ends their turn.`); endTurn();
+};
 
-AUTO.addEventListener('click', () => {
+AUTO.onclick=()=>{
   G.auto=!G.auto;
   AUTO.textContent=G.auto?"Auto-Play: ON":"Auto-Play";
   if(G.auto && G.acting && G.acting.team==='ally') aiAct();
-});
+};
 
-/* ---------- AI (respects range) ---------- */
+/* ========= Turn flow ========= */
+function nextTurn_init(){
+  // set acting to highest SPD to start
+  const order=initiativeOrder();
+  G.acting=order[0]||null;
+  render(); if(G.acting) startTurn();
+}
+function nextTurn_advance(){
+  if(!anyLiving('ally')||!anyLiving('enemy')) return endBattle();
+  const order=initiativeOrder();
+  const idx=order.findIndex(u=>u.id===G.acting.id);
+  G.acting=order[(idx+1)%order.length];
+  if((idx+1)%order.length===0) G.round++;
+  render(); startTurn();
+}
+function startTurn(){
+  if(G.acting.dead) { return nextTurn_advance(); }
+  log(`<span class="small">— Round ${G.round} • ${G.acting.name}'s turn —</span>`);
+  tickStatusesStart(G.acting, log);
+  if(G.acting.dead){ render(); return nextTurn_advance(); }
+  for(const a of G.acting.abilities) a.cd=Math.max(0,a.cd-1);
+  render();
+  if(G.acting.team==='enemy' || G.auto) aiAct();
+}
+function endTurn(){ cleanupStatusesEnd(G.acting, log); render(); nextTurn_advance(); }
+
+function endBattle(){
+  const win=anyLiving('ally') && !anyLiving('enemy');
+  const lose=!anyLiving('ally') && anyLiving('enemy');
+  log(win? "<b>Victory!</b> All enemies defeated."
+      : lose? "<b>Defeat.</b> The party has fallen."
+      : "<b>Battle Ends.</b>");
+  ATTACK.disabled = ABILITY.disabled = DEFEND.disabled = MOVE.disabled = END.disabled = true;
+  AUTO.textContent="Auto-Play"; G.auto=false;
+}
+
+/* ========= AI that must move if out of range ========= */
 function aiAct(){
   const u=G.acting; if(!u || u.dead) return;
   setTimeout(()=>{
-    const foes=validTargets(u,'enemy');
-    // If have a damaging ability in range, prefer it
+    const foes=living(u.team==='ally'?'enemy':'ally');
+    // Try ability in range
     const ready=u.abilities.filter(a=>a.cd===0).map(a=>({a,tpl:AbilityLib[a.key]}));
     const recover=ready.find(x=>x.tpl===AbilityLib.Recover);
-    const damaging=ready.filter(x=>x.tpl.target==='enemy' && x.tpl.use);
-    const inRangeAbility = damaging.find(x => foes.some(t => inRange(u,t,x.tpl.range||1)));
+    const damaging=ready.filter(x=>x.tpl.target==='enemy');
+    const usable=damaging.find(x=>foes.some(t=>inRange(u,t,x.tpl.range||1)));
 
     if(recover && u.hp<=Math.ceil(u.stats.maxHp*0.5) && Math.random()<0.4){
       recover.tpl.use(u,u,log); recover.a.cd=recover.tpl.cooldown||0; render(); return endTurn();
     }
-
-    if(inRangeAbility){
-      const rng = inRangeAbility.tpl.range||1;
-      const cands = foes.filter(t=>inRange(u,t,rng));
-      const t = choice(cands);
-      inRangeAbility.tpl.use(u,t,log);
-      inRangeAbility.a.cd=inRangeAbility.tpl.cooldown||0;
-      render(); return endTurn();
+    if(usable){
+      const rng=usable.tpl.range||1;
+      const cands=foes.filter(t=>inRange(u,t,rng));
+      const t=choice(cands);
+      usable.tpl.use(u,t,log); usable.a.cd=usable.tpl.cooldown||0; render(); return endTurn();
     }
 
-    // If basic attack is in range, do it
-    const attackables = foes.filter(t=>inRange(u,t,u.range));
+    // Try basic attack if in range (melee requires adjacency)
+    const attackables=foes.filter(t=>inRange(u,t,u.range));
     if(attackables.length){
-      const t = attackables.slice().sort((a,b)=>(a.hp/a.stats.maxHp)-(b.hp/b.stats.maxHp))[0];
+      const t=attackables.slice().sort((a,b)=>(a.hp/a.stats.maxHp)-(b.hp/b.stats.maxHp))[0];
       const atk=u.stats.atk, def=t.stats.def+(t.temp.defBonus||0)+(t.temp.defend?2:0);
-      const dmg=computeDamage(atk,def); dealDamage(t,dmg,`${u.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`,log);
+      const dmg=computeDamage(atk,def);
+      dealDamage(t,dmg,`${u.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`,log);
       render(); return endTurn();
     }
 
-    // Otherwise, step toward nearest foe
-    const nearest = foes.slice().sort((a,b)=> dist(u.pos,a.pos)-dist(u.pos,b.pos))[0];
+    // Otherwise move one tile toward nearest foe
+    const nearest=foes.slice().sort((a,b)=>dist(u.pos,a.pos)-dist(u.pos,b.pos))[0];
     if(nearest){
-      const step = stepToward(u.pos, nearest.pos);
-      if(step && !getUnitAt(step.x, step.y)){ u.pos=step; log(`${u.name} advances to (${step.x},${step.y}).`); render(); return endTurn(); }
+      const step=stepToward(u.pos, nearest.pos);
+      if(step && !getUnitAt(step.x,step.y)){ u.pos=step; log(`${u.name} advances to (${step.x},${step.y}).`); render(); return endTurn(); }
     }
 
-    // If stuck, defend
-    u.temp.defend=true; log(`${u.name} defends.`);
-    render(); endTurn();
-  }, 450);
+    // Stuck? Defend
+    u.temp.defend=true; log(`${u.name} defends.`); render(); endTurn();
+  }, 420);
 }
-
-// tiny greedy step toward a target (orthogonal only)
 function stepToward(a,b){
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const cand = [];
-  if(Math.abs(dx)>=Math.abs(dy)) {
-    if(dx!==0) cand.push({x:a.x + Math.sign(dx), y:a.y});
-    if(dy!==0) cand.push({x:a.x, y:a.y + Math.sign(dy)});
-  } else {
-    if(dy!==0) cand.push({x:a.x, y:a.y + Math.sign(dy)});
-    if(dx!==0) cand.push({x:a.x + Math.sign(dx), y:a.y});
-  }
-  for(const p of cand){
-    if(p.x>=0 && p.x<GRID_W && p.y>=0 && p.y<GRID_H) return p;
-  }
+  const dx=b.x-a.x, dy=b.y-a.y;
+  const opts=[];
+  if(Math.abs(dx)>=Math.abs(dy)){ if(dx!==0) opts.push({x:a.x+Math.sign(dx),y:a.y}); if(dy!==0) opts.push({x:a.x,y:a.y+Math.sign(dy)}); }
+  else { if(dy!==0) opts.push({x:a.x,y:a.y+Math.sign(dy)}); if(dx!==0) opts.push({x:a.x+Math.sign(dx),y:a.y}); }
+  for(const p of opts){ if(p.x>=0&&p.x<GRID_W&&p.y>=0&&p.y<GRID_H) return p; }
   return null;
 }
 
-/* ---------- Boot ---------- */
+/* ========= Boot ========= */
 (function boot(){
-  render(); log("<i>The battle begins.</i>"); nextTurn();
+  renderBuildButtons();
+  // Empty board at start
+  render();
 })();
 </script>
+</body>
+</html>
