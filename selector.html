@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fable Tactics — Character Selector</title>
+<style>
+  :root { --bg:#0e0f12; --panel:#171922; --muted:#9aa3b2; --accent:#7fe6a2; --ally:#7fe6a2; --enemy:#ff9b9b; }
+  * { box-sizing: border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  body { margin:0; background:linear-gradient(180deg,#0b0c0f,#12131a); color:white; }
+  header { padding:16px 20px; border-bottom:1px solid #222633; background:#12141c; position:sticky; top:0; z-index:5; display:flex; gap:14px; align-items:center; }
+  header h1 { margin:0; font-size:18px; letter-spacing:.4px; }
+  main { max-width:1200px; margin:0 auto; padding:16px; display:grid; gap:16px; grid-template-columns: 1.2fr 0.8fr; }
+  .panel { background:#171922; border:1px solid #24283a; border-radius:12px; padding:14px; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+  h2 { margin:0 0 10px; font-size:14px; color:var(--muted); letter-spacing:.12em; text-transform:uppercase; }
+  .toolbar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .toolbar input[type="search"]{ flex:1; min-width:220px; padding:10px 12px; border-radius:10px; border:1px solid #2a3246; background:#0f1420; color:white; }
+  .chip { padding:8px 10px; border:1px solid #2a3246; border-radius:999px; background:#121828; cursor:pointer; font-size:13px; }
+  .chip.active { border-color:#3b5362; background:#182234; }
+  .grid { display:grid; gap:12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .card { background:#11141c; border:1px solid #1f2434; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
+  .card h3 { margin:0; font-size:16px; display:flex; justify-content:space-between; gap:8px; }
+  .tag { font-size:11px; padding:2px 8px; border-radius:999px; background:#1b2230; border:1px solid #2a3347; color:#c5d0e0; }
+  .row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .stat { font-size:12px; color:var(--muted); }
+  .btn { background:#1c2636; color:white; border:1px solid #2b3144; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600; }
+  .btn:hover { border-color:#3a425d; }
+  .btn.ally { border-color:#2c4; }
+  .btn.enemy { border-color:#c44; }
+  .side { display:grid; gap:16px; }
+  .list { display:flex; flex-direction:column; gap:8px; }
+  .li { display:grid; grid-template-columns: 1fr auto auto auto; gap:8px; align-items:center; background:#10131a; border:1px solid #1e2331; border-radius:10px; padding:8px; }
+  .li input { width:100%; padding:6px 8px; background:#0f1420; color:white; border:1px solid #2a3246; border-radius:8px; }
+  .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size:11px; color:#92a0b8; }
+  .small { font-size:12px; color:var(--muted); }
+  .split { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .footer { display:flex; gap:8px; flex-wrap:wrap; }
+  textarea { width:100%; min-height:120px; background:#0f1420; color:white; border:1px solid #2a3246; border-radius:10px; padding:10px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fable Tactics — Character Selector</h1>
+  <div class="small">Build your rosters, then start the battle.</div>
+</header>
+
+<main>
+  <!-- Left: Class Library -->
+  <section class="panel">
+    <h2>Base Classes</h2>
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search classes…" />
+      <div id="chips" class="row">
+        <div class="chip active" data-role="all">All</div>
+        <div class="chip" data-role="melee">Melee</div>
+        <div class="chip" data-role="ranged">Ranged</div>
+        <div class="chip" data-role="support">Support</div>
+      </div>
+    </div>
+    <div id="classGrid" class="grid"></div>
+  </section>
+
+  <!-- Right: Rosters -->
+  <section class="side">
+    <section class="panel">
+      <div class="split">
+        <h2>Allies</h2>
+        <div class="small mono" id="allyCount">0 selected</div>
+      </div>
+      <div id="allyList" class="list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="split">
+        <h2>Enemies</h2>
+        <div class="small mono" id="enemyCount">0 selected</div>
+      </div>
+      <div id="enemyList" class="list"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Export / Import</h2>
+      <div class="footer" style="margin-bottom:8px">
+        <button id="exportBtn" class="btn">Export JSON</button>
+        <button id="importBtn" class="btn">Import JSON</button>
+        <button id="clearBtn" class="btn">Clear</button>
+      </div>
+      <textarea id="ioArea" placeholder="Exported setup appears here. Paste JSON here to import."></textarea>
+    </section>
+
+    <section class="panel">
+      <h2>Start</h2>
+      <div class="small" style="margin-bottom:8px">“Start Battle” saves your setup to <span class="mono">localStorage.ft_setup</span> and opens <span class="mono">index.html</span>.</div>
+      <div class="footer">
+        <button id="saveBtn" class="btn">Save Setup</button>
+        <a href="index.html" id="startLink" class="btn" style="text-decoration:none">Start Battle →</a>
+      </div>
+    </section>
+  </section>
+</main>
+
+<script>
+/* ========= Base classes (mapped to your current engine abilities) =========
+   We classify broadly for now:
+   - MELEE (range 1): uses PowerStrike + Guard
+   - RANGED/SUPPORT (range 3): uses BleedingShot + Recover
+*/
+const CLASSES = [
+  // Combat melee
+  B('Knight','melee',{maxHp:60,atk:14,def:10,spd:7}, ['PowerStrike','Guard'], 1, 'Armored frontline defender'),
+  B('Fighter','melee',{maxHp:54,atk:13,def:9, spd:9}, ['PowerStrike','Guard'], 1, 'Versatile melee combatant'),
+  B('Rogue','melee',{maxHp:42,atk:12,def:6, spd:13},['PowerStrike','Guard'], 1, 'Evasive striker'),
+  B('Monk','melee',{maxHp:46,atk:12,def:7, spd:12}, ['PowerStrike','Guard'], 1, 'Martial artist'),
+
+  // Ranged
+  B('Archer','ranged',{maxHp:44,atk:11,def:7, spd:12}, ['BleedingShot','Recover'], 3, 'Ranged physical attacker'),
+  B('Scout','ranged',{maxHp:40,atk:10,def:6, spd:14}, ['BleedingShot','Recover'], 3, 'Mobile skirmisher'),
+
+  // Casters & support → use ranged kit for now
+  B('Magician','support',{maxHp:40,atk:11,def:6, spd:11}, ['BleedingShot','Recover'], 3, 'Elemental/arcane caster'),
+  B('Warlock','support',{maxHp:38,atk:12,def:5, spd:10}, ['BleedingShot','Recover'], 3, 'Debuffs & life-drain vibes'),
+  B('Cleric','support',{maxHp:46,atk:9, def:8, spd:9 }, ['BleedingShot','Recover'], 3, 'Healer & buffer'),
+  B('Druid','support',{maxHp:44,atk:10,def:7, spd:10}, ['BleedingShot','Recover'], 3, 'Nature caster'),
+
+  // Example enemy basics (you can still add as Allies if desired)
+  B('Bruiser','melee',{maxHp:40,atk:12,def:6, spd:8}, ['PowerStrike'], 1, 'Goblin bruiser archetype'),
+  B('Imp','ranged',{maxHp:32,atk:9, def:5, spd:11},['BleedingShot'], 3, 'Woad imp archetype'),
+];
+
+function B(name, role, stats, abilities, range, blurb){
+  return { key: name.toLowerCase(), name, role, stats, abilities, range, blurb };
+}
+
+/* ========= State ========= */
+const state = {
+  filterRole: 'all',
+  query: '',
+  allies: [],
+  enemies: []
+};
+
+/* ========= Elements ========= */
+const classGrid = document.getElementById('classGrid');
+const chips = document.getElementById('chips');
+const search = document.getElementById('search');
+
+const allyList = document.getElementById('allyList');
+const enemyList = document.getElementById('enemyList');
+const allyCount = document.getElementById('allyCount');
+const enemyCount = document.getElementById('enemyCount');
+
+const ioArea = document.getElementById('ioArea');
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const clearBtn = document.getElementById('clearBtn');
+
+const saveBtn = document.getElementById('saveBtn');
+
+/* ========= Renderers ========= */
+function renderClasses(){
+  classGrid.innerHTML = '';
+  const q = state.query.trim().toLowerCase();
+  const data = CLASSES.filter(c => 
+    (state.filterRole==='all' || c.role===state.filterRole) &&
+    (!q || c.name.toLowerCase().includes(q) || c.blurb.toLowerCase().includes(q))
+  );
+  for(const c of data){
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML = `
+      <h3>${c.name} <span class="tag">${c.role}</span></h3>
+      <div class="row">
+        <span class="stat">HP ${c.stats.maxHp}</span>
+        <span class="stat">ATK ${c.stats.atk}</span>
+        <span class="stat">DEF ${c.stats.def}</span>
+        <span class="stat">SPD ${c.stats.spd}</span>
+        <span class="tag">RNG ${c.range}</span>
+      </div>
+      <div class="row">${c.abilities.map(a=>`<span class="tag">${a}</span>`).join(' ')}</div>
+      <div class="small">${c.blurb}</div>
+      <div class="row">
+        <button class="btn ally">Add to Allies</button>
+        <button class="btn enemy">Add to Enemies</button>
+      </div>
+    `;
+    el.querySelector('.ally').onclick = () => addUnit('ally', c);
+    el.querySelector('.enemy').onclick = () => addUnit('enemy', c);
+    classGrid.appendChild(el);
+  }
+}
+
+function renderRoster(){
+  // Allies
+  allyList.innerHTML = '';
+  state.allies.forEach((u, i) => allyList.appendChild(renderRow(u, i, 'ally')));
+  allyCount.textContent = `${state.allies.length} selected`;
+
+  // Enemies
+  enemyList.innerHTML = '';
+  state.enemies.forEach((u, i) => enemyList.appendChild(renderRow(u, i, 'enemy')));
+  enemyCount.textContent = `${state.enemies.length} selected`;
+}
+
+function renderRow(u, idx, team){
+  const el = document.createElement('div');
+  el.className = 'li';
+  el.innerHTML = `
+    <input value="${u.name}" aria-label="name"/>
+    <span class="mono">ATK ${u.stats.atk} • DEF ${u.stats.def} • SPD ${u.stats.spd} • RNG ${u.range}</span>
+    <button class="btn" title="Move up">↑</button>
+    <button class="btn" title="Remove">✕</button>
+  `;
+  const nameInput = el.querySelector('input');
+  nameInput.oninput = (e)=>{ u.name = e.target.value; saveDraft(); };
+  el.querySelectorAll('.btn')[0].onclick = ()=> moveUnit(team, idx, -1);
+  el.querySelectorAll('.btn')[1].onclick = ()=> removeUnit(team, idx);
+  return el;
+}
+
+/* ========= Actions ========= */
+function addUnit(team, cls){
+  const u = {
+    tpl: cls.key,
+    name: cls.name,
+    team,
+    stats: {...cls.stats},
+    abilities: [...cls.abilities],
+    range: cls.range,
+    // pos is chosen later on the battle Setup board; we leave it null here
+    pos: null
+  };
+  state[team==='ally'?'allies':'enemies'].push(u);
+  saveDraft();
+  renderRoster();
+}
+
+function moveUnit(team, idx, dir){
+  const arr = team==='ally' ? state.allies : state.enemies;
+  const j = idx + dir;
+  if(j<0 || j>=arr.length) return;
+  [arr[idx], arr[j]] = [arr[j], arr[idx]];
+  saveDraft();
+  renderRoster();
+}
+
+function removeUnit(team, idx){
+  const arr = team==='ally' ? state.allies : state.enemies;
+  arr.splice(idx,1);
+  saveDraft();
+  renderRoster();
+}
+
+/* ========= Export / Import ========= */
+exportBtn.onclick = ()=>{
+  ioArea.value = JSON.stringify({allies:state.allies, enemies:state.enemies}, null, 2);
+};
+importBtn.onclick = ()=>{
+  try{
+    const obj = JSON.parse(ioArea.value);
+    state.allies = Array.isArray(obj.allies)? obj.allies : [];
+    state.enemies = Array.isArray(obj.enemies)? obj.enemies : [];
+    saveDraft();
+    renderRoster();
+  }catch(e){
+    alert('Invalid JSON.');
+  }
+};
+clearBtn.onclick = ()=>{
+  state.allies = [];
+  state.enemies = [];
+  saveDraft();
+  renderRoster();
+  ioArea.value = '';
+};
+
+/* ========= Save to localStorage for battle page ========= */
+function saveDraft(){
+  const payload = { allies: state.allies, enemies: state.enemies, ts: Date.now() };
+  localStorage.setItem('ft_setup', JSON.stringify(payload));
+}
+saveBtn.onclick = saveDraft;
+
+/* ========= Filters ========= */
+chips.addEventListener('click', (e)=>{
+  const c = e.target.closest('.chip'); if(!c) return;
+  for(const chip of chips.querySelectorAll('.chip')) chip.classList.remove('active');
+  c.classList.add('active');
+  state.filterRole = c.dataset.role;
+  renderClasses();
+});
+search.addEventListener('input', (e)=>{ state.query = e.target.value; renderClasses(); });
+
+/* ========= Boot ========= */
+(function boot(){
+  // Load draft if any
+  try{
+    const prev = JSON.parse(localStorage.getItem('ft_setup')||'null');
+    if(prev && prev.allies && prev.enemies){
+      state.allies = prev.allies;
+      state.enemies = prev.enemies;
+    }
+  }catch(e){}
+  renderClasses();
+  renderRoster();
+})();
+</script>
+</body>
+</html>
