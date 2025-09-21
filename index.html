@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Fable Tactics – Setup + Grid Combat</title>
 <style>
-  :root { --bg:#0e0f12; --panel:#171922; --accent:#7fe6a2; --muted:#9aa3b2; --bad:#ff7a7a; --good:#8bd5ff; --ally:#7fe6a2; --enemy:#ff9b9b;}
+  :root { --bg:#0e0f12; --panel:#171922; --accent:#7fe6a2; --muted:#9aa3b2; --bad:#ff9b9b; --good:#8bd5ff; --ally:#7fe6a2; --enemy:#ff9b9b;}
   * { box-sizing:border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
   body { margin:0; background:linear-gradient(180deg,#0b0c0f,#12131a); color:white; }
   header { padding:16px 20px; border-bottom:1px solid #222633; background:#12141c; position:sticky; top:0; z-index:5; }
@@ -89,6 +89,7 @@
         <div class="divider"></div>
         <div class="btn-row">
           <button id="presetBtn" class="ghost">Preset: Skirmish 2v2</button>
+          <button id="fromSelectorBtn" class="ghost">Preset: From Selector</button>
           <button id="clearBtn" class="ghost">Clear Board</button>
           <button id="startBtn" class="primary">Start Battle</button>
         </div>
@@ -166,16 +167,44 @@ const AbilityLib={
     use(user,_t,log){const heal=12;const before=user.hp;user.hp=clamp(user.hp+heal,0,user.stats.maxHp);log(`${user.name} recovers <span class="heal">+${user.hp-before}</span> HP.`);}}
 };
 
-/* ========= Unit templates (basic builds) ========= */
-const UnitTemplates={
-  Knight:{ label:"Knight", name:"Tallis (Knight)", stats:{maxHp:60,atk:14,def:10,spd:7}, abilities:["PowerStrike","Guard"], range:1 },
-  Ranger:{ label:"Ranger", name:"Clover (Ranger)", stats:{maxHp:44,atk:11,def:7,spd:12}, abilities:["BleedingShot","Recover"], range:3 },
-  Bruiser:{ label:"Bruiser", name:"Goblin Bruiser", stats:{maxHp:40,atk:12,def:6,spd:8}, abilities:["PowerStrike"], range:1 },
-  Imp:{ label:"Imp", name:"Woad Imp", stats:{maxHp:32,atk:9,def:5,spd:11}, abilities:["BleedingShot"], range:3 }
+/* ========= Unit templates (expanded) ========= */
+const UnitTemplates = {
+  // melee
+  Knight:      { label:"Knight",      name:"Tallis (Knight)", stats:{maxHp:60,atk:14,def:10,spd:7},  abilities:["PowerStrike","Guard"], range:1 },
+  Fighter:     { label:"Fighter",     name:"Fighter",         stats:{maxHp:54,atk:13,def:9, spd:9}, abilities:["PowerStrike","Guard"], range:1 },
+  Rogue:       { label:"Rogue",       name:"Rogue",           stats:{maxHp:42,atk:12,def:6, spd:13},abilities:["PowerStrike","Guard"], range:1 },
+  Monk:        { label:"Monk",        name:"Monk",            stats:{maxHp:46,atk:12,def:7, spd:12},abilities:["PowerStrike","Guard"], range:1 },
+  Paladin:     { label:"Paladin",     name:"Paladin",         stats:{maxHp:62,atk:13,def:11,spd:6}, abilities:["PowerStrike","Guard"], range:1 },
+  Berserker:   { label:"Berserker",   name:"Berserker",       stats:{maxHp:58,atk:16,def:6, spd:8}, abilities:["PowerStrike","Guard"], range:1 },
+  Spearmaster: { label:"Spearmaster", name:"Spearmaster",     stats:{maxHp:50,atk:13,def:8, spd:10},abilities:["PowerStrike","Guard"], range:1 },
+  Sentinel:    { label:"Sentinel",    name:"Sentinel",        stats:{maxHp:64,atk:12,def:12,spd:5}, abilities:["PowerStrike","Guard"], range:1 },
+  Duelist:     { label:"Duelist",     name:"Duelist",         stats:{maxHp:45,atk:14,def:7, spd:12},abilities:["PowerStrike","Guard"], range:1 },
+  Assassin:    { label:"Assassin",    name:"Assassin",        stats:{maxHp:38,atk:15,def:5, spd:14},abilities:["PowerStrike","Guard"], range:1 },
+
+  // ranged
+  Archer:      { label:"Archer",      name:"Clover (Archer)", stats:{maxHp:44,atk:11,def:7, spd:12},abilities:["BleedingShot","Recover"], range:3 },
+  Scout:       { label:"Scout",       name:"Scout",           stats:{maxHp:40,atk:10,def:6, spd:14},abilities:["BleedingShot","Recover"], range:3 },
+  Hunter:      { label:"Hunter",      name:"Hunter",          stats:{maxHp:46,atk:12,def:7, spd:11},abilities:["BleedingShot","Recover"], range:3 },
+  Sharpshooter:{ label:"Sharpshooter",name:"Sharpshooter",    stats:{maxHp:42,atk:14,def:6, spd:10},abilities:["BleedingShot","Recover"], range:3 },
+  Slinger:     { label:"Slinger",     name:"Slinger",         stats:{maxHp:40,atk:11,def:6, spd:13},abilities:["BleedingShot","Recover"], range:3 },
+
+  // support (placeholder kit)
+  Magician:    { label:"Magician",    name:"Magician",        stats:{maxHp:40,atk:11,def:6, spd:11},abilities:["BleedingShot","Recover"], range:3 },
+  Warlock:     { label:"Warlock",     name:"Warlock",         stats:{maxHp:38,atk:12,def:5, spd:10},abilities:["BleedingShot","Recover"], range:3 },
+  Cleric:      { label:"Cleric",      name:"Cleric",          stats:{maxHp:46,atk:9, def:8, spd:9}, abilities:["BleedingShot","Recover"], range:3 },
+  Druid:       { label:"Druid",       name:"Druid",           stats:{maxHp:44,atk:10,def:7, spd:10},abilities:["BleedingShot","Recover"], range:3 },
+  Bard:        { label:"Bard",        name:"Bard",            stats:{maxHp:42,atk:9, def:7, spd:12},abilities:["BleedingShot","Recover"], range:3 },
+  Shaman:      { label:"Shaman",      name:"Shaman",          stats:{maxHp:44,atk:11,def:7, spd:10},abilities:["BleedingShot","Recover"], range:3 },
+  Alchemist:   { label:"Alchemist",   name:"Alchemist",       stats:{maxHp:40,atk:12,def:6, spd:11},abilities:["BleedingShot","Recover"], range:3 },
+  Enchanter:   { label:"Enchanter",   name:"Enchanter",       stats:{maxHp:38,atk:10,def:6, spd:11},abilities:["BleedingShot","Recover"], range:3 },
+
+  // enemy archetypes
+  Bruiser:     { label:"Bruiser",     name:"Goblin Bruiser",  stats:{maxHp:40,atk:12,def:6, spd:8}, abilities:["PowerStrike"], range:1 },
+  Imp:         { label:"Imp",         name:"Woad Imp",        stats:{maxHp:32,atk:9, def:5, spd:11},abilities:["BleedingShot"], range:3 },
 };
 
 function makeUnit(tplKey, team, pos){
-  const T=UnitTemplates[tplKey];
+  const T = UnitTemplates[tplKey] || UnitTemplates.Knight;
   return {
     id: crypto.randomUUID(),
     name: T.name, team,
@@ -188,14 +217,7 @@ function makeUnit(tplKey, team, pos){
 }
 
 /* ========= Global State ========= */
-const G={
-  phase:"setup", // "setup" | "battle"
-  units:[],
-  acting:null,
-  round:1,
-  moveMode:false,
-  auto:false
-};
+const G={ phase:"setup", units:[], acting:null, round:1, moveMode:false, auto:false };
 
 /* ========= Math / Effects ========= */
 function computeDamage(atk,def){ const base=Math.max(1, atk - Math.floor(def*0.7)); const variance=rand(-2,2); return Math.max(1, base+variance); }
@@ -207,9 +229,7 @@ function cleanupStatusesEnd(u,log){ for(const s of [...u.statuses]){ s.turnsLeft
 /* ========= Turn & Teams ========= */
 function living(team){ return G.units.filter(u=>u.team===team && !u.dead); }
 function anyLiving(team){ return living(team).length>0; }
-function initiativeOrder(){
-  return G.units.filter(u=>!u.dead).slice().sort((a,b)=> b.stats.spd - a.stats.spd || (a.id > b.id ? 1 : -1));
-}
+function initiativeOrder(){ return G.units.filter(u=>!u.dead).slice().sort((a,b)=> b.stats.spd - a.stats.spd || (a.id > b.id ? 1 : -1)); }
 
 /* ========= UI elements ========= */
 const BOARD=document.getElementById('board');
@@ -236,6 +256,7 @@ const ABILROW=document.getElementById('abilityRow');
 
 const buildRow=document.getElementById('buildRow');
 const presetBtn=document.getElementById('presetBtn');
+const fromSelectorBtn=document.getElementById('fromSelectorBtn');
 const clearBtn=document.getElementById('clearBtn');
 const startBtn=document.getElementById('startBtn');
 
@@ -264,7 +285,6 @@ function render(){
   BOARD.style.setProperty('--w', GRID_W);
   BOARD.style.setProperty('--h', GRID_H);
 
-  // Panels visibility
   if(G.phase==="setup"){
     SETUP_PANEL.style.display="";
     PARTY_PANEL.style.display="none";
@@ -283,11 +303,9 @@ function render(){
     AUTO.disabled   = false;
   }
 
-  // Roster lists
   PARTY.innerHTML=''; for(const u of living('ally')) PARTY.appendChild(renderUnit(u));
   ENEMIES.innerHTML=''; for(const u of living('enemy')) ENEMIES.appendChild(renderUnit(u));
 
-  // Turnbar
   TURNBAR.innerHTML='';
   if(G.phase==="battle"){
     for(const u of initiativeOrder()){
@@ -298,7 +316,6 @@ function render(){
     }
   }
 
-  // Board
   renderBoard();
 }
 
@@ -310,269 +327,4 @@ function renderUnit(u){
   const name=document.createElement('div'); name.innerHTML=`<b>${u.name}</b>`;
   const stats=document.createElement('div'); stats.className='stats';
   const defNow=u.stats.def + (u.temp.defBonus||0) + (u.temp.defend?2:0);
-  const posTxt = u.pos? ` • POS (${u.pos.x},${u.pos.y})` : '';
-  stats.innerHTML = `ATK ${u.stats.atk} • DEF ${defNow} • SPD ${u.stats.spd} • RNG ${u.range}${posTxt}`;
-  const hpbar=document.createElement('div'); hpbar.className='hpbar';
-  const hp=document.createElement('div'); hp.className='hp'; const pct=Math.round((u.hp/u.stats.maxHp)*100); hp.style.width=pct+'%'; hpbar.appendChild(hp);
-  const statusLine=document.createElement('div'); statusLine.className='small'; statusLine.style.marginTop='6px';
-  statusLine.innerHTML = u.statuses.map(s=>`<span class="tag">${s.key} ${s.turnsLeft}</span>`).join(' ');
-  info.appendChild(name); info.appendChild(stats); info.appendChild(hpbar); info.appendChild(statusLine);
-  wrap.appendChild(side); wrap.appendChild(info);
-  return wrap;
-}
-
-function renderBoard(){
-  BOARD.innerHTML='';
-  const placing = (G.phase==="setup");
-  BOARD_HINT.innerHTML = placing
-    ? `Placing: <b>${UnitTemplates[activeBuild].label}</b> for <b>${getSelectedTeam()==='ally'?'Allies':'Enemies'}</b>. Click a tile to place; click a token to remove.`
-    : `Melee requires adjacency (range 1). Move first if no targets are in range.`;
-
-  // Precompute in-range (battle only, for glow)
-  const inRangeIds=new Set();
-  if(G.phase==="battle" && G.acting){
-    const foes = G.acting.team==='ally' ? living('enemy') : living('ally');
-    for(const t of foes){ if(inRange(G.acting,t,G.acting.range)) inRangeIds.add(t.id); }
-  }
-
-  for(let y=0;y<GRID_H;y++){
-    for(let x=0;x<GRID_W;x++){
-      const cell=document.createElement('div'); cell.className='cell';
-      const label=document.createElement('div'); label.className='cell coord'; label.textContent=`${x},${y}`; cell.appendChild(label);
-      const u=getUnitAt(x,y);
-
-      // Setup: place/remove
-      if(placing){
-        if(!u){
-          cell.classList.add('place');
-          cell.onclick=()=>{
-            const team=getSelectedTeam();
-            G.units.push(makeUnit(activeBuild, team, {x,y}));
-            render();
-          };
-        }else{
-          // Click token to remove
-          const token=renderToken(u, inRangeIds);
-          token.classList.add('removable');
-          token.title="Remove unit";
-          token.onclick=()=>{ G.units=G.units.filter(z=>z!==u); render(); };
-          cell.appendChild(token);
-        }
-      } else {
-        // Battle tokens
-        if(u){
-          const token=renderToken(u, inRangeIds);
-          cell.appendChild(token);
-        }
-        // Move highlights (when moving)
-        if(G.moveMode && G.acting && !u && isAdjacent(G.acting.pos,{x,y})){
-          cell.classList.add('move-ok');
-          cell.style.cursor='pointer';
-          cell.onclick=()=>{ G.acting.pos={x,y}; log(`${G.acting.name} moves to (${x},${y}).`); G.moveMode=false; render(); endTurn(); };
-        }
-      }
-
-      BOARD.appendChild(cell);
-    }
-  }
-}
-function renderToken(unit, inRangeIds){
-  const token=document.createElement('div');
-  token.className=`token ${unit.team}`+(G.acting&&G.acting.id===unit.id?' active':'')+(inRangeIds.has(unit.id)?' inrange':'');
-  const name=document.createElement('div'); name.className='name'; name.textContent=shortName(unit.name);
-  const hpmini=document.createElement('div'); hpmini.className='hpmini';
-  const span=document.createElement('span'); span.style.width = Math.round((unit.hp/unit.stats.maxHp)*100)+'%';
-  hpmini.appendChild(span);
-  token.appendChild(name); token.appendChild(hpmini);
-  return token;
-}
-
-/* ========= Setup controls ========= */
-presetBtn.onclick=()=>{
-  // Clear and place a quick 2v2
-  G.units=[];
-  G.units.push(makeUnit("Knight","ally",{x:0,y:1}));
-  G.units.push(makeUnit("Ranger","ally",{x:0,y:2}));
-  G.units.push(makeUnit("Bruiser","enemy",{x:5,y:1}));
-  G.units.push(makeUnit("Imp","enemy",{x:5,y:2}));
-  render();
-};
-clearBtn.onclick=()=>{ G.units=[]; render(); };
-startBtn.onclick=()=>{
-  const a=living('ally').length, e=living('enemy').length;
-  if(a===0 || e===0){ alert("Place at least one Ally and one Enemy."); return; }
-  G.phase="battle";
-  // Ensure all have positions (they do in this setup), reduce CDs to 0, reset statuses
-  for(const u of G.units){ u.dead=false; u.hp=u.stats.maxHp; u.statuses=[]; u.temp={defBonus:0,defend:false}; for(const a of u.abilities) a.cd=0; }
-  log("<i>The battle begins.</i>");
-  nextTurn_init();
-};
-
-/* ========= Battle controls ========= */
-ATTACK.onclick=()=>{
-  if(!(G.acting && G.acting.team==='ally')) return;
-  TARGETS.innerHTML=''; ABILROW.innerHTML=''; G.moveMode=false;
-  const foes=living('enemy').filter(t=>inRange(G.acting,t,G.acting.range));
-  if(!foes.length){ log(`No targets in range (R${G.acting.range}). Move to get adjacent (R1) for melee.`); return; }
-  foes.forEach(t=>{
-    const b=document.createElement('button'); b.className='targetBtn';
-    b.textContent=`${shortName(t.name)} (d=${dist(G.acting.pos,t.pos)})`;
-    b.onclick=()=>{
-      const atk=G.acting.stats.atk;
-      const def=t.stats.def+(t.temp.defBonus||0)+(t.temp.defend?2:0);
-      const dmg=computeDamage(atk,def);
-      dealDamage(t,dmg,`${G.acting.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`,log);
-      render(); endTurn();
-    };
-    TARGETS.appendChild(b);
-  });
-};
-
-ABILITY.onclick=()=>{
-  if(!(G.acting && G.acting.team==='ally')) return;
-  TARGETS.innerHTML=''; ABILROW.innerHTML=''; G.moveMode=false;
-  for(const a of G.acting.abilities){
-    const tpl=AbilityLib[a.key];
-    const b=document.createElement('button');
-    b.className='targetBtn'; b.title=`${tpl.name}: ${tpl.desc}`;
-    b.textContent=`${tpl.name}${a.cd ? ` (${a.cd})` : ''}`;
-    b.disabled=a.cd>0;
-    b.onclick=()=>{
-      if(tpl.target==='self'){ tpl.use(G.acting, G.acting, log); a.cd=tpl.cooldown||0; render(); return endTurn(); }
-      const rng=tpl.range||1;
-      const cands=living('enemy').filter(t=>inRange(G.acting,t,rng));
-      if(!cands.length){ log(`No valid targets in ability range (R${rng}). Move first.`); return; }
-      TARGETS.innerHTML='';
-      cands.forEach(t=>{
-        const tb=document.createElement('button'); tb.className='targetBtn';
-        tb.textContent=`${shortName(t.name)} (d=${dist(G.acting.pos,t.pos)})`;
-        tb.onclick=()=>{ tpl.use(G.acting, t, log); a.cd=tpl.cooldown||0; render(); endTurn(); };
-        TARGETS.appendChild(tb);
-      });
-    };
-    ABILROW.appendChild(b);
-  }
-};
-
-DEFEND.onclick=()=>{
-  if(!(G.acting && G.acting.team==='ally')) return;
-  G.moveMode=false;
-  G.acting.temp.defend=true;
-  log(`${G.acting.name} takes a defensive stance (+2 DEF this turn).`);
-  render(); endTurn();
-};
-
-MOVE.onclick=()=>{
-  if(!(G.acting && G.acting.team==='ally')) return;
-  G.moveMode=!G.moveMode;
-  if(G.moveMode) log(`Select an adjacent tile for ${G.acting.name} to move.`);
-  render();
-};
-
-END.onclick=()=>{
-  if(!(G.acting && G.acting.team==='ally')) return;
-  G.moveMode=false; log(`${G.acting.name} ends their turn.`); endTurn();
-};
-
-AUTO.onclick=()=>{
-  G.auto=!G.auto;
-  AUTO.textContent=G.auto?"Auto-Play: ON":"Auto-Play";
-  if(G.auto && G.acting && G.acting.team==='ally') aiAct();
-};
-
-/* ========= Turn flow ========= */
-function nextTurn_init(){
-  // set acting to highest SPD to start
-  const order=initiativeOrder();
-  G.acting=order[0]||null;
-  render(); if(G.acting) startTurn();
-}
-function nextTurn_advance(){
-  if(!anyLiving('ally')||!anyLiving('enemy')) return endBattle();
-  const order=initiativeOrder();
-  const idx=order.findIndex(u=>u.id===G.acting.id);
-  G.acting=order[(idx+1)%order.length];
-  if((idx+1)%order.length===0) G.round++;
-  render(); startTurn();
-}
-function startTurn(){
-  if(G.acting.dead) { return nextTurn_advance(); }
-  log(`<span class="small">— Round ${G.round} • ${G.acting.name}'s turn —</span>`);
-  tickStatusesStart(G.acting, log);
-  if(G.acting.dead){ render(); return nextTurn_advance(); }
-  for(const a of G.acting.abilities) a.cd=Math.max(0,a.cd-1);
-  render();
-  if(G.acting.team==='enemy' || G.auto) aiAct();
-}
-function endTurn(){ cleanupStatusesEnd(G.acting, log); render(); nextTurn_advance(); }
-
-function endBattle(){
-  const win=anyLiving('ally') && !anyLiving('enemy');
-  const lose=!anyLiving('ally') && anyLiving('enemy');
-  log(win? "<b>Victory!</b> All enemies defeated."
-      : lose? "<b>Defeat.</b> The party has fallen."
-      : "<b>Battle Ends.</b>");
-  ATTACK.disabled = ABILITY.disabled = DEFEND.disabled = MOVE.disabled = END.disabled = true;
-  AUTO.textContent="Auto-Play"; G.auto=false;
-}
-
-/* ========= AI that must move if out of range ========= */
-function aiAct(){
-  const u=G.acting; if(!u || u.dead) return;
-  setTimeout(()=>{
-    const foes=living(u.team==='ally'?'enemy':'ally');
-    // Try ability in range
-    const ready=u.abilities.filter(a=>a.cd===0).map(a=>({a,tpl:AbilityLib[a.key]}));
-    const recover=ready.find(x=>x.tpl===AbilityLib.Recover);
-    const damaging=ready.filter(x=>x.tpl.target==='enemy');
-    const usable=damaging.find(x=>foes.some(t=>inRange(u,t,x.tpl.range||1)));
-
-    if(recover && u.hp<=Math.ceil(u.stats.maxHp*0.5) && Math.random()<0.4){
-      recover.tpl.use(u,u,log); recover.a.cd=recover.tpl.cooldown||0; render(); return endTurn();
-    }
-    if(usable){
-      const rng=usable.tpl.range||1;
-      const cands=foes.filter(t=>inRange(u,t,rng));
-      const t=choice(cands);
-      usable.tpl.use(u,t,log); usable.a.cd=usable.tpl.cooldown||0; render(); return endTurn();
-    }
-
-    // Try basic attack if in range (melee requires adjacency)
-    const attackables=foes.filter(t=>inRange(u,t,u.range));
-    if(attackables.length){
-      const t=attackables.slice().sort((a,b)=>(a.hp/a.stats.maxHp)-(b.hp/b.stats.maxHp))[0];
-      const atk=u.stats.atk, def=t.stats.def+(t.temp.defBonus||0)+(t.temp.defend?2:0);
-      const dmg=computeDamage(atk,def);
-      dealDamage(t,dmg,`${u.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`,log);
-      render(); return endTurn();
-    }
-
-    // Otherwise move one tile toward nearest foe
-    const nearest=foes.slice().sort((a,b)=>dist(u.pos,a.pos)-dist(u.pos,b.pos))[0];
-    if(nearest){
-      const step=stepToward(u.pos, nearest.pos);
-      if(step && !getUnitAt(step.x,step.y)){ u.pos=step; log(`${u.name} advances to (${step.x},${step.y}).`); render(); return endTurn(); }
-    }
-
-    // Stuck? Defend
-    u.temp.defend=true; log(`${u.name} defends.`); render(); endTurn();
-  }, 420);
-}
-function stepToward(a,b){
-  const dx=b.x-a.x, dy=b.y-a.y;
-  const opts=[];
-  if(Math.abs(dx)>=Math.abs(dy)){ if(dx!==0) opts.push({x:a.x+Math.sign(dx),y:a.y}); if(dy!==0) opts.push({x:a.x,y:a.y+Math.sign(dy)}); }
-  else { if(dy!==0) opts.push({x:a.x,y:a.y+Math.sign(dy)}); if(dx!==0) opts.push({x:a.x+Math.sign(dx),y:a.y}); }
-  for(const p of opts){ if(p.x>=0&&p.x<GRID_W&&p.y>=0&&p.y<GRID_H) return p; }
-  return null;
-}
-
-/* ========= Boot ========= */
-(function boot(){
-  renderBuildButtons();
-  // Empty board at start
-  render();
-})();
-</script>
-</body>
-</html>
+  const pos
