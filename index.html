@@ -181,6 +181,7 @@
           <button id="attackBtn" class="primary" disabled>Attack</button>
           <button id="abilityBtn" disabled>Ability</button>
           <button id="defendBtn" disabled>Defend</button>
+          <button id="disengageBtn" disabled>Disengage</button>
           <button id="moveBtn" disabled>Move</button>
           <button id="endBtn" disabled>End Turn</button>
           <button id="autoBtn" title="Let the AI play for you" disabled>Auto-Play</button>
@@ -302,7 +303,8 @@ function makeUnit(tplKey, team, pos){
     temp:{defBonus:0,defend:false,atkBuff:0,spdBuff:0,shield:0}, statuses:[],
     abilities: T.abilities.map(k=>({key:k,cd:0})),
     range: T.range,
-    pos: pos? {...pos} : null
+    pos: pos? {...pos} : null,
+    ep: 0, epMax: 2
   };
 }
 
@@ -331,7 +333,7 @@ function applyDamage(target,dmg,log,msg){
 }
 function addStatus(u,key,log){ const tpl=StatusLib[key]; if(!tpl) return; const ex=u.statuses.find(s=>s.key===key); if(ex) ex.turnsLeft=tpl.duration; else u.statuses.push({key,turnsLeft:tpl.duration}); tpl.apply(u,log); }
 function tickStatusesStart(u,log){ for(const s of [...u.statuses]){ const tpl=StatusLib[s.key]; if(tpl&&tpl.tick) tpl.tick(u,log); if(u.hp===0) break; } }
-function cleanupStatusesEnd(u,log){ for(const s of [...u.statuses]){ s.turnsLeft-=1; if(s.turnsLeft<=0){ const tpl=StatusLib[s.key]; if(tpl&&tpl.remove) tpl.remove(u,log); u.statuses=u.statuses.filter(x=>x!==s);} } u.temp.defend=false; u.temp.defBonus=0; }
+function cleanupStatusesEnd(u,log){ for(const s of [...u.statuses]){ s.turnsLeft-=1; if(s.turnsLeft<=0){ const tpl=StatusLib[s.key]; if(tpl&&tpl.remove) tpl.remove(u,log); u.statuses=u.statuses.filter(x=>x!==s);} } u.temp.defend=false; u.temp.defBonus=0; u.temp.disengaged=false; }
 
 /* ========= Turn & Teams ========= */
 function living(team){ return G.units.filter(u=>u.team===team && !u.dead); }
@@ -354,6 +356,7 @@ const LOG=document.getElementById('log');
 const ATTACK=document.getElementById('attackBtn');
 const ABILITY=document.getElementById('abilityBtn');
 const DEFEND=document.getElementById('defendBtn');
+const DISENGAGE=document.getElementById('disengageBtn');
 const MOVE=document.getElementById('moveBtn');
 const END=document.getElementById('endBtn');
 const AUTO=document.getElementById('autoBtn');
@@ -460,6 +463,7 @@ function render(){
     ATTACK.disabled = !playerTurn;
     ABILITY.disabled = !playerTurn;
     DEFEND.disabled = !playerTurn;
+    DISENGAGE.disabled = !playerTurn;
     MOVE.disabled   = !playerTurn;
     END.disabled    = !playerTurn;
     AUTO.disabled   = false;
@@ -493,7 +497,7 @@ function renderUnit(u){
   const hpbar=document.createElement('div'); hpbar.className='hpbar';
   const hp=document.createElement('div'); hp.className='hp'; const pct=Math.round((u.hp/u.stats.maxHp)*100); hp.style.width=pct+'%'; hpbar.appendChild(hp);
   const statusLine=document.createElement('div'); statusLine.className='small'; statusLine.style.marginTop='6px';
-  statusLine.innerHTML = u.statuses.map(s=>`<span class="tag">${s.key} ${s.turnsLeft}</span>`).join(' ');
+  statusLine.innerHTML = `<span class="tag">EP ${u.ep}/${u.epMax}</span> ` + u.statuses.map(s=>`<span class="tag">${s.key} ${s.turnsLeft}</span>`).join(' ');
   info.appendChild(name); info.appendChild(stats); info.appendChild(hpbar); info.appendChild(statusLine);
   wrap.appendChild(side); wrap.appendChild(info);
   return wrap;
@@ -559,7 +563,23 @@ function renderBoard(){
           cell.style.cursor='pointer';
           cell.onclick=()=>{ 
             if(G.acting.statuses.some(s=>s.key==='Root')){ log(`${G.acting.name} is rooted and cannot move.`); return; }
-            G.acting.pos={x,y}; log(`${G.acting.name} moves to (${x},${y}).`); G.moveMode=false; render(); endTurn(); 
+            // Engagement check: if leaving adjacency to any enemy with EP>0, they may strike
+            const beforeAdj = adjacentEnemies(G.acting).filter(e=>e.ep>0);
+            const prevPos = {...G.acting.pos};
+            G.acting.pos={x,y};
+            const afterAdj = adjacentEnemies(G.acting);
+            const provoking = beforeAdj.filter(e => !afterAdj.some(a=>a.id===e.id));
+            if(provoking.length && !G.acting.temp.disengaged){
+              const e = provoking[0];
+              e.ep = Math.max(0, e.ep-1);
+              const atk = effAtk(e);
+              const def = effDef(G.acting);
+              const dmg = computeDamage(atk,def);
+              applyDamage(G.acting, dmg, log, `${e.name} makes an <b>engagement strike</b> on ${G.acting.name} for <span class="dmg">-${dmg}</span>.`);
+              if(G.acting.dead){ G.moveMode=false; render(); return endTurn(); }
+            }
+            log(`${G.acting.name} moves to (${x},${y}).`);
+            G.moveMode=false; render(); endTurn();
           };
         }
       }
@@ -674,6 +694,10 @@ ATTACK.onclick=()=>{
     const b=document.createElement('button'); b.className='targetBtn';
     b.textContent=`${shortName(t.name)} (d=${dist(G.acting.pos,t.pos)})`;
     b.onclick=()=>{
+      // Provocation if using ranged basic attack while adjacent to enemies
+      const adj = adjacentEnemies(G.acting).filter(e=>e.ep>0);
+      const isRanged = G.acting.range>1;
+      if(isRanged && adj.length && !G.acting.temp.disengaged){ const e=adj[0]; e.ep=Math.max(0,e.ep-1); const atkP=effAtk(e), defP=effDef(G.acting); const dmgP=computeDamage(atkP,defP); applyDamage(G.acting,dmgP,log,`${e.name} interrupts with an <b>engagement strike</b> for <span class='dmg'>-${dmgP}</span>.`); if(G.acting.dead){ render(); return endTurn(); } }
       const atk=effAtk(G.acting);
       const def=effDef(t);
       const dmg=computeDamage(atk,def);
@@ -704,7 +728,8 @@ ABILITY.onclick=()=>{
       cands.forEach(t=>{
         const tb=document.createElement('button'); tb.className='targetBtn';
         tb.textContent=`${shortName(t.name)} (d=${dist(G.acting.pos,t.pos)})`;
-        tb.onclick=()=>{ tpl.use(G.acting, t, log); a.cd=tpl.cooldown||0; render(); endTurn(); };
+        tb.onclick=()=>{ if((tpl.range||1)>1 && !G.acting.temp.disengaged){ const adj=adjacentEnemies(G.acting).filter(e=>e.ep>0); if(adj.length){ const e=adj[0]; e.ep=Math.max(0,e.ep-1); const atkP=effAtk(e), defP=effDef(G.acting); const dmgP=computeDamage(atkP,defP); applyDamage(G.acting,dmgP,log,`${e.name} interrupts with an <b>engagement strike</b> for <span class='dmg'>-${dmgP}</span>.`); if(G.acting.dead){ render(); return endTurn(); } } }
+        tpl.use(G.acting, t, log); a.cd=tpl.cooldown||0; render(); endTurn(); };
         TARGETS.appendChild(tb);
       });
     };
@@ -717,6 +742,13 @@ DEFEND.onclick=()=>{
   G.moveMode=false;
   G.acting.temp.defend=true;
   log(`${G.acting.name} takes a defensive stance (+2 DEF this turn).`);
+  render(); endTurn();
+};
+
+DISENGAGE.onclick=()=>{
+  if(!(G.acting && G.acting.team==='ally')) return;
+  G.acting.temp.disengaged=true;
+  log(`${G.acting.name} prepares to <b>disengage</b> (no engagement strikes this turn).`);
   render(); endTurn();
 };
 
@@ -759,6 +791,8 @@ function startTurn(){
   tickStatusesStart(G.acting, log);
   if(G.acting.dead){ render(); return nextTurn_advance(); }
   for(const a of G.acting.abilities) a.cd=Math.max(0,a.cd-1);
+  // Engagement gain: +1 EP if starting adjacent to any enemy (cap)
+  if(G.acting.pos){ const adj = adjacentEnemies(G.acting); if(adj.length>0) { G.acting.ep = Math.min(G.acting.epMax, G.acting.ep+1); log(`${G.acting.name} gains <b>+1 EP</b> from engagement (${G.acting.ep}/${G.acting.epMax}).`);} }
   render();
   if(G.acting.team==='enemy' || G.auto) aiAct();
 }
@@ -772,6 +806,12 @@ function endBattle(){
       : "<b>Battle Ends.</b>");
   ATTACK.disabled = ABILITY.disabled = DEFEND.disabled = MOVE.disabled = END.disabled = true;
   AUTO.textContent="Auto-Play"; G.auto=false;
+}
+
+/* ========= Helpers for engagement ========= */
+function adjacentEnemies(u){
+  const foes = living(u.team==='ally'?'enemy':'ally');
+  return foes.filter(t=>isAdjacent(u.pos, t.pos));
 }
 
 /* ========= A* Pathfinding ========= */
@@ -830,7 +870,7 @@ function aStar(start,goal){
   return null;
 }
 
-/* ========= AI (terrain-aware) ========= */
+/* ========= AI (terrain-aware + engagement-aware) ========= */
 function aiAct(){
   const u=G.acting; if(!u || u.dead) return;
   setTimeout(()=>{
@@ -862,6 +902,15 @@ function aiAct(){
       const atk=effAtk(u), def=effDef(t);
       const dmg=computeDamage(atk,def);
       applyDamage(t,dmg,log,`${u.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`);
+      render(); return endTurn();
+    }
+
+    // Avoid provoking when adjacent enemies have EP>0 by using Disengage if low HP
+    const adjThreats = adjacentEnemies(u).filter(e=>e.ep>0);
+    if(adjThreats.length && u.hp <= Math.ceil(u.stats.maxHp*0.35)){
+      // AI uses a 'disengage' (defensive) action
+      u.temp.disengaged=true;
+      log(`${u.name} disengages to avoid punishment.`);
       render(); return endTurn();
     }
 
@@ -903,34 +952,3 @@ function aiAct(){
 </script>
 </body>
 </html>
-"""
-
-readme_md = """# Fable Tactics — Terrain Bonuses + A* Pathfinding
-
-This update adds **terrain types** (with ATK/DEF modifiers and path costs) and **A*** pathfinding for the AI. No fog of war.
-
-## Terrain
-- **Plain** — cost 1
-- **Forest** — cost 2, **+2 DEF**
-- **Hill** — cost 2, **+2 ATK**
-- **Road** — cost 1
-- **Swamp** — cost 3, **-2 ATK**
-- **Water** — impassable
-
-Obstacles (separate from terrain) still **block line-of-sight** and movement. Terrain does **not** block LOS.
-
-## Gameplay
-- Effective stats use terrain: `effAtk = ATK + buffs + terrain.atk`, `effDef = DEF + guard/defend + terrain.def`.
-- Ranged/support still require LOS and range.
-- AI uses A* with terrain costs and prefers attacking low effective DEF targets.
-
-## Controls
-- **Obstacle Mode:** toggle walls.
-- **Terrain Mode:** select type then click tiles (water is impassable). 
-- Grid is adjustable (W/H) with zoom. Preset “Bridge Clash” paints a river with a bridge.
-"""
-
-open(os.path.join(root,"index.html"),"w").write(index_html)
-open(os.path.join(root,"README.md"),"w").write(readme_md)
-
-print("Wrote:", os.listdir(root))
