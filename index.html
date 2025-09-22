@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Fable Tactics – Setup + Grid Combat</title>
+<title>Fable Tactics – Grid Combat (Terrain Bonuses + A* Pathfinding)</title>
 <style>
   :root { --bg:#0e0f12; --panel:#171922; --accent:#7fe6a2; --muted:#9aa3b2; --bad:#ff9b9b; --good:#8bd5ff; --ally:#7fe6a2; --enemy:#ff9b9b;}
   * { box-sizing:border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
@@ -23,7 +23,6 @@
   .small { font-size:12px; color:var(--muted); }
   .divider { height:1px; background:#222634; margin:10px 0; }
 
-  /* Roster & party lists */
   .unit { display:flex; align-items:center; gap:10px; padding:8px; margin:6px 0; background:#11131a; border:1px solid #1f2330; border-radius:8px; }
   .unit.dead { opacity:.45; filter:grayscale(1); }
   .badge { font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid #2b3144; color:var(--muted); }
@@ -37,7 +36,6 @@
   .pill { font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid #2b3144; background:#111520; opacity:.9; }
   .pill.active { border-color:var(--accent); color:var(--accent); }
 
-  /* Buttons & inputs */
   button { background:#1c2636; color:white; border:1px solid #2b3144; padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:600; }
   button:hover { border-color:#3a425d; }
   button.primary { background:#1e2e3d; border-color:#405a62; }
@@ -47,7 +45,10 @@
   .targetRow { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
   .targetBtn { padding:6px 10px; font-size:12px; border-radius:8px; background:#232a3b; border:1px solid #2f3750; }
 
-  /* Board grid (resizable + zoom) */
+  .legend { display:flex; gap:8px; flex-wrap:wrap; margin:6px 0; }
+  .legend .lg { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
+  .dot { width:14px; height:14px; border-radius:4px; border:1px solid #2a2f41; }
+
   .grid {
     --cell: 64px;
     display:grid;
@@ -59,8 +60,19 @@
     padding:4px;
     border-radius:12px;
   }
-  .cell { position:relative; border:1px solid #2a2f41; background:#0f1420; border-radius:8px; display:flex; align-items:center; justify-content:center; }
-  .cell.coord { font-size:10px; color:#445; position:absolute; left:6px; top:4px; }
+  .cell { position:relative; border:1px solid #2a2f41; background:#101521; border-radius:8px; display:flex; align-items:center; justify-content:center; }
+  .cell .coord { font-size:10px; color:#445; position:absolute; left:6px; top:4px; }
+  .cell.obstacle { background:#2a1b1b; border-color:#3a2626; box-shadow: inset 0 0 0 2px rgba(120,40,40,.35); }
+  .cell.obstacle::after { content:""; position:absolute; width:60%; height:60%; border-radius:6px; background:rgba(120,60,60,.35); }
+
+  /* Terrain tints */
+  .t-plain { background:#101521; }
+  .t-forest { background:#112218; box-shadow: inset 0 0 0 2px rgba(60,140,80,.2); }
+  .t-hill   { background:#1f1c12; box-shadow: inset 0 0 0 2px rgba(200,170,80,.25); }
+  .t-road   { background:#17191f; box-shadow: inset 0 0 0 2px rgba(120,120,140,.18); }
+  .t-swamp  { background:#171b15; box-shadow: inset 0 0 0 2px rgba(110,140,80,.18); }
+  .t-water  { background:#0d1b27; box-shadow: inset 0 0 0 2px rgba(80,130,170,.28); }
+
   .cell.move-ok { outline:2px dashed var(--accent); outline-offset:-4px; }
   .cell.place { outline:2px dashed #3a7; outline-offset:-4px; cursor:pointer; }
   .token { display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 8px; border-radius:10px; border:1px solid #2b3144; background:#121a26; box-shadow:0 6px 12px rgba(0,0,0,.25); }
@@ -75,10 +87,10 @@
 </style>
 </head>
 <body>
-  <header><h1>Fable Tactics • Quick Setup + Grid Combat</h1></header>
+  <header><h1>Fable Tactics • Terrain Bonuses • A* Pathfinding</h1></header>
   <main>
     <section class="panel board">
-      <h2 id="phaseTitle">Setup: Place Units</h2>
+      <h2 id="phaseTitle">Setup: Place Units & Terrain</h2>
       <div id="board" class="grid"></div>
       <div id="boardHint" class="small" style="margin-top:8px"></div>
     </section>
@@ -86,7 +98,7 @@
     <section class="side">
       <section class="panel" id="setupPanel">
         <h2>Quick Setup</h2>
-        <div class="small">Pick a build, choose a team, then click a tile to place. Click a token to remove.</div>
+        <div class="small">Choose build/team. Toggle obstacle or terrain painting. Water is impassable. Obstacles block LOS.</div>
         <div class="divider"></div>
 
         <div class="btn-row" style="margin-bottom:8px">
@@ -101,8 +113,8 @@
         <!-- Grid size + zoom -->
         <div class="btn-row" style="flex-wrap:wrap; align-items:center">
           <div class="small">Grid:</div>
-          <label class="small">W <input id="gridW" type="number" min="4" max="16" value="6" style="width:64px; margin-left:6px; padding:6px; background:#0f1420; border:1px solid #2a3246; border-radius:8px; color:#fff"></label>
-          <label class="small">H <input id="gridH" type="number" min="3" max="12" value="4" style="width:64px; margin-left:6px; padding:6px; background:#0f1420; border:1px solid #2a3246; border-radius:8px; color:#fff"></label>
+          <label class="small">W <input id="gridW" type="number" min="4" max="16" value="8" style="width:64px; margin-left:6px; padding:6px; background:#0f1420; border:1px solid #2a3246; border-radius:8px; color:#fff"></label>
+          <label class="small">H <input id="gridH" type="number" min="3" max="12" value="6" style="width:64px; margin-left:6px; padding:6px; background:#0f1420; border:1px solid #2a3246; border-radius:8px; color:#fff"></label>
           <button id="applyGridBtn" class="ghost">Apply</button>
 
           <div class="small" style="margin-left:16px">Zoom:</div>
@@ -110,11 +122,36 @@
           <span id="zoomVal" class="small mono">64px</span>
         </div>
 
+        <div class="btn-row">
+          <button id="obstacleBtn" class="ghost">Obstacle Mode: OFF</button>
+          <button id="clearObsBtn" class="ghost">Clear Obstacles</button>
+        </div>
+
+        <div class="btn-row" style="align-items:center">
+          <button id="terrainBtn" class="ghost">Terrain Mode: OFF</button>
+          <select id="terrainType" style="padding:8px; background:#0f1420; color:#fff; border:1px solid #2a3246; border-radius:8px">
+            <option value="plain">Plain</option>
+            <option value="forest">Forest (+2 DEF, cost 2)</option>
+            <option value="hill">Hill (+2 ATK, cost 2)</option>
+            <option value="road">Road (cost 1)</option>
+            <option value="swamp">Swamp (-2 ATK, cost 3)</option>
+            <option value="water">Water (impassable)</option>
+          </select>
+        </div>
+
+        <div class="legend">
+          <div class="lg"><span class="dot t-forest"></span>Forest</div>
+          <div class="lg"><span class="dot t-hill"></span>Hill</div>
+          <div class="lg"><span class="dot t-road"></span>Road</div>
+          <div class="lg"><span class="dot t-swamp"></span>Swamp</div>
+          <div class="lg"><span class="dot t-water"></span>Water</div>
+        </div>
+
         <div class="divider"></div>
         <div class="btn-row">
-          <button id="presetBtn" class="ghost">Preset: Skirmish 2v2</button>
+          <button id="presetBtn" class="ghost">Preset: Bridge Clash</button>
           <button id="fromSelectorBtn" class="ghost">Preset: From Selector</button>
-          <button id="clearBtn" class="ghost">Clear Board</button>
+          <button id="clearBtn" class="ghost">Clear Units</button>
           <button id="startBtn" class="primary">Start Battle</button>
         </div>
       </section>
@@ -133,7 +170,7 @@
         <h2>Enemies</h2>
         <div id="enemyList"></div>
         <div class="divider"></div>
-        <div class="small">Melee needs adjacency. Use <b>Move</b> first.</div>
+        <div class="small">Melee needs adjacency. Ranged/support need LOS. Terrain modifies ATK/DEF and path cost.</div>
       </section>
     </section>
 
@@ -160,71 +197,100 @@
   </main>
 
 <script>
-/* ========= Core helpers ========= */
+/* ========= Core / Grid ========= */
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const choice=(arr)=>arr[Math.floor(Math.random()*arr.length)];
-const GRID = { w: 6, h: 4, cell: 64 }; // dynamic grid
+const GRID = { w: 8, h: 6, cell: 64, obstacles: new Set(), terrain: new Map() }; // terrain key->type
+const key=(x,y)=>`${x},${y}`;
+const hasObs=(x,y)=>GRID.obstacles.has(key(x,y));
 const dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const inRange=(u,t,r)=>dist(u.pos,t.pos)<=r;
 const isAdjacent=(a,b)=>dist(a,b)===1;
+const TERRAIN = {
+  plain:{cost:1, atk:0, def:0, pass:true},
+  forest:{cost:2, atk:0, def:+2, pass:true},
+  hill:{cost:2, atk:+2, def:0, pass:true},
+  road:{cost:1, atk:0, def:0, pass:true},
+  swamp:{cost:3, atk:-2, def:0, pass:true},
+  water:{cost:999, atk:0, def:0, pass:false},
+};
+function tAt(x,y){ return TERRAIN[GRID.terrain.get(key(x,y))||'plain']; }
+function tNameAt(x,y){ return GRID.terrain.get(key(x,y))||'plain'; }
 function shortName(n){ return n.replace(/\(.*?\)/,'').trim().split(' ')[0]; }
 function getUnitAt(x,y){ return G.units.find(u=>!u.dead && u.pos && u.pos.x===x && u.pos.y===y); }
 
-/* ========= Libraries ========= */
+/* ========= LOS (obstacles block, terrain doesn't) ========= */
+function lineCells(a,b){
+  let x0=a.x, y0=a.y, x1=b.x, y1=b.y;
+  const cells=[];
+  const dx=Math.abs(x1-x0), dy=Math.abs(y1-y0);
+  const sx = x0 < x1 ? 1 : -1;
+  const sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+  while(!(x0===x1 && y0===y1)){
+    const e2 = 2*err;
+    if(e2> -dy){ err -= dy; x0 += sx; }
+    if(e2<  dx){ err += dx; y0 += sy; }
+    if(!(x0===x1 && y0===y1)) cells.push({x:x0,y:y0});
+  }
+  return cells;
+}
+function clearLine(a,b){
+  for(const c of lineCells(a,b)){ if(hasObs(c.x,c.y)) return false; }
+  return true;
+}
+
+/* ========= Status & Abilities (unchanged support set) ========= */
 const StatusLib={
   Guard:{name:"Guard",desc:"Increase DEF by 50% for 1 turn.",duration:1,
     apply(u){u.temp.defBonus=(u.temp.defBonus||0)+Math.ceil(u.stats.def*0.5);},
     remove(u){u.temp.defBonus=0;},tick(){}},
   Bleed:{name:"Bleed",desc:"Lose 5 HP at start for 2 turns.",duration:2,
-    apply(){},remove(){},tick(u,log){const dmg=5;u.hp=clamp(u.hp-dmg,0,u.stats.maxHp);log(`${u.name} bleeds for <span class="dmg">-${dmg}</span>.`);}}
+    apply(){},remove(){},tick(u,log){const dmg=5;applyDamage(u,dmg,log,`${u.name} bleeds for <span class="dmg">-${dmg}</span>.`);} },
+  Root:{name:"Root",desc:"Cannot move for 1 turn.",duration:1,apply(){},remove(){},tick(){}},
+  Inspire:{name:"Inspire",desc:"+2 ATK & +2 SPD for 2 turns.",duration:2,
+    apply(u){u.temp.atkBuff=(u.temp.atkBuff||0)+2; u.temp.spdBuff=(u.temp.spdBuff||0)+2;},
+    remove(u){u.temp.atkBuff=0; u.temp.spdBuff=0;},tick(){}},
+  Shield:{name:"Shield",desc:"Absorb 15 damage for 2 turns.",duration:2,
+    apply(u){u.temp.shield=(u.temp.shield||0)+15;},
+    remove(u){u.temp.shield=0;},tick(){}},
 };
 
 const AbilityLib={
   PowerStrike:{name:"Power Strike",desc:"+50% ATK single hit. 1-turn CD. (range 1)",cooldown:1,range:1,target:"enemy",
-    use(user,target,log){const atk=Math.ceil(user.stats.atk*1.5);const dmg=computeDamage(atk,target.stats.def+(target.temp.defBonus||0));dealDamage(target,dmg,`${user.name} uses Power Strike on ${target.name} for <span class="dmg">-${dmg}</span>.`,log);}},
-  Guard:{name:"Guard",desc:"Gain Guard for 1 turn.",cooldown:2,range:0,target:"self",
-    use(user,_t,log){addStatus(user,"Guard",log);log(`${user.name} braces and gains <span class="hit">Guard</span>.`);}},
-  BleedingShot:{name:"Bleeding Shot",desc:"Light hit + Bleed. (range 3)",cooldown:2,range:3,target:"enemy",
-    use(user,target,log){const atk=Math.ceil(user.stats.atk*0.8);const dmg=computeDamage(atk,target.stats.def+(target.temp.defBonus||0));dealDamage(target,dmg,`${user.name} uses Bleeding Shot on ${target.name} for <span class="dmg">-${dmg}</span>.`,log);if(!target.dead){addStatus(target,"Bleed",log);log(`${target.name} is now <span class="hit">Bleeding</span>.`);}}},
+    use(user,target,log){const atk=Math.ceil((effAtk(user))*1.5);const dmg=computeDamage(atk,effDef(target));applyDamage(target,dmg,log,`${user.name} uses Power Strike on ${target.name} for <span class="dmg">-${dmg}</span>.`);}},
+
+  BleedingShot:{name:"Bleeding Shot",desc:"Light hit + Bleed. (range 3, needs LOS)",cooldown:2,range:3,target:"enemy",
+    use(user,target,log){const atk=Math.ceil((effAtk(user))*0.8);const dmg=computeDamage(atk,effDef(target));applyDamage(target,dmg,log,`${user.name} uses Bleeding Shot on ${target.name} for <span class="dmg">-${dmg}</span>.`);if(!target.dead){addStatus(target,"Bleed",log);log(`${target.name} is now <span class="hit">Bleeding</span>.`);}}},
+
   Recover:{name:"Recover",desc:"Restore 12 HP to self.",cooldown:2,range:0,target:"self",
-    use(user,_t,log){const heal=12;const before=user.hp;user.hp=clamp(user.hp+heal,0,user.stats.maxHp);log(`${user.name} recovers <span class="heal">+${user.hp-before}</span> HP.`);}}
+    use(user,_t,log){const heal=12;const before=user.hp;user.hp=clamp(user.hp+heal,0,user.stats.maxHp);log(`${user.name} recovers <span class="heal">+${user.hp-before}</span> HP.`);} },
+
+  Heal:{name:"Heal",desc:"Restore 16 HP to an ally (R3, LOS).",cooldown:2,range:3,target:"ally",
+    use(user,target,log){const heal=16;const before=target.hp;target.hp=clamp(target.hp+heal,0,target.stats.maxHp);log(`${user.name} heals ${target.name} for <span class="heal">+${target.hp-before}</span>.`);} },
+  Inspire:{name:"Inspire",desc:"Buff ally with Inspire (+2 ATK & SPD, 2 turns). R3, LOS.",cooldown:3,range:3,target:"ally",
+    use(user,target,log){addStatus(target,"Inspire",log);log(`${user.name} inspires ${target.name}!`);} },
+  Shield:{name:"Shield",desc:"Grant a 15-HP shield to an ally (2 turns). R3, LOS.",cooldown:3,range:3,target:"ally",
+    use(user,target,log){addStatus(target,"Shield",log);log(`${user.name} shields ${target.name}.`);} },
+  Root:{name:"Root",desc:"Root an enemy (no movement) for 1 turn. R3, LOS.",cooldown:2,range:3,target:"enemy",
+    use(user,target,log){addStatus(target,"Root",log);log(`${user.name} roots ${target.name} in place!`);} },
 };
 
-/* ========= Unit templates (expanded) ========= */
+/* ========= Templates ========= */
 const UnitTemplates = {
-  // melee
-  Knight:      { label:"Knight",      name:"Tallis (Knight)", stats:{maxHp:60,atk:14,def:10,spd:7},  abilities:["PowerStrike","Guard"], range:1 },
-  Fighter:     { label:"Fighter",     name:"Fighter",         stats:{maxHp:54,atk:13,def:9, spd:9}, abilities:["PowerStrike","Guard"], range:1 },
-  Rogue:       { label:"Rogue",       name:"Rogue",           stats:{maxHp:42,atk:12,def:6, spd:13},abilities:["PowerStrike","Guard"], range:1 },
-  Monk:        { label:"Monk",        name:"Monk",            stats:{maxHp:46,atk:12,def:7, spd:12},abilities:["PowerStrike","Guard"], range:1 },
-  Paladin:     { label:"Paladin",     name:"Paladin",         stats:{maxHp:62,atk:13,def:11,spd:6}, abilities:["PowerStrike","Guard"], range:1 },
-  Berserker:   { label:"Berserker",   name:"Berserker",       stats:{maxHp:58,atk:16,def:6, spd:8}, abilities:["PowerStrike","Guard"], range:1 },
-  Spearmaster: { label:"Spearmaster", name:"Spearmaster",     stats:{maxHp:50,atk:13,def:8, spd:10},abilities:["PowerStrike","Guard"], range:1 },
-  Sentinel:    { label:"Sentinel",    name:"Sentinel",        stats:{maxHp:64,atk:12,def:12,spd:5}, abilities:["PowerStrike","Guard"], range:1 },
-  Duelist:     { label:"Duelist",     name:"Duelist",         stats:{maxHp:45,atk:14,def:7, spd:12},abilities:["PowerStrike","Guard"], range:1 },
-  Assassin:    { label:"Assassin",    name:"Assassin",        stats:{maxHp:38,atk:15,def:5, spd:14},abilities:["PowerStrike","Guard"], range:1 },
+  Knight:{ label:"Knight", name:"Tallis (Knight)", stats:{maxHp:60,atk:14,def:10,spd:7}, abilities:["PowerStrike","Guard"], range:1 },
+  Fighter:{ label:"Fighter", name:"Fighter", stats:{maxHp:54,atk:13,def:9, spd:9}, abilities:["PowerStrike","Guard"], range:1 },
+  Rogue:{ label:"Rogue", name:"Rogue", stats:{maxHp:42,atk:12,def:6, spd:13}, abilities:["PowerStrike","Guard"], range:1 },
+  Archer:{ label:"Archer", name:"Clover (Archer)", stats:{maxHp:44,atk:11,def:7, spd:12}, abilities:["BleedingShot","Recover"], range:3 },
+  Bruiser:{ label:"Bruiser", name:"Goblin Bruiser", stats:{maxHp:40,atk:12,def:6, spd:8}, abilities:["PowerStrike"], range:1 },
+  Imp:{ label:"Imp", name:"Woad Imp", stats:{maxHp:32,atk:9, def:5, spd:11}, abilities:["BleedingShot"], range:3 },
 
-  // ranged
-  Archer:      { label:"Archer",      name:"Clover (Archer)", stats:{maxHp:44,atk:11,def:7, spd:12},abilities:["BleedingShot","Recover"], range:3 },
-  Scout:       { label:"Scout",       name:"Scout",           stats:{maxHp:40,atk:10,def:6, spd:14},abilities:["BleedingShot","Recover"], range:3 },
-  Hunter:      { label:"Hunter",      name:"Hunter",          stats:{maxHp:46,atk:12,def:7, spd:11},abilities:["BleedingShot","Recover"], range:3 },
-  Sharpshooter:{ label:"Sharpshooter",name:"Sharpshooter",    stats:{maxHp:42,atk:14,def:6, spd:10},abilities:["BleedingShot","Recover"], range:3 },
-  Slinger:     { label:"Slinger",     name:"Slinger",         stats:{maxHp:40,atk:11,def:6, spd:13},abilities:["BleedingShot","Recover"], range:3 },
-
-  // support
-  Magician:    { label:"Magician",    name:"Magician",        stats:{maxHp:40,atk:11,def:6, spd:11},abilities:["BleedingShot","Recover"], range:3 },
-  Warlock:     { label:"Warlock",     name:"Warlock",         stats:{maxHp:38,atk:12,def:5, spd:10},abilities:["BleedingShot","Recover"], range:3 },
-  Cleric:      { label:"Cleric",      name:"Cleric",          stats:{maxHp:46,atk:9, def:8, spd:9}, abilities:["BleedingShot","Recover"], range:3 },
-  Druid:       { label:"Druid",       name:"Druid",           stats:{maxHp:44,atk:10,def:7, spd:10},abilities:["BleedingShot","Recover"], range:3 },
-  Bard:        { label:"Bard",        name:"Bard",            stats:{maxHp:42,atk:9, def:7, spd:12},abilities:["BleedingShot","Recover"], range:3 },
-  Shaman:      { label:"Shaman",      name:"Shaman",          stats:{maxHp:44,atk:11,def:7, spd:10},abilities:["BleedingShot","Recover"], range:3 },
-  Alchemist:   { label:"Alchemist",   name:"Alchemist",       stats:{maxHp:40,atk:12,def:6, spd:11},abilities:["BleedingShot","Recover"], range:3 },
-  Enchanter:   { label:"Enchanter",   name:"Enchanter",       stats:{maxHp:38,atk:10,def:6, spd:11},abilities:["BleedingShot","Recover"], range:3 },
-
-  // enemy archetypes
-  Bruiser:     { label:"Bruiser",     name:"Goblin Bruiser",  stats:{maxHp:40,atk:12,def:6, spd:8}, abilities:["PowerStrike"], range:1 },
-  Imp:         { label:"Imp",         name:"Woad Imp",        stats:{maxHp:32,atk:9, def:5, spd:11},abilities:["BleedingShot"], range:3 },
+  Cleric:{ label:"Cleric", name:"Cleric", stats:{maxHp:46,atk:9, def:8, spd:9}, abilities:["Heal","Shield"], range:3 },
+  Bard:{ label:"Bard", name:"Bard", stats:{maxHp:42,atk:9, def:7, spd:12}, abilities:["Inspire","Recover"], range:3 },
+  Druid:{ label:"Druid", name:"Druid", stats:{maxHp:44,atk:10,def:7, spd:10}, abilities:["Root","Heal"], range:3 },
+  Enchanter:{ label:"Enchanter", name:"Enchanter", stats:{maxHp:38,atk:10,def:6, spd:11}, abilities:["Shield","Inspire"], range:3 },
+  Shaman:{ label:"Shaman", name:"Shaman", stats:{maxHp:44,atk:11,def:7, spd:10}, abilities:["Heal","Inspire"], range:3 },
 };
 
 function makeUnit(tplKey, team, pos){
@@ -233,7 +299,7 @@ function makeUnit(tplKey, team, pos){
     id: crypto.randomUUID(),
     name: T.name, team,
     stats: {...T.stats}, hp:T.stats.maxHp, dead:false,
-    temp:{defBonus:0,defend:false}, statuses:[],
+    temp:{defBonus:0,defend:false,atkBuff:0,spdBuff:0,shield:0}, statuses:[],
     abilities: T.abilities.map(k=>({key:k,cd:0})),
     range: T.range,
     pos: pos? {...pos} : null
@@ -241,11 +307,28 @@ function makeUnit(tplKey, team, pos){
 }
 
 /* ========= Global State ========= */
-const G={ phase:"setup", units:[], acting:null, round:1, moveMode:false, auto:false };
+const G={ phase:"setup", units:[], acting:null, round:1, moveMode:false, auto:false, obstacleMode:false, terrainMode:false };
 
-/* ========= Math / Effects ========= */
-function computeDamage(atk,def){ const base=Math.max(1, atk - Math.floor(def*0.7)); const variance=rand(-2,2); return Math.max(1, base+variance); }
-function dealDamage(target,dmg,msg,log){ target.hp=clamp(target.hp-dmg,0,target.stats.maxHp); if(msg) log(msg); if(target.hp===0){ target.dead=true; log(`<b>${target.name}</b> is defeated.`);} }
+/* ========= Damage / Effective Stats ========= */
+function effAtk(u){ const t=u.pos? tAt(u.pos.x,u.pos.y) : TERRAIN.plain; return u.stats.atk + (u.temp.atkBuff||0) + (t.atk||0); }
+function effDef(u){ const t=u.pos? tAt(u.pos.x,u.pos.y) : TERRAIN.plain; return u.stats.def + (u.temp.defBonus||0) + (u.temp.defend?2:0) + (t.def||0); }
+function computeDamage(atk,def){ const base=Math.max(1, (atk) - Math.floor(def*0.7)); const variance=rand(-2,2); return Math.max(1, base+variance); }
+function applyDamage(target,dmg,log,msg){
+  let remaining=dmg;
+  if(target.temp.shield && remaining>0){
+    const used=Math.min(target.temp.shield, remaining);
+    target.temp.shield -= used;
+    remaining -= used;
+    log(`${target.name}'s shield absorbs <span class="heal">${used}</span>.`);
+  }
+  if(remaining>0){
+    target.hp=clamp(target.hp-remaining,0,target.stats.maxHp);
+    if(msg) log(msg);
+    if(target.hp===0){ target.dead=true; log(`<b>${target.name}</b> is defeated.`); }
+  } else {
+    if(msg) log(msg.replace(/for.+/, 'but it was fully absorbed.'));
+  }
+}
 function addStatus(u,key,log){ const tpl=StatusLib[key]; if(!tpl) return; const ex=u.statuses.find(s=>s.key===key); if(ex) ex.turnsLeft=tpl.duration; else u.statuses.push({key,turnsLeft:tpl.duration}); tpl.apply(u,log); }
 function tickStatusesStart(u,log){ for(const s of [...u.statuses]){ const tpl=StatusLib[s.key]; if(tpl&&tpl.tick) tpl.tick(u,log); if(u.hp===0) break; } }
 function cleanupStatusesEnd(u,log){ for(const s of [...u.statuses]){ s.turnsLeft-=1; if(s.turnsLeft<=0){ const tpl=StatusLib[s.key]; if(tpl&&tpl.remove) tpl.remove(u,log); u.statuses=u.statuses.filter(x=>x!==s);} } u.temp.defend=false; u.temp.defBonus=0; }
@@ -253,9 +336,9 @@ function cleanupStatusesEnd(u,log){ for(const s of [...u.statuses]){ s.turnsLeft
 /* ========= Turn & Teams ========= */
 function living(team){ return G.units.filter(u=>u.team===team && !u.dead); }
 function anyLiving(team){ return living(team).length>0; }
-function initiativeOrder(){ return G.units.filter(u=>!u.dead).slice().sort((a,b)=> b.stats.spd - a.stats.spd || (a.id > b.id ? 1 : -1)); }
+function initiativeOrder(){ return G.units.filter(u=>!u.dead).slice().sort((a,b)=> (b.stats.spd + (b.temp.spdBuff||0)) - (a.stats.spd + (a.temp.spdBuff||0)) || (a.id > b.id ? 1 : -1)); }
 
-/* ========= UI elements ========= */
+/* ========= DOM ========= */
 const BOARD=document.getElementById('board');
 const PHASE=document.getElementById('phaseTitle');
 const BOARD_HINT=document.getElementById('boardHint');
@@ -290,7 +373,13 @@ const applyGridBtn = document.getElementById('applyGridBtn');
 const zoomRange = document.getElementById('zoomRange');
 const zoomVal = document.getElementById('zoomVal');
 
-/* ========= Setup: builds UI ========= */
+const obstacleBtn=document.getElementById('obstacleBtn');
+const clearObsBtn=document.getElementById('clearObsBtn');
+
+const terrainBtn=document.getElementById('terrainBtn');
+const terrainType=document.getElementById('terrainType');
+
+/* ========= Build buttons ========= */
 let activeBuild="Knight";
 function renderBuildButtons(){
   buildRow.innerHTML="";
@@ -311,6 +400,15 @@ function getSelectedTeam(){
 function applyGridSize(w,h){
   GRID.w = Math.max(4, Math.min(16, parseInt(w)||GRID.w));
   GRID.h = Math.max(3, Math.min(12, parseInt(h)||GRID.h));
+  // Trim obstacles & terrain
+  GRID.obstacles = new Set([...GRID.obstacles].filter(k=>{
+    const [x,y]=k.split(',').map(Number);
+    return x>=0 && x<GRID.w && y>=0 && y<GRID.h;
+  }));
+  GRID.terrain = new Map([...GRID.terrain.entries()].filter(([k,v])=>{
+    const [x,y]=k.split(',').map(Number);
+    return x>=0 && x<GRID.w && y>=0 && y<GRID.h;
+  }));
   for(const u of G.units){
     if(!u.pos) continue;
     u.pos.x = Math.max(0, Math.min(GRID.w-1, u.pos.x));
@@ -324,12 +422,27 @@ zoomRange.oninput = ()=>{
   zoomVal.textContent = GRID.cell + 'px';
   BOARD.style.setProperty('--cell', GRID.cell+'px');
 };
+obstacleBtn.onclick=()=>{
+  G.obstacleMode=!G.obstacleMode;
+  if(G.obstacleMode) G.terrainMode=false;
+  obstacleBtn.textContent = `Obstacle Mode: ${G.obstacleMode?'ON':'OFF'}`;
+  terrainBtn.textContent = `Terrain Mode: OFF`;
+  render();
+};
+terrainBtn.onclick=()=>{
+  G.terrainMode=!G.terrainMode;
+  if(G.terrainMode) G.obstacleMode=false;
+  terrainBtn.textContent = `Terrain Mode: ${G.terrainMode?'ON':'OFF'}`;
+  obstacleBtn.textContent = `Obstacle Mode: OFF`;
+  render();
+};
+clearObsBtn.onclick=()=>{ GRID.obstacles.clear(); render(); };
 
 /* ========= Rendering ========= */
 function log(msg){ const el=document.createElement('div'); el.className='toast'; el.innerHTML=msg; LOG.appendChild(el); LOG.scrollTop=LOG.scrollHeight; }
 
 function render(){
-  PHASE.textContent = G.phase==="setup" ? "Setup: Place Units" : "Battle";
+  PHASE.textContent = G.phase==="setup" ? "Setup: Place Units & Terrain" : "Battle";
   BOARD.style.setProperty('--w', GRID.w);
   BOARD.style.setProperty('--h', GRID.h);
   BOARD.style.setProperty('--cell', GRID.cell + 'px');
@@ -375,9 +488,8 @@ function renderUnit(u){
   const info=document.createElement('div'); info.className='col';
   const name=document.createElement('div'); name.innerHTML=`<b>${u.name}</b>`;
   const stats=document.createElement('div'); stats.className='stats';
-  const defNow=u.stats.def + (u.temp.defBonus||0) + (u.temp.defend?2:0);
-  const posTxt = u.pos? ` • POS (${u.pos.x},${u.pos.y})` : '';
-  stats.innerHTML = `ATK ${u.stats.atk} • DEF ${defNow} • SPD ${u.stats.spd} • RNG ${u.range}${posTxt}`;
+  const posTxt = u.pos? ` • POS (${u.pos.x},${u.pos.y}) • ${tNameAt(u.pos.x,u.pos.y).toUpperCase()}` : '';
+  stats.innerHTML = `ATK ${effAtk(u)} • DEF ${effDef(u)} • SPD ${u.stats.spd + (u.temp.spdBuff||0)} • RNG ${u.range}${posTxt}`;
   const hpbar=document.createElement('div'); hpbar.className='hpbar';
   const hp=document.createElement('div'); hp.className='hp'; const pct=Math.round((u.hp/u.stats.maxHp)*100); hp.style.width=pct+'%'; hpbar.appendChild(hp);
   const statusLine=document.createElement('div'); statusLine.className='small'; statusLine.style.marginTop='6px';
@@ -391,38 +503,64 @@ function renderBoard(){
   BOARD.innerHTML='';
   const placing = (G.phase==="setup");
   BOARD_HINT.innerHTML = placing
-    ? `Placing: <b>${UnitTemplates[activeBuild].label}</b> for <b>${getSelectedTeam()==='ally'?'Allies':'Enemies'}</b>. Click a tile to place; click a token to remove.`
-    : `Melee requires adjacency (range 1). Move first if no targets are in range.`;
+    ? (G.obstacleMode ? `Obstacle Mode: click tiles to toggle walls. Obstacles block LOS.`
+       : G.terrainMode ? `Terrain Mode: painting <b>${terrainType.value.toUpperCase()}</b>. Water is impassable.`
+       : `Placing: <b>${UnitTemplates[activeBuild].label}</b> for <b>${getSelectedTeam()==='ally'?'Allies':'Enemies'}</b>. Click a tile to place; click a token to remove. Toggle Obstacles/Terrain.`)
+    : `Terrain applies to ATK/DEF; obstacles block LOS. AI uses A* to path around terrain and walls.`;
 
   const inRangeIds=new Set();
   if(G.phase==="battle" && G.acting){
     const foes = G.acting.team==='ally' ? living('enemy') : living('ally');
-    for(const t of foes){ if(inRange(G.acting,t,G.acting.range)) inRangeIds.add(t.id); }
+    for(const t of foes){
+      const ok = inRange(G.acting,t,G.acting.range) && (G.acting.range===1 || clearLine(G.acting.pos,t.pos));
+      if(ok) inRangeIds.add(t.id);
+    }
   }
 
   for(let y=0;y<GRID.h;y++){
     for(let x=0;x<GRID.w;x++){
-      const cell=document.createElement('div'); cell.className='cell';
-      const label=document.createElement('div'); label.className='cell coord'; label.textContent=`${x},${y}`; cell.appendChild(label);
+      const tClass = 't-' + (GRID.terrain.get(key(x,y))||'plain');
+      const cell=document.createElement('div'); cell.className=`cell ${tClass}`+(hasObs(x,y)?' obstacle':'');
+      const label=document.createElement('div'); label.className='coord'; label.textContent=`${x},${y}`; cell.appendChild(label);
       const u=getUnitAt(x,y);
 
       if(placing){
-        if(!u){
-          cell.classList.add('place');
-          cell.onclick=()=>{ const team=getSelectedTeam(); G.units.push(makeUnit(activeBuild, team, {x,y})); render(); };
-        }else{
-          const token=renderToken(u, inRangeIds);
-          token.classList.add('removable');
-          token.title="Remove unit";
-          token.onclick=()=>{ G.units=G.units.filter(z=>z!==u); render(); };
-          cell.appendChild(token);
+        if(G.obstacleMode){
+          cell.onclick=()=>{ 
+            if(u) return;
+            if(hasObs(x,y)) GRID.obstacles.delete(key(x,y));
+            else GRID.obstacles.add(key(x,y));
+            render();
+          };
+        } else if(G.terrainMode){
+          cell.onclick=()=>{
+            if(hasObs(x,y)) return;
+            const val = terrainType.value;
+            if(val==='plain') GRID.terrain.delete(key(x,y));
+            else GRID.terrain.set(key(x,y), val);
+            render();
+          };
+        } else {
+          if(!u && !hasObs(x,y) && tAt(x,y).pass){
+            cell.classList.add('place');
+            cell.onclick=()=>{ const team=getSelectedTeam(); G.units.push(makeUnit(activeBuild, team, {x,y})); render(); };
+          }else if(u){
+            const token=renderToken(u, inRangeIds);
+            token.classList.add('removable');
+            token.title="Remove unit";
+            token.onclick=()=>{ G.units=G.units.filter(z=>z!==u); render(); };
+            cell.appendChild(token);
+          }
         }
       } else {
         if(u){ cell.appendChild(renderToken(u, inRangeIds)); }
-        if(G.moveMode && G.acting && !u && isAdjacent(G.acting.pos,{x,y})){
+        if(G.moveMode && G.acting && !u && !hasObs(x,y) && tAt(x,y).pass && isAdjacent(G.acting.pos,{x,y})){
           cell.classList.add('move-ok');
           cell.style.cursor='pointer';
-          cell.onclick=()=>{ G.acting.pos={x,y}; log(`${G.acting.name} moves to (${x},${y}).`); G.moveMode=false; render(); endTurn(); };
+          cell.onclick=()=>{ 
+            if(G.acting.statuses.some(s=>s.key==='Root')){ log(`${G.acting.name} is rooted and cannot move.`); return; }
+            G.acting.pos={x,y}; log(`${G.acting.name} moves to (${x},${y}).`); G.moveMode=false; render(); endTurn(); 
+          };
         }
       }
 
@@ -444,10 +582,27 @@ function renderToken(unit, inRangeIds){
 /* ========= Setup controls ========= */
 presetBtn.onclick=()=>{
   G.units=[];
-  G.units.push(makeUnit("Knight","ally",{x:0,y:1}));
-  G.units.push(makeUnit("Archer","ally",{x:0,y:2}));
-  G.units.push(makeUnit("Bruiser","enemy",{x:GRID.w-1,y:1}));
-  G.units.push(makeUnit("Imp","enemy",{x:GRID.w-1,y:2}));
+  GRID.obstacles.clear();
+  GRID.terrain.clear();
+  // Build a river (water) with a 2-tile bridge (road) in center
+  const midX=Math.floor(GRID.w/2);
+  for(let y=0;y<GRID.h;y++){ GRID.terrain.set(key(midX,y),'water'); }
+  const midY=Math.floor(GRID.h/2);
+  GRID.terrain.set(key(midX,midY),'road');
+  GRID.terrain.set(key(midX,midY-1),'road');
+  // Add some forests and hills
+  GRID.terrain.set(key(1,1),'forest');
+  GRID.terrain.set(key(2,2),'forest');
+  GRID.terrain.set(key(GRID.w-2,GRID.h-2),'hill');
+  GRID.terrain.set(key(GRID.w-3,GRID.h-3),'hill');
+
+  G.units.push(makeUnit("Knight","ally",{x:0,y:midY}));
+  G.units.push(makeUnit("Archer","ally",{x:0,y:clamp(midY+1,0,GRID.h-1)}));
+  G.units.push(makeUnit("Cleric","ally",{x:0,y:clamp(midY-1,0,GRID.h-1)}));
+
+  G.units.push(makeUnit("Bruiser","enemy",{x:GRID.w-1,y:midY}));
+  G.units.push(makeUnit("Imp","enemy",{x:GRID.w-1,y:clamp(midY+1,0,GRID.h-1)}));
+  G.units.push(makeUnit("Druid","enemy",{x:GRID.w-1,y:clamp(midY-1,0,GRID.h-1)}));
   render();
 };
 clearBtn.onclick=()=>{ G.units=[]; render(); };
@@ -460,12 +615,12 @@ fromSelectorBtn.onclick = () => {
       return;
     }
     G.units = [];
-    const title = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+    function title(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
     function placeList(list, team){
       for(const u of list){
         const guess = title(u.tpl);
         const pos = u.pos && typeof u.pos.x==='number' ? {x:Math.max(0,Math.min(GRID.w-1,u.pos.x)),y:Math.max(0,Math.min(GRID.h-1,u.pos.y))} : null;
-        const made = makeUnit(guess, team, pos);
+        const made = makeUnit(guess in UnitTemplates ? guess : "Knight", team, pos);
         if(u.name) made.name = u.name;
         G.units.push(made);
       }
@@ -482,7 +637,7 @@ startBtn.onclick=()=>{
   const a=living('ally').length, e=living('enemy').length;
   if(a===0 || e===0){ alert("Place at least one Ally and one Enemy."); return; }
   G.phase="battle";
-  for(const u of G.units){ u.dead=false; u.hp=u.stats.maxHp; u.statuses=[]; u.temp={defBonus:0,defend:false}; for(const a of u.abilities) a.cd=0; if(!u.pos){ autoPlace(u); } }
+  for(const u of G.units){ u.dead=false; u.hp=u.stats.maxHp; u.statuses=[]; u.temp={defBonus:0,defend:false,atkBuff:0,spdBuff:0,shield:0}; for(const a of u.abilities) a.cd=0; if(!u.pos){ autoPlace(u); } }
   log("<i>The battle begins.</i>");
   nextTurn_init();
 };
@@ -492,19 +647,19 @@ function autoPlace(u){
   if(u.team==='ally'){
     for(let y=0;y<GRID.h;y++){
       for(let x=0;x<Math.min(leftCols, GRID.w); x++){
-        if(!getUnitAt(x,y)){ u.pos={x,y}; return; }
+        if(!getUnitAt(x,y) && !hasObs(x,y) && tAt(x,y).pass){ u.pos={x,y}; return; }
       }
     }
   } else {
     for(let y=0;y<GRID.h;y++){
       for(let x=GRID.w-1; x>=Math.max(0, GRID.w - rightCols); x--){
-        if(!getUnitAt(x,y)){ u.pos={x,y}; return; }
+        if(!getUnitAt(x,y) && !hasObs(x,y) && tAt(x,y).pass){ u.pos={x,y}; return; }
       }
     }
   }
   for(let y=0;y<GRID.h;y++){
     for(let x=0;x<GRID.w;x++){
-      if(!getUnitAt(x,y)){ u.pos={x,y}; return; }
+      if(!getUnitAt(x,y) && !hasObs(x,y) && tAt(x,y).pass){ u.pos={x,y}; return; }
     }
   }
 }
@@ -513,16 +668,16 @@ function autoPlace(u){
 ATTACK.onclick=()=>{
   if(!(G.acting && G.acting.team==='ally')) return;
   TARGETS.innerHTML=''; ABILROW.innerHTML=''; G.moveMode=false;
-  const foes=living('enemy').filter(t=>inRange(G.acting,t,G.acting.range));
-  if(!foes.length){ log(`No targets in range (R${G.acting.range}). Move to get adjacent (R1) for melee.`); return; }
+  const foes=living('enemy').filter(t=>inRange(G.acting,t,G.acting.range) && (G.acting.range===1 || clearLine(G.acting.pos,t.pos)));
+  if(!foes.length){ log(`No targets in range/LOS (R${G.acting.range}).`); return; }
   foes.forEach(t=>{
     const b=document.createElement('button'); b.className='targetBtn';
     b.textContent=`${shortName(t.name)} (d=${dist(G.acting.pos,t.pos)})`;
     b.onclick=()=>{
-      const atk=G.acting.stats.atk;
-      const def=t.stats.def+(t.temp.defBonus||0)+(t.temp.defend?2:0);
+      const atk=effAtk(G.acting);
+      const def=effDef(t);
       const dmg=computeDamage(atk,def);
-      dealDamage(t,dmg,`${G.acting.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`,log);
+      applyDamage(t,dmg,log,`${G.acting.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`);
       render(); endTurn();
     };
     TARGETS.appendChild(b);
@@ -541,8 +696,10 @@ ABILITY.onclick=()=>{
     b.onclick=()=>{
       if(tpl.target==='self'){ tpl.use(G.acting, G.acting, log); a.cd=tpl.cooldown||0; render(); return endTurn(); }
       const rng=tpl.range||1;
-      const cands=living('enemy').filter(t=>inRange(G.acting,t,rng));
-      if(!cands.length){ log(`No valid targets in ability range (R${rng}). Move first.`); return; }
+      const isAlly = tpl.target==='ally';
+      const pool = isAlly ? living('ally') : living('enemy');
+      const cands=pool.filter(t=>inRange(G.acting,t,rng) && (rng===1 || clearLine(G.acting.pos,t.pos)));
+      if(!cands.length){ log(`No valid targets in ${tpl.name} range/LOS (R${rng}).`); return; }
       TARGETS.innerHTML='';
       cands.forEach(t=>{
         const tb=document.createElement('button'); tb.className='targetBtn';
@@ -565,8 +722,9 @@ DEFEND.onclick=()=>{
 
 MOVE.onclick=()=>{
   if(!(G.acting && G.acting.team==='ally')) return;
+  if(G.acting.statuses.some(s=>s.key==='Root')){ log(`${G.acting.name} is rooted and cannot move.`); return; }
   G.moveMode=!G.moveMode;
-  if(G.moveMode) log(`Select an adjacent tile for ${G.acting.name} to move.`);
+  if(G.moveMode) log(`Select an adjacent, empty, passable tile for ${G.acting.name} to move.`);
   render();
 };
 
@@ -616,58 +774,126 @@ function endBattle(){
   AUTO.textContent="Auto-Play"; G.auto=false;
 }
 
-/* ========= AI must move if out of range ========= */
+/* ========= A* Pathfinding ========= */
+function neighbors(p){
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  const out=[];
+  for(const [dx,dy] of dirs){
+    const x=p.x+dx, y=p.y+dy;
+    if(x<0||x>=GRID.w||y<0||y>=GRID.h) continue;
+    if(hasObs(x,y)) continue;
+    const terr=tAt(x,y);
+    if(!terr.pass) continue;
+    out.push({x,y, cost: terr.cost});
+  }
+  return out;
+}
+function aStar(start,goal){
+  const gScore=new Map(); // key->cost
+  const fScore=new Map();
+  const came=new Map();
+  const open=new Set([key(start.x,start.y)]);
+  gScore.set(key(start.x,start.y),0);
+  fScore.set(key(start.x,start.y), dist(start,goal));
+
+  function lowest(){
+    let bestK=null, best=Infinity;
+    for(const k of open){
+      const f=fScore.get(k) ?? Infinity;
+      if(f<best){ best=f; bestK=k; }
+    }
+    return bestK;
+  }
+  while(open.size){
+    const curK=lowest();
+    const [cx,cy]=curK.split(',').map(Number);
+    if(cx===goal.x && cy===goal.y){
+      // reconstruct
+      const path=[]; let k=curK;
+      while(k){ const [x,y]=k.split(',').map(Number); path.push({x,y}); k=came.get(k); }
+      path.reverse();
+      return path; // includes start and goal
+    }
+    open.delete(curK);
+    for(const nb of neighbors({x:cx,y:cy})){
+      const nk=key(nb.x,nb.y);
+      const tentative = (gScore.get(curK) ?? Infinity) + nb.cost;
+      if(tentative < (gScore.get(nk) ?? Infinity)){
+        came.set(nk, curK);
+        gScore.set(nk, tentative);
+        const h = dist({x:nb.x,y:nb.y}, goal);
+        fScore.set(nk, tentative + h);
+        if(!open.has(nk)) open.add(nk);
+      }
+    }
+  }
+  return null;
+}
+
+/* ========= AI (terrain-aware) ========= */
 function aiAct(){
   const u=G.acting; if(!u || u.dead) return;
   setTimeout(()=>{
     const foes=living(u.team==='ally'?'enemy':'ally');
     const ready=u.abilities.filter(a=>a.cd===0).map(a=>({a,tpl:AbilityLib[a.key]}));
-    const recover=ready.find(x=>x.tpl===AbilityLib.Recover);
-    const damaging=ready.filter(x=>x.tpl.target==='enemy');
-    const usable=damaging.find(x=>foes.some(t=>inRange(u,t,x.tpl.range||1)));
 
-    if(recover && u.hp<=Math.ceil(u.stats.maxHp*0.5) && Math.random()<0.4){
-      recover.tpl.use(u,u,log); recover.a.cd=recover.tpl.cooldown||0; render(); return endTurn();
-    }
+    // Ally support if helpful
+    const allyPool=living(u.team);
+    const lowAlly = allyPool.slice().sort((a,b)=>(a.hp/a.stats.maxHp)-(b.hp/b.stats.maxHp))[0];
+    const canHeal = ready.find(x=>x.tpl===AbilityLib.Heal) && lowAlly && inRange(u,lowAlly,3) && clearLine(u.pos,lowAlly.pos) && lowAlly.hp<=lowAlly.stats.maxHp-10;
+    if(canHeal){ AbilityLib.Heal.use(u, lowAlly, log); ready.find(x=>x.tpl===AbilityLib.Heal).a.cd=AbilityLib.Heal.cooldown; render(); return endTurn(); }
+    const canShield = ready.find(x=>x.tpl===AbilityLib.Shield) && lowAlly && inRange(u,lowAlly,3) && clearLine(u.pos,lowAlly.pos) && (lowAlly.temp.shield||0)<8;
+    if(canShield){ AbilityLib.Shield.use(u, lowAlly, log); ready.find(x=>x.tpl===AbilityLib.Shield).a.cd=AbilityLib.Shield.cooldown; render(); return endTurn(); }
+
+    // Offensive ability
+    const damaging=ready.filter(x=>x.tpl.target==='enemy');
+    const usable=damaging.find(x=>foes.some(t=>inRange(u,t,x.tpl.range||1) && (x.tpl.range===1 || clearLine(u.pos,t.pos))));
     if(usable){
       const rng=usable.tpl.range||1;
-      const cands=foes.filter(t=>inRange(u,t,rng));
+      const cands=foes.filter(t=>inRange(u,t,rng) && (rng===1 || clearLine(u.pos,t.pos)));
       const t=choice(cands);
       usable.tpl.use(u,t,log); usable.a.cd=usable.tpl.cooldown||0; render(); return endTurn();
     }
 
-    const attackables=foes.filter(t=>inRange(u,t,u.range));
+    // Basic attack
+    const attackables=foes.filter(t=>inRange(u,t,u.range) && (u.range===1 || clearLine(u.pos,t.pos)));
     if(attackables.length){
-      const t=attackables.slice().sort((a,b)=>(a.hp/a.stats.maxHp)-(b.hp/b.stats.maxHp))[0];
-      const atk=u.stats.atk, def=t.stats.def+(t.temp.defBonus||0)+(t.temp.defend?2:0);
+      const t=attackables.slice().sort((a,b)=> (effDef(a)) - (effDef(b)) )[0];
+      const atk=effAtk(u), def=effDef(t);
       const dmg=computeDamage(atk,def);
-      dealDamage(t,dmg,`${u.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`,log);
+      applyDamage(t,dmg,log,`${u.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`);
       render(); return endTurn();
     }
 
-    const nearest=foes.slice().sort((a,b)=>dist(u.pos,a.pos)-dist(u.pos,b.pos))[0];
-    if(nearest){
-      const step=stepToward(u.pos, nearest.pos);
-      if(step && !getUnitAt(step.x,step.y)){ u.pos=step; log(`${u.name} advances to (${step.x},${step.y}).`); render(); return endTurn(); }
+    // A* toward nearest foe
+    const target=foes.slice().sort((a,b)=>dist(u.pos,a.pos)-dist(u.pos,b.pos))[0];
+    if(target){
+      const path = aStar(u.pos, target.pos);
+      if(path && path.length>=2){
+        const step = path[1]; // next cell
+        if(!getUnitAt(step.x,step.y)){ 
+          u.pos=step; 
+          log(`${u.name} advances via terrain to (${step.x},${step.y}).`); 
+          render(); return endTurn(); 
+        }
+      }
+      // fallback greedy if blocked
+      const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+      for(const [dx,dy] of dirs){
+        const nx=u.pos.x+dx, ny=u.pos.y+dy;
+        if(nx<0||ny<0||nx>=GRID.w||ny>=GRID.h) continue;
+        if(!getUnitAt(nx,ny) && !hasObs(nx,ny) && tAt(nx,ny).pass){ u.pos={x:nx,y:ny}; log(`${u.name} inches forward.`); render(); return endTurn(); }
+      }
     }
 
     u.temp.defend=true; log(`${u.name} defends.`); render(); endTurn();
-  }, 400);
-}
-function stepToward(a,b){
-  const dx=b.x-a.x, dy=b.y-a.y;
-  const opts=[];
-  if(Math.abs(dx)>=Math.abs(dy)){ if(dx!==0) opts.push({x:a.x+Math.sign(dx),y:a.y}); if(dy!==0) opts.push({x:a.x,y:a.y+Math.sign(dy)}); }
-  else { if(dy!==0) opts.push({x:a.x,y:a.y+Math.sign(dy)}); if(dx!==0) opts.push({x:a.x+Math.sign(dx),y:a.y}); }
-  for(const p of opts){ if(p.x>=0 && p.x<GRID.w && p.y>=0 && p.y<GRID.h) return p; }
-  return null;
+  }, 300);
 }
 
 /* ========= Boot ========= */
 (function boot(){
   renderBuildButtons();
   render();
-  // init zoom + inputs
   BOARD.style.setProperty('--cell', GRID.cell + 'px');
   gridWInput.value = GRID.w;
   gridHInput.value = GRID.h;
@@ -677,3 +903,34 @@ function stepToward(a,b){
 </script>
 </body>
 </html>
+"""
+
+readme_md = """# Fable Tactics — Terrain Bonuses + A* Pathfinding
+
+This update adds **terrain types** (with ATK/DEF modifiers and path costs) and **A*** pathfinding for the AI. No fog of war.
+
+## Terrain
+- **Plain** — cost 1
+- **Forest** — cost 2, **+2 DEF**
+- **Hill** — cost 2, **+2 ATK**
+- **Road** — cost 1
+- **Swamp** — cost 3, **-2 ATK**
+- **Water** — impassable
+
+Obstacles (separate from terrain) still **block line-of-sight** and movement. Terrain does **not** block LOS.
+
+## Gameplay
+- Effective stats use terrain: `effAtk = ATK + buffs + terrain.atk`, `effDef = DEF + guard/defend + terrain.def`.
+- Ranged/support still require LOS and range.
+- AI uses A* with terrain costs and prefers attacking low effective DEF targets.
+
+## Controls
+- **Obstacle Mode:** toggle walls.
+- **Terrain Mode:** select type then click tiles (water is impassable). 
+- Grid is adjustable (W/H) with zoom. Preset “Bridge Clash” paints a river with a bridge.
+"""
+
+open(os.path.join(root,"index.html"),"w").write(index_html)
+open(os.path.join(root,"README.md"),"w").write(readme_md)
+
+print("Wrote:", os.listdir(root))
