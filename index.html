@@ -220,6 +220,7 @@ function tAt(x,y){ return TERRAIN[GRID.terrain.get(key(x,y))||'plain']; }
 function tNameAt(x,y){ return GRID.terrain.get(key(x,y))||'plain'; }
 function shortName(n){ return n.replace(/\(.*?\)/,'').trim().split(' ')[0]; }
 function getUnitAt(x,y){ return G.units.find(u=>!u.dead && u.pos && u.pos.x===x && u.pos.y===y); }
+function isOccupied(x,y){ return !!getUnitAt(x,y); }
 
 /* ========= LOS (obstacles block, terrain doesn't) ========= */
 function lineCells(a,b){
@@ -242,7 +243,7 @@ function clearLine(a,b){
   return true;
 }
 
-/* ========= Status & Abilities (unchanged support set) ========= */
+/* ========= Status & Abilities ========= */
 const StatusLib={
   Guard:{name:"Guard",desc:"Increase DEF by 50% for 1 turn.",duration:1,
     apply(u){u.temp.defBonus=(u.temp.defBonus||0)+Math.ceil(u.stats.def*0.5);},
@@ -259,6 +260,9 @@ const StatusLib={
 };
 
 const AbilityLib={
+  Guard:{name:"Guard",desc:"Raise DEF by 50% (1 turn). Self-only.",cooldown:2,range:0,target:"self",
+    use(user,_t,log){ addStatus(user,"Guard",log); log(`${user.name} braces for impact.`); } },
+
   PowerStrike:{name:"Power Strike",desc:"+50% ATK single hit. 1-turn CD. (range 1)",cooldown:1,range:1,target:"enemy",
     use(user,target,log){const atk=Math.ceil((effAtk(user))*1.5);const dmg=computeDamage(atk,effDef(target));applyDamage(target,dmg,log,`${user.name} uses Power Strike on ${target.name} for <span class="dmg">-${dmg}</span>.`);}},
 
@@ -814,8 +818,8 @@ function adjacentEnemies(u){
   return foes.filter(t=>isAdjacent(u.pos, t.pos));
 }
 
-/* ========= A* Pathfinding ========= */
-function neighbors(p){
+/* ========= A* Pathfinding (occupancy-aware) ========= */
+function neighbors(p, goal){
   const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
   const out=[];
   for(const [dx,dy] of dirs){
@@ -824,6 +828,8 @@ function neighbors(p){
     if(hasObs(x,y)) continue;
     const terr=tAt(x,y);
     if(!terr.pass) continue;
+    // Treat occupied tiles as blocked unless it's the goal tile
+    if(!(goal && x===goal.x && y===goal.y) && isOccupied(x,y)) continue;
     out.push({x,y, cost: terr.cost});
   }
   return out;
@@ -855,7 +861,7 @@ function aStar(start,goal){
       return path; // includes start and goal
     }
     open.delete(curK);
-    for(const nb of neighbors({x:cx,y:cy})){
+    for(const nb of neighbors({x:cx,y:cy}, goal)){
       const nk=key(nb.x,nb.y);
       const tentative = (gScore.get(curK) ?? Infinity) + nb.cost;
       if(tentative < (gScore.get(nk) ?? Infinity)){
