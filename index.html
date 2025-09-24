@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Fable Tactics – Grid Combat (Terrain Bonuses + A* Pathfinding)</title>
+<title>Fable Tactics – Sprites + HP/EP Bars</title>
 <style>
-  :root { --bg:#0e0f12; --panel:#171922; --accent:#7fe6a2; --muted:#9aa3b2; --bad:#ff9b9b; --good:#8bd5ff; --ally:#7fe6a2; --enemy:#ff9b9b;}
+  :root { --bg:#0e0f12; --panel:#171922; --accent:#7fe6a2; --muted:#9aa3b2; --ally:#7fe6a2; --enemy:#ff9b9b;}
   * { box-sizing:border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
   body { margin:0; background:linear-gradient(180deg,#0b0c0f,#12131a); color:white; }
   header { padding:16px 20px; border-bottom:1px solid #222633; background:#12141c; position:sticky; top:0; z-index:5; }
@@ -75,19 +75,44 @@
 
   .cell.move-ok { outline:2px dashed var(--accent); outline-offset:-4px; }
   .cell.place { outline:2px dashed #3a7; outline-offset:-4px; cursor:pointer; }
-  .token { display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 8px; border-radius:10px; border:1px solid #2b3144; background:#121a26; box-shadow:0 6px 12px rgba(0,0,0,.25); }
+
+  /* === TOKEN (sprite + double bars) === */
+  .token{
+    position:relative;
+    width: var(--cell);
+    height: var(--cell);
+    border-radius:10px;
+    border:1px solid #2b3144;
+    background:#0f1420;
+    overflow:hidden;
+    box-shadow:0 6px 12px rgba(0,0,0,.25);
+    display:flex; align-items:center; justify-content:center;
+  }
   .token.ally { border-color:#2c4; }
   .token.enemy { border-color:#c44; }
-  .token .name { font-size:12px; font-weight:700; }
-  .token .hpmini { width:56px; height:6px; border-radius:4px; background:#1b1f2b; border:1px solid #2a2f41; overflow:hidden; }
-  .token .hpmini > span { display:block; height:100%; background:linear-gradient(90deg,#4ade80,#22c55e); }
   .token.active { box-shadow:0 0 0 2px var(--accent), 0 8px 16px rgba(0,0,0,.35); }
   .token.inrange { box-shadow: 0 0 0 2px rgba(127,230,162,.8), 0 8px 16px rgba(0,0,0,.35); }
   .token.removable { cursor:pointer; outline:2px dashed #a55; outline-offset:-4px; }
+  .token .sprite{
+    position:absolute; inset:0;
+    background-size:cover; background-position:center;
+    filter: drop-shadow(0 4px 4px rgba(0,0,0,.35));
+  }
+  .token .initial{
+    position:absolute; bottom:22px; left:6px;
+    font-weight:800; font-size:14px; color:#cfd8e3;
+    text-shadow:0 1px 0 #000; opacity:.9;
+  }
+  .token .bars{ position:absolute; left:6px; right:6px; bottom:6px; display:flex; flex-direction:column; gap:4px; }
+  .miniBar{ height:6px; border-radius:5px; border:1px solid #2a2f41; background:#121725; overflow:hidden; }
+  .miniBar .hpFill{ height:100%; background:linear-gradient(90deg,#4ade80,#22c55e); width:0%; }
+  .miniBar .epFill{ height:100%; background:linear-gradient(90deg,#60a5fa,#22d3ee); width:0%; }
+  .token .nameplate{ position:absolute; top:6px; left:6px; right:6px; padding:2px 6px; border-radius:6px; font-size:11px; text-align:center; background:rgba(0,0,0,.45); border:1px solid #2b3144; color:#e6eefb; opacity:0; transition:.15s opacity; pointer-events:none; }
+  .token:hover .nameplate{ opacity:1; }
 </style>
 </head>
 <body>
-  <header><h1>Fable Tactics • Terrain Bonuses • A* Pathfinding</h1></header>
+  <header><h1>Fable Tactics • Sprites + Terrain + A*</h1></header>
   <main>
     <section class="panel board">
       <h2 id="phaseTitle">Setup: Place Units & Terrain</h2>
@@ -198,11 +223,26 @@
   </main>
 
 <script>
+/* Embedded sprite URIs or URLs. Replace with your own files if you like. */
+const SPRITES = {
+  Knight: "https://via.placeholder.com/128x128?text=Knight",
+  Fighter: "https://via.placeholder.com/128x128?text=Fighter",
+  Rogue: "https://via.placeholder.com/128x128?text=Rogue",
+  Archer: "https://via.placeholder.com/128x128?text=Archer",
+  Bruiser: "https://via.placeholder.com/128x128?text=Bruiser",
+  Imp: "https://via.placeholder.com/128x128?text=Imp",
+  Cleric: "https://via.placeholder.com/128x128?text=Cleric",
+  Bard: "https://via.placeholder.com/128x128?text=Bard",
+  Druid: "https://via.placeholder.com/128x128?text=Druid",
+  Enchanter: "https://via.placeholder.com/128x128?text=Enchanter",
+  Shaman: "https://via.placeholder.com/128x128?text=Shaman",
+};
+
 /* ========= Core / Grid ========= */
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const choice=(arr)=>arr[Math.floor(Math.random()*arr.length)];
-const GRID = { w: 8, h: 6, cell: 64, obstacles: new Set(), terrain: new Map() }; // terrain key->type
+const GRID = { w: 8, h: 6, cell: 64, obstacles: new Set(), terrain: new Map() };
 const key=(x,y)=>`${x},${y}`;
 const hasObs=(x,y)=>GRID.obstacles.has(key(x,y));
 const dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
@@ -222,7 +262,7 @@ function shortName(n){ return n.replace(/\(.*?\)/,'').trim().split(' ')[0]; }
 function getUnitAt(x,y){ return G.units.find(u=>!u.dead && u.pos && u.pos.x===x && u.pos.y===y); }
 function isOccupied(x,y){ return !!getUnitAt(x,y); }
 
-/* ========= LOS (obstacles block, terrain doesn't) ========= */
+/* ========= LOS ========= */
 function lineCells(a,b){
   let x0=a.x, y0=a.y, x1=b.x, y1=b.y;
   const cells=[];
@@ -302,7 +342,7 @@ function makeUnit(tplKey, team, pos){
   const T = UnitTemplates[tplKey] || UnitTemplates.Knight;
   return {
     id: crypto.randomUUID(),
-    name: T.name, team,
+    name: T.name, team, tplKey,
     stats: {...T.stats}, hp:T.stats.maxHp, dead:false,
     temp:{defBonus:0,defend:false,atkBuff:0,spdBuff:0,shield:0}, statuses:[],
     abilities: T.abilities.map(k=>({key:k,cd:0})),
@@ -407,7 +447,6 @@ function getSelectedTeam(){
 function applyGridSize(w,h){
   GRID.w = Math.max(4, Math.min(16, parseInt(w)||GRID.w));
   GRID.h = Math.max(3, Math.min(12, parseInt(h)||GRID.h));
-  // Trim obstacles & terrain
   GRID.obstacles = new Set([...GRID.obstacles].filter(k=>{
     const [x,y]=k.split(',').map(Number);
     return x>=0 && x<GRID.w && y>=0 && y<GRID.h;
@@ -458,19 +497,25 @@ function render(){
     SETUP_PANEL.style.display="";
     PARTY_PANEL.style.display="none";
     ENEMY_PANEL.style.display="none";
-    ATTACK.disabled=ABILITY.disabled=DEFEND.disabled=MOVE.disabled=END.disabled=AUTO.disabled=true;
+    ATTACK.disabled=ABILITY.disabled=DEFEND.disabled=MOVE.disabled=END.disabled=true;
+    AUTO.disabled=true;
+    AUTO.textContent="Auto-Play";
   }else{
     SETUP_PANEL.style.display="none";
     PARTY_PANEL.style.display="";
     ENEMY_PANEL.style.display="";
+    // reflect Auto state
+    AUTO.disabled=false;
+    AUTO.textContent = G.auto ? "Auto-Play: ON" : "Auto-Play";
+
     const playerTurn=G.acting && G.acting.team==='ally' && !G.acting.dead;
-    ATTACK.disabled = !playerTurn;
-    ABILITY.disabled = !playerTurn;
-    DEFEND.disabled = !playerTurn;
-    DISENGAGE.disabled = !playerTurn;
-    MOVE.disabled   = !playerTurn;
-    END.disabled    = !playerTurn;
-    AUTO.disabled   = false;
+    const locked = G.auto; // when Auto is ON, disable manual controls
+    ATTACK.disabled = !playerTurn || locked;
+    ABILITY.disabled = !playerTurn || locked;
+    DEFEND.disabled  = !playerTurn || locked;
+    DISENGAGE.disabled = !playerTurn || locked;
+    MOVE.disabled    = !playerTurn || locked;
+    END.disabled     = !playerTurn || locked;
   }
 
   PARTY.innerHTML=''; for(const u of living('ally')) PARTY.appendChild(renderUnit(u));
@@ -567,7 +612,6 @@ function renderBoard(){
           cell.style.cursor='pointer';
           cell.onclick=()=>{ 
             if(G.acting.statuses.some(s=>s.key==='Root')){ log(`${G.acting.name} is rooted and cannot move.`); return; }
-            // Engagement check: if leaving adjacency to any enemy with EP>0, they may strike
             const beforeAdj = adjacentEnemies(G.acting).filter(e=>e.ep>0);
             const prevPos = {...G.acting.pos};
             G.acting.pos={x,y};
@@ -595,11 +639,38 @@ function renderBoard(){
 function renderToken(unit, inRangeIds){
   const token=document.createElement('div');
   token.className=`token ${unit.team}`+(G.acting&&G.acting.id===unit.id?' active':'')+(inRangeIds.has(unit.id)?' inrange':'');
-  const name=document.createElement('div'); name.className='name'; name.textContent=shortName(unit.name);
-  const hpmini=document.createElement('div'); hpmini.className='hpmini';
-  const span=document.createElement('span'); span.style.width = Math.round((unit.hp/unit.stats.maxHp)*100)+'%';
-  hpmini.appendChild(span);
-  token.appendChild(name); token.appendChild(hpmini);
+  const sprite=document.createElement('div');
+  sprite.className='sprite';
+  const url = SPRITES[unit.tplKey] || "";
+  if(url) sprite.style.backgroundImage = `url("${url}")`;
+  token.appendChild(sprite);
+
+  if(!url){
+    const init=document.createElement('div');
+    init.className='initial';
+    init.textContent = shortName(unit.name).slice(0,2).toUpperCase();
+    token.appendChild(init);
+  }
+
+  const bars=document.createElement('div'); bars.className='bars';
+  const hpShell=document.createElement('div'); hpShell.className='miniBar';
+  const hpFill=document.createElement('div'); hpFill.className='hpFill';
+  hpFill.style.width = Math.max(0, Math.round((unit.hp/unit.stats.maxHp)*100)) + '%';
+  hpShell.appendChild(hpFill);
+
+  const epShell=document.createElement('div'); epShell.className='miniBar';
+  const epFill=document.createElement('div'); epFill.className='epFill';
+  const epPct = Math.max(0, Math.min(100, Math.round((unit.ep / (unit.epMax||1))*100)));
+  epFill.style.width = epPct + '%';
+  epShell.appendChild(epFill);
+
+  bars.appendChild(hpShell); bars.appendChild(epShell);
+  token.appendChild(bars);
+
+  const plate=document.createElement('div'); plate.className='nameplate'; plate.textContent = shortName(unit.name);
+  token.appendChild(plate);
+
+  token.title = `${unit.name}\nHP ${unit.hp}/${unit.stats.maxHp} • EP ${unit.ep}/${unit.epMax}`;
   return token;
 }
 
@@ -608,25 +679,23 @@ presetBtn.onclick=()=>{
   G.units=[];
   GRID.obstacles.clear();
   GRID.terrain.clear();
-  // Build a river (water) with a 2-tile bridge (road) in center
   const midX=Math.floor(GRID.w/2);
   for(let y=0;y<GRID.h;y++){ GRID.terrain.set(key(midX,y),'water'); }
   const midY=Math.floor(GRID.h/2);
   GRID.terrain.set(key(midX,midY),'road');
   GRID.terrain.set(key(midX,midY-1),'road');
-  // Add some forests and hills
   GRID.terrain.set(key(1,1),'forest');
   GRID.terrain.set(key(2,2),'forest');
   GRID.terrain.set(key(GRID.w-2,GRID.h-2),'hill');
   GRID.terrain.set(key(GRID.w-3,GRID.h-3),'hill');
 
   G.units.push(makeUnit("Knight","ally",{x:0,y:midY}));
-  G.units.push(makeUnit("Archer","ally",{x:0,y:clamp(midY+1,0,GRID.h-1)}));
-  G.units.push(makeUnit("Cleric","ally",{x:0,y:clamp(midY-1,0,GRID.h-1)}));
+  G.units.push(makeUnit("Archer","ally",{x:0,y:Math.min(GRID.h-1,midY+1)}));
+  G.units.push(makeUnit("Cleric","ally",{x:0,y:Math.max(0,midY-1)}));
 
   G.units.push(makeUnit("Bruiser","enemy",{x:GRID.w-1,y:midY}));
-  G.units.push(makeUnit("Imp","enemy",{x:GRID.w-1,y:clamp(midY+1,0,GRID.h-1)}));
-  G.units.push(makeUnit("Druid","enemy",{x:GRID.w-1,y:clamp(midY-1,0,GRID.h-1)}));
+  G.units.push(makeUnit("Imp","enemy",{x:GRID.w-1,y:Math.min(GRID.h-1,midY+1)}));
+  G.units.push(makeUnit("Druid","enemy",{x:GRID.w-1,y:Math.max(0,midY-1)}));
   render();
 };
 clearBtn.onclick=()=>{ G.units=[]; render(); };
@@ -698,7 +767,6 @@ ATTACK.onclick=()=>{
     const b=document.createElement('button'); b.className='targetBtn';
     b.textContent=`${shortName(t.name)} (d=${dist(G.acting.pos,t.pos)})`;
     b.onclick=()=>{
-      // Provocation if using ranged basic attack while adjacent to enemies
       const adj = adjacentEnemies(G.acting).filter(e=>e.ep>0);
       const isRanged = G.acting.range>1;
       if(isRanged && adj.length && !G.acting.temp.disengaged){ const e=adj[0]; e.ep=Math.max(0,e.ep-1); const atkP=effAtk(e), defP=effDef(G.acting); const dmgP=computeDamage(atkP,defP); applyDamage(G.acting,dmgP,log,`${e.name} interrupts with an <b>engagement strike</b> for <span class='dmg'>-${dmgP}</span>.`); if(G.acting.dead){ render(); return endTurn(); } }
@@ -771,8 +839,10 @@ END.onclick=()=>{
 
 AUTO.onclick=()=>{
   G.auto=!G.auto;
-  AUTO.textContent=G.auto?"Auto-Play: ON":"Auto-Play";
-  if(G.auto && G.acting && G.acting.team==='ally') aiAct();
+  render(); // reflect new label/disabled states
+  if(G.auto && G.acting && G.acting.team==='ally'){
+    aiAct(); // kick it off immediately if it's our turn
+  }
 };
 
 /* ========= Turn flow ========= */
@@ -795,7 +865,6 @@ function startTurn(){
   tickStatusesStart(G.acting, log);
   if(G.acting.dead){ render(); return nextTurn_advance(); }
   for(const a of G.acting.abilities) a.cd=Math.max(0,a.cd-1);
-  // Engagement gain: +1 EP if starting adjacent to any enemy (cap)
   if(G.acting.pos){ const adj = adjacentEnemies(G.acting); if(adj.length>0) { G.acting.ep = Math.min(G.acting.epMax, G.acting.ep+1); log(`${G.acting.name} gains <b>+1 EP</b> from engagement (${G.acting.ep}/${G.acting.epMax}).`);} }
   render();
   if(G.acting.team==='enemy' || G.auto) aiAct();
@@ -809,16 +878,16 @@ function endBattle(){
       : lose? "<b>Defeat.</b> The party has fallen."
       : "<b>Battle Ends.</b>");
   ATTACK.disabled = ABILITY.disabled = DEFEND.disabled = MOVE.disabled = END.disabled = true;
-  AUTO.textContent="Auto-Play"; G.auto=false;
+  G.auto=false; render();
 }
 
-/* ========= Helpers for engagement ========= */
+/* ========= Helpers ========= */
 function adjacentEnemies(u){
   const foes = living(u.team==='ally'?'enemy':'ally');
   return foes.filter(t=>isAdjacent(u.pos, t.pos));
 }
 
-/* ========= A* Pathfinding (occupancy-aware) ========= */
+/* ========= A* (occupancy-aware) ========= */
 function neighbors(p, goal){
   const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
   const out=[];
@@ -828,16 +897,13 @@ function neighbors(p, goal){
     if(hasObs(x,y)) continue;
     const terr=tAt(x,y);
     if(!terr.pass) continue;
-    // Treat occupied tiles as blocked unless it's the goal tile
     if(!(goal && x===goal.x && y===goal.y) && isOccupied(x,y)) continue;
     out.push({x,y, cost: terr.cost});
   }
   return out;
 }
 function aStar(start,goal){
-  const gScore=new Map(); // key->cost
-  const fScore=new Map();
-  const came=new Map();
+  const gScore=new Map(), fScore=new Map(), came=new Map();
   const open=new Set([key(start.x,start.y)]);
   gScore.set(key(start.x,start.y),0);
   fScore.set(key(start.x,start.y), dist(start,goal));
@@ -854,11 +920,10 @@ function aStar(start,goal){
     const curK=lowest();
     const [cx,cy]=curK.split(',').map(Number);
     if(cx===goal.x && cy===goal.y){
-      // reconstruct
       const path=[]; let k=curK;
       while(k){ const [x,y]=k.split(',').map(Number); path.push({x,y}); k=came.get(k); }
       path.reverse();
-      return path; // includes start and goal
+      return path;
     }
     open.delete(curK);
     for(const nb of neighbors({x:cx,y:cy}, goal)){
@@ -876,14 +941,14 @@ function aStar(start,goal){
   return null;
 }
 
-/* ========= AI (terrain-aware + engagement-aware) ========= */
+/* ========= AI ========= */
 function aiAct(){
   const u=G.acting; if(!u || u.dead) return;
   setTimeout(()=>{
     const foes=living(u.team==='ally'?'enemy':'ally');
     const ready=u.abilities.filter(a=>a.cd===0).map(a=>({a,tpl:AbilityLib[a.key]}));
 
-    // Ally support if helpful
+    // Support if useful
     const allyPool=living(u.team);
     const lowAlly = allyPool.slice().sort((a,b)=>(a.hp/a.stats.maxHp)-(b.hp/b.stats.maxHp))[0];
     const canHeal = ready.find(x=>x.tpl===AbilityLib.Heal) && lowAlly && inRange(u,lowAlly,3) && clearLine(u.pos,lowAlly.pos) && lowAlly.hp<=lowAlly.stats.maxHp-10;
@@ -911,28 +976,27 @@ function aiAct(){
       render(); return endTurn();
     }
 
-    // Avoid provoking when adjacent enemies have EP>0 by using Disengage if low HP
+    // Disengage if threatened by EP and low HP
     const adjThreats = adjacentEnemies(u).filter(e=>e.ep>0);
     if(adjThreats.length && u.hp <= Math.ceil(u.stats.maxHp*0.35)){
-      // AI uses a 'disengage' (defensive) action
       u.temp.disengaged=true;
       log(`${u.name} disengages to avoid punishment.`);
       render(); return endTurn();
     }
 
-    // A* toward nearest foe
+    // Move via A*
     const target=foes.slice().sort((a,b)=>dist(u.pos,a.pos)-dist(u.pos,b.pos))[0];
     if(target){
       const path = aStar(u.pos, target.pos);
       if(path && path.length>=2){
-        const step = path[1]; // next cell
+        const step = path[1];
         if(!getUnitAt(step.x,step.y)){ 
           u.pos=step; 
           log(`${u.name} advances via terrain to (${step.x},${step.y}).`); 
           render(); return endTurn(); 
         }
       }
-      // fallback greedy if blocked
+      // fallback greedy
       const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
       for(const [dx,dy] of dirs){
         const nx=u.pos.x+dx, ny=u.pos.y+dy;
@@ -940,12 +1004,12 @@ function aiAct(){
         if(!getUnitAt(nx,ny) && !hasObs(nx,ny) && tAt(nx,ny).pass){ u.pos={x:nx,y:ny}; log(`${u.name} inches forward.`); render(); return endTurn(); }
       }
     }
-
     u.temp.defend=true; log(`${u.name} defends.`); render(); endTurn();
-  }, 300);
+  }, 250);
 }
 
 /* ========= Boot ========= */
+(function preloadSprites(){ Object.values(SPRITES).forEach(src=>{ if(!src) return; const i=new Image(); i.src=src; }); })();
 (function boot(){
   renderBuildButtons();
   render();
