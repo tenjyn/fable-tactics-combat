@@ -3,317 +3,289 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Fable Tactics — Character Selector</title>
+<title>Fable Tactics – Party Selector</title>
 <style>
-  :root { --bg:#0e0f12; --panel:#171922; --muted:#9aa3b2; --accent:#7fe6a2; --ally:#7fe6a2; --enemy:#ff9b9b; }
-  * { box-sizing: border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  :root { --panel:#171922; --muted:#9aa3b2; --accent:#7fe6a2; }
+  * { box-sizing:border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
   body { margin:0; background:linear-gradient(180deg,#0b0c0f,#12131a); color:white; }
-  header { padding:16px 20px; border-bottom:1px solid #222633; background:#12141c; position:sticky; top:0; z-index:5; display:flex; gap:14px; align-items:center; }
+  header { padding:16px 20px; border-bottom:1px solid #222633; background:#12141c; position:sticky; top:0; z-index:5; }
   header h1 { margin:0; font-size:18px; letter-spacing:.4px; }
-  main { max-width:1200px; margin:0 auto; padding:16px; display:grid; gap:16px; grid-template-columns: 1.2fr 0.8fr; }
-  .panel { background:#171922; border:1px solid #24283a; border-radius:12px; padding:14px; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
-  h2 { margin:0 0 10px; font-size:14px; color:var(--muted); letter-spacing:.12em; text-transform:uppercase; }
-  .toolbar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
-  .toolbar input[type="search"]{ flex:1; min-width:220px; padding:10px 12px; border-radius:10px; border:1px solid #2a3246; background:#0f1420; color:white; }
-  .chip { padding:8px 10px; border:1px solid #2a3246; border-radius:999px; background:#121828; cursor:pointer; font-size:13px; }
-  .chip.active { border-color:#3b5362; background:#182234; }
-  .grid { display:grid; gap:12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
-  .card { background:#11141c; border:1px solid #1f2434; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
-  .card h3 { margin:0; font-size:16px; display:flex; justify-content:space-between; gap:8px; }
-  .tag { font-size:11px; padding:2px 8px; border-radius:999px; background:#1b2230; border:1px solid #2a3347; color:#c5d0e0; }
-  .row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-  .stat { font-size:12px; color:var(--muted); }
-  .btn { background:#1c2636; color:white; border:1px solid #2b3144; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600; }
-  .btn:hover { border-color:#3a425d; }
-  .btn.ally { border-color:#2c4; }
-  .btn.enemy { border-color:#c44; }
-  .side { display:grid; gap:16px; }
-  .list { display:flex; flex-direction:column; gap:8px; }
-  .li { display:grid; grid-template-columns: 1fr auto auto auto; gap:8px; align-items:center; background:#10131a; border:1px solid #1e2331; border-radius:10px; padding:8px; }
-  .li input { width:100%; padding:6px 8px; background:#0f1420; color:white; border:1px solid #2a3246; border-radius:8px; }
-  .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size:11px; color:#92a0b8; }
+  main { max-width:1100px; margin:0 auto; padding:20px; display:grid; gap:16px; grid-template-columns: 1fr 1fr; }
+  .panel { background:var(--panel); border:1px solid #24283a; border-radius:12px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,.25); }
+  h2 { margin:0 0 10px; font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.12em; }
   .small { font-size:12px; color:var(--muted); }
-  .split { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-  .footer { display:flex; gap:8px; flex-wrap:wrap; }
-  textarea { width:100%; min-height:120px; background:#0f1420; color:white; border:1px solid #2a3246; border-radius:10px; padding:10px; }
-  a.btn { display:inline-block; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .col { display:flex; flex-direction:column; gap:6px; }
+  label { font-size:12px; color:var(--muted); }
+  input[type="text"], input[type="number"], select {
+    padding:10px 12px; background:#0f1420; color:#fff; border:1px solid #2a3246; border-radius:10px; min-width:120px;
+  }
+  input[type="number"] { width:92px; }
+  button { background:#1c2636; color:white; border:1px solid #2b3144; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
+  button:hover { border-color:#3a425d; }
+  button.ghost { background:transparent; border-color:#2b3144; }
+  button.primary { background:#1e2e3d; border-color:#405a62; }
+  button.warn { background:#3a1d1d; border-color:#6c3737; }
+  .lists { display:grid; gap:16px; grid-template-columns: 1fr 1fr; }
+  .unitCard {
+    display:grid; grid-template-columns: 56px 1fr auto; gap:10px; align-items:center;
+    padding:10px; margin:6px 0; background:#11131a; border:1px solid #1f2330; border-radius:10px;
+  }
+  .sprite { width:56px; height:56px; border-radius:8px; background:#0f1420; background-size:cover; background-position:center; border:1px solid #2b3144; }
+  .name { font-weight:700; }
+  .meta { font-size:12px; color:var(--muted); }
+  .pill { font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid #2b3144; background:#111520; opacity:.9; margin-left:6px; }
+  .footer { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .notice { font-size:12px; color:#cfe9d9; }
+  .sep { height:1px; background:#222634; margin:8px 0; }
 </style>
 </head>
 <body>
-<header>
-  <h1>Fable Tactics — Character Selector</h1>
-  <div class="small">Build your rosters, then start the battle.</div>
-</header>
-
-<main>
-  <!-- Left: Class Library -->
-  <section class="panel">
-    <h2>Base Classes</h2>
-    <div class="toolbar">
-      <input id="search" type="search" placeholder="Search classes…" />
-      <div id="chips" class="row">
-        <div class="chip active" data-role="all">All</div>
-        <div class="chip" data-role="melee">Melee</div>
-        <div class="chip" data-role="ranged">Ranged</div>
-        <div class="chip" data-role="support">Support</div>
-      </div>
-    </div>
-    <div id="classGrid" class="grid"></div>
-  </section>
-
-  <!-- Right: Rosters -->
-  <section class="side">
+  <header><h1>Fable Tactics – Party Selector</h1></header>
+  <main>
     <section class="panel">
-      <div class="split">
-        <h2>Allies</h2>
-        <div class="small mono" id="allyCount">0 selected</div>
+      <h2>Build Unit</h2>
+      <div class="small">Pick a class, edit name (optional), choose a team, and (optionally) set a starting X/Y. Click <b>Add</b> to queue it.</div>
+      <div class="sep"></div>
+      <div class="row">
+        <div class="col">
+          <label>Class</label>
+          <select id="classSel"></select>
+        </div>
+        <div class="col">
+          <label>Name (optional)</label>
+          <input id="nameInput" type="text" placeholder="auto from class">
+        </div>
+        <div class="col">
+          <label>Team</label>
+          <select id="teamSel">
+            <option value="ally">Allies</option>
+            <option value="enemy">Enemies</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>Start X (optional)</label>
+          <input id="xInput" type="number" min="0" value="">
+        </div>
+        <div class="col">
+          <label>Start Y (optional)</label>
+          <input id="yInput" type="number" min="0" value="">
+        </div>
+        <div class="col">
+          <button id="addBtn" class="primary">Add</button>
+        </div>
       </div>
-      <div id="allyList" class="list"></div>
+      <div class="sep"></div>
+      <div class="small">Sprite preview</div>
+      <div id="preview" class="sprite" style="width:96px; height:96px;"></div>
     </section>
 
     <section class="panel">
-      <div class="split">
-        <h2>Enemies</h2>
-        <div class="small mono" id="enemyCount">0 selected</div>
+      <h2>Settings (Optional)</h2>
+      <div class="row">
+        <div class="col">
+          <label>Default Grid Width (for guidance)</label>
+          <input id="gridW" type="number" min="4" max="16" value="8">
+        </div>
+        <div class="col">
+          <label>Default Grid Height</label>
+          <input id="gridH" type="number" min="3" max="12" value="6">
+        </div>
       </div>
-      <div id="enemyList" class="list"></div>
-    </section>
-
-    <section class="panel">
-      <h2>Export / Import</h2>
-      <div class="footer" style="margin-bottom:8px">
-        <button id="exportBtn" class="btn">Export JSON</button>
-        <button id="importBtn" class="btn">Import JSON</button>
-        <button id="clearBtn" class="btn">Clear</button>
-      </div>
-      <textarea id="ioArea" placeholder="Exported setup appears here. Paste JSON here to import."></textarea>
-    </section>
-
-    <section class="panel">
-      <h2>Start</h2>
-      <div class="small" style="margin-bottom:8px">“Start Battle” saves your setup to <span class="mono">localStorage.ft_setup</span> and opens <span class="mono">index.html</span>.</div>
+      <div class="sep"></div>
       <div class="footer">
-        <button id="saveBtn" class="btn">Save Setup</button>
-        <a href="index.html" id="startLink" class="btn" style="text-decoration:none">Start Battle →</a>
+        <button id="saveBtn" class="primary">Save to Browser</button>
+        <button id="loadBtn" class="ghost">Load Existing</button>
+        <button id="clearBtn" class="warn">Clear All</button>
+        <span class="notice">Saved as <code>ft_setup</code> in localStorage. Use “Preset: From Selector” in the game.</span>
       </div>
     </section>
-  </section>
-</main>
+
+    <section class="panel" style="grid-column: 1 / -1;">
+      <h2>Queued Units</h2>
+      <div class="small">Tip: If you set X/Y outside your game’s grid, the main game will clamp or auto-place them.</div>
+      <div class="sep"></div>
+      <div class="lists">
+        <div>
+          <div class="small">Allies</div>
+          <div id="allyList"></div>
+        </div>
+        <div>
+          <div class="small">Enemies</div>
+          <div id="enemyList"></div>
+        </div>
+      </div>
+    </section>
+  </main>
 
 <script>
-/* ========= Base classes (expanded) =========
-   Roles map to current ability kits:
-   - MELEE (range 1): PowerStrike + Guard
-   - RANGED (range 3): BleedingShot + Recover
-   - SUPPORT (range 3): BleedingShot + Recover (placeholder until we add real support skills)
-*/
+/* Keep this in sync with the game's UnitTemplates keys */
 const CLASSES = [
-  // Frontline / melee (range 1)
-  B('Knight','melee',{maxHp:60,atk:14,def:10,spd:7},  ['PowerStrike','Guard'],1,'Armored defender'),
-  B('Fighter','melee',{maxHp:54,atk:13,def:9, spd:9}, ['PowerStrike','Guard'],1,'Balanced striker'),
-  B('Rogue','melee',{maxHp:42,atk:12,def:6, spd:13}, ['PowerStrike','Guard'],1,'Evasive finisher'),
-  B('Monk','melee',{maxHp:46,atk:12,def:7, spd:12},  ['PowerStrike','Guard'],1,'Martial artist'),
-  B('Paladin','melee',{maxHp:62,atk:13,def:11,spd:6},['PowerStrike','Guard'],1,'Holy bulwark'),
-  B('Berserker','melee',{maxHp:58,atk:16,def:6, spd:8},['PowerStrike','Guard'],1,'All-in bruiser'),
-  B('Spearmaster','melee',{maxHp:50,atk:13,def:8, spd:10},['PowerStrike','Guard'],1,'Disciplined lancer'),
-  B('Sentinel','melee',{maxHp:64,atk:12,def:12,spd:5},['PowerStrike','Guard'],1,'Immovable wall'),
-  B('Duelist','melee',{maxHp:45,atk:14,def:7, spd:12}, ['PowerStrike','Guard'],1,'Agile blade'),
-  B('Assassin','melee',{maxHp:38,atk:15,def:5, spd:14},['PowerStrike','Guard'],1,'Glass-cannon skirmisher'),
-
-  // Ranged (range 3)
-  B('Archer','ranged',{maxHp:44,atk:11,def:7, spd:12}, ['BleedingShot','Recover'],3,'Bow specialist'),
-  B('Scout','ranged',{maxHp:40,atk:10,def:6, spd:14},  ['BleedingShot','Recover'],3,'Mobile skirmisher'),
-  B('Hunter','ranged',{maxHp:46,atk:12,def:7, spd:11}, ['BleedingShot','Recover'],3,'Tracker & trapper'),
-  B('Sharpshooter','ranged',{maxHp:42,atk:14,def:6,spd:10},['BleedingShot','Recover'],3,'High crit archer'),
-  B('Slinger','ranged',{maxHp:40,atk:11,def:6, spd:13}, ['BleedingShot','Recover'],3,'Stone & sap shots'),
-
-  // Casters / support (range 3 placeholder kit)
-  B('Magician','support',{maxHp:40,atk:11,def:6, spd:11}, ['BleedingShot','Recover'],3,'Elementalist'),
-  B('Warlock','support',{maxHp:38,atk:12,def:5, spd:10},  ['BleedingShot','Recover'],3,'Hexes & drains'),
-  B('Cleric','support',{maxHp:46,atk:9, def:8, spd:9},   ['BleedingShot','Recover'],3,'Healer/support'),
-  B('Druid','support',{maxHp:44,atk:10,def:7, spd:10},   ['BleedingShot','Recover'],3,'Nature caster'),
-  B('Bard','support',{maxHp:42,atk:9, def:7, spd:12},    ['BleedingShot','Recover'],3,'Buffer/debuffer'),
-  B('Shaman','support',{maxHp:44,atk:11,def:7, spd:10},  ['BleedingShot','Recover'],3,'Spirits & wards'),
-  B('Alchemist','support',{maxHp:40,atk:12,def:6, spd:11},['BleedingShot','Recover'],3,'Potions & bombs'),
-  B('Enchanter','support',{maxHp:38,atk:10,def:6, spd:11},['BleedingShot','Recover'],3,'Boons & banes'),
-
-  // Enemy archetypes (still available to Allies if desired)
-  B('Bruiser','melee',{maxHp:40,atk:12,def:6, spd:8},    ['PowerStrike'],1,'Goblin bruiser'),
-  B('Imp','ranged',{maxHp:32,atk:9, def:5, spd:11},      ['BleedingShot'],3,'Woad imp'),
+  "Knight","Fighter","Rogue","Archer","Bruiser","Imp",
+  "Cleric","Bard","Druid","Enchanter","Shaman"
 ];
 
-function B(name, role, stats, abilities, range, blurb){
-  return { key: name.toLowerCase(), name, role, stats, abilities, range, blurb };
-}
+/* Sprite map (use your real paths if you have them) */
+const SPRITES = {
+  Knight: "https://via.placeholder.com/128x128?text=Knight",
+  Fighter:"https://via.placeholder.com/128x128?text=Fighter",
+  Rogue:  "https://via.placeholder.com/128x128?text=Rogue",
+  Archer: "https://via.placeholder.com/128x128?text=Archer",
+  Bruiser:"https://via.placeholder.com/128x128?text=Bruiser",
+  Imp:    "https://via.placeholder.com/128x128?text=Imp",
+  Cleric: "https://via.placeholder.com/128x128?text=Cleric",
+  Bard:   "https://via.placeholder.com/128x128?text=Bard",
+  Druid:  "https://via.placeholder.com/128x128?text=Druid",
+  Enchanter:"https://via.placeholder.com/128x128?text=Enchanter",
+  Shaman: "https://via.placeholder.com/128x128?text=Shaman"
+};
 
-/* ========= State ========= */
+/* Reasonable default names if user leaves blank */
+const DEFAULT_NAMES = {
+  Knight: "Tallis (Knight)",
+  Fighter:"Fighter",
+  Rogue:"Rogue",
+  Archer:"Clover (Archer)",
+  Bruiser:"Goblin Bruiser",
+  Imp: "Woad Imp",
+  Cleric:"Cleric",
+  Bard:"Bard",
+  Druid:"Druid",
+  Enchanter:"Enchanter",
+  Shaman:"Shaman"
+};
+
 const state = {
-  filterRole: 'all',
-  query: '',
+  gridW: 8,
+  gridH: 6,
   allies: [],
   enemies: []
 };
 
-/* ========= Elements ========= */
-const classGrid = document.getElementById('classGrid');
-const chips = document.getElementById('chips');
-const search = document.getElementById('search');
+/* DOM */
+const classSel = document.getElementById('classSel');
+const nameInput = document.getElementById('nameInput');
+const teamSel = document.getElementById('teamSel');
+const xInput = document.getElementById('xInput');
+const yInput = document.getElementById('yInput');
+const addBtn = document.getElementById('addBtn');
+const preview = document.getElementById('preview');
+
+const gridW = document.getElementById('gridW');
+const gridH = document.getElementById('gridH');
+const saveBtn = document.getElementById('saveBtn');
+const loadBtn = document.getElementById('loadBtn');
+const clearBtn = document.getElementById('clearBtn');
 
 const allyList = document.getElementById('allyList');
 const enemyList = document.getElementById('enemyList');
-const allyCount = document.getElementById('allyCount');
-const enemyCount = document.getElementById('enemyCount');
 
-const ioArea = document.getElementById('ioArea');
-const exportBtn = document.getElementById('exportBtn');
-const importBtn = document.getElementById('importBtn');
-const clearBtn = document.getElementById('clearBtn');
+/* init */
+(function init(){
+  classSel.innerHTML = CLASSES.map(c=>`<option value="${c}">${c}</option>`).join('');
+  classSel.value = "Knight";
+  updatePreview();
+  gridW.value = state.gridW; gridH.value = state.gridH;
+  renderLists();
+})();
 
-const saveBtn = document.getElementById('saveBtn');
+function updatePreview(){
+  const c = classSel.value;
+  preview.style.backgroundImage = `url("${SPRITES[c]||''}")`;
+}
+classSel.addEventListener('change', updatePreview);
 
-/* ========= Renderers ========= */
-function renderClasses(){
-  classGrid.innerHTML = '';
-  const q = state.query.trim().toLowerCase();
-  const data = CLASSES.filter(c => 
-    (state.filterRole==='all' || c.role===state.filterRole) &&
-    (!q || c.name.toLowerCase().includes(q) || c.blurb.toLowerCase().includes(q))
-  );
-  for(const c of data){
-    const el = document.createElement('div');
-    el.className = 'card';
-    el.innerHTML = `
-      <h3>${c.name} <span class="tag">${c.role}</span></h3>
-      <div class="row">
-        <span class="stat">HP ${c.stats.maxHp}</span>
-        <span class="stat">ATK ${c.stats.atk}</span>
-        <span class="stat">DEF ${c.stats.def}</span>
-        <span class="stat">SPD ${c.stats.spd}</span>
-        <span class="tag">RNG ${c.range}</span>
-      </div>
-      <div class="row">${c.abilities.map(a=>`<span class="tag">${a}</span>`).join(' ')}</div>
-      <div class="small">${c.blurb}</div>
-      <div class="row">
-        <button class="btn ally">Add to Allies</button>
-        <button class="btn enemy">Add to Enemies</button>
-      </div>
-    `;
-    el.querySelector('.ally').onclick = () => addUnit('ally', c);
-    el.querySelector('.enemy').onclick = () => addUnit('enemy', c);
-    classGrid.appendChild(el);
-  }
+/* Add unit */
+addBtn.onclick = ()=>{
+  const tpl = classSel.value;
+  const name = (nameInput.value||"").trim() || DEFAULT_NAMES[tpl] || tpl;
+  const team = teamSel.value;
+  let pos = null;
+
+  const x = xInput.value === "" ? null : Number(xInput.value);
+  const y = yInput.value === "" ? null : Number(yInput.value);
+  if(Number.isFinite(x) && Number.isFinite(y) && x>=0 && y>=0) pos = {x,y};
+
+  const unit = { tpl, name, pos };
+  if(team === "ally") state.allies.push(unit); else state.enemies.push(unit);
+
+  // clear name/x/y for faster repeated entry
+  nameInput.value = ""; xInput.value=""; yInput.value="";
+  renderLists();
+};
+
+/* Render queues */
+function renderLists(){
+  allyList.innerHTML = state.allies.map((u,i)=>cardHTML(u,"ally",i)).join('') || `<div class="small">No allies yet.</div>`;
+  enemyList.innerHTML = state.enemies.map((u,i)=>cardHTML(u,"enemy",i)).join('') || `<div class="small">No enemies yet.</div>`;
+
+  // wire delete buttons
+  document.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const { team, idx } = btn.dataset;
+      const i = Number(idx);
+      if(team==="ally") state.allies.splice(i,1); else state.enemies.splice(i,1);
+      renderLists();
+    };
+  });
 }
 
-function renderRoster(){
-  allyList.innerHTML = '';
-  state.allies.forEach((u, i) => allyList.appendChild(renderRow(u, i, 'ally')));
-  allyCount.textContent = `${state.allies.length} selected`;
-
-  enemyList.innerHTML = '';
-  state.enemies.forEach((u, i) => enemyList.appendChild(renderRow(u, i, 'enemy')));
-  enemyCount.textContent = `${state.enemies.length} selected`;
-}
-
-function renderRow(u, idx, team){
-  const el = document.createElement('div');
-  el.className = 'li';
-  el.innerHTML = `
-    <input value="${u.name}" aria-label="name"/>
-    <span class="mono">ATK ${u.stats.atk} • DEF ${u.stats.def} • SPD ${u.stats.spd} • RNG ${u.range}</span>
-    <button class="btn" title="Move up">↑</button>
-    <button class="btn" title="Remove">✕</button>
+function cardHTML(u,team,idx){
+  const pos = u.pos ? ` • POS (${u.pos.x},${u.pos.y})` : ' • POS auto';
+  return `
+    <div class="unitCard">
+      <div class="sprite" style="background-image:url('${SPRITES[u.tpl]||""}')"></div>
+      <div>
+        <div class="name">${u.name}</div>
+        <div class="meta">${u.tpl}<span class="pill">${team.toUpperCase()}</span>${pos}</div>
+      </div>
+      <div><button class="ghost" data-del data-team="${team}" data-idx="${idx}">Remove</button></div>
+    </div>
   `;
-  const nameInput = el.querySelector('input');
-  nameInput.oninput = (e)=>{ u.name = e.target.value; saveDraft(); };
-  el.querySelectorAll('.btn')[0].onclick = ()=> moveUnit(team, idx, -1);
-  el.querySelectorAll('.btn')[1].onclick = ()=> removeUnit(team, idx);
-  return el;
 }
 
-/* ========= Actions ========= */
-function addUnit(team, cls){
-  const u = {
-    tpl: cls.key,
-    name: cls.name,
-    team,
-    stats: {...cls.stats},
-    abilities: [...cls.abilities],
-    range: cls.range,
-    pos: null
+/* Save / Load / Clear */
+saveBtn.onclick = ()=>{
+  state.gridW = clampInt(gridW.value, 8, 4, 16);
+  state.gridH = clampInt(gridH.value, 6, 3, 12);
+
+  const payload = {
+    grid: { w: state.gridW, h: state.gridH }, // informational only; main game ignores/overrides if different
+    allies: state.allies,
+    enemies: state.enemies
   };
-  state[team==='ally'?'allies':'enemies'].push(u);
-  saveDraft();
-  renderRoster();
-}
-
-function moveUnit(team, idx, dir){
-  const arr = team==='ally' ? state.allies : state.enemies;
-  const j = idx + dir;
-  if(j<0 || j>=arr.length) return;
-  [arr[idx], arr[j]] = [arr[j], arr[idx]];
-  saveDraft();
-  renderRoster();
-}
-
-function removeUnit(team, idx){
-  const arr = team==='ally' ? state.allies : state.enemies;
-  arr.splice(idx,1);
-  saveDraft();
-  renderRoster();
-}
-
-/* ========= Export / Import ========= */
-exportBtn.onclick = ()=>{
-  ioArea.value = JSON.stringify({allies:state.allies, enemies:state.enemies}, null, 2);
+  localStorage.setItem('ft_setup', JSON.stringify(payload));
+  alert('Saved party to localStorage as "ft_setup". In the main game, click “Preset: From Selector”.');
 };
-importBtn.onclick = ()=>{
+
+loadBtn.onclick = ()=>{
+  const raw = localStorage.getItem('ft_setup');
+  if(!raw){ alert('No saved ft_setup found.'); return; }
   try{
-    const obj = JSON.parse(ioArea.value);
-    state.allies = Array.isArray(obj.allies)? obj.allies : [];
-    state.enemies = Array.isArray(obj.enemies)? obj.enemies : [];
-    saveDraft();
-    renderRoster();
+    const data = JSON.parse(raw);
+    state.allies = Array.isArray(data.allies) ? data.allies : [];
+    state.enemies = Array.isArray(data.enemies) ? data.enemies : [];
+    if(data.grid){ gridW.value = data.grid.w ?? gridW.value; gridH.value = data.grid.h ?? gridH.value; }
+    renderLists();
   }catch(e){
-    alert('Invalid JSON.');
+    alert('Could not parse ft_setup.');
   }
 };
+
 clearBtn.onclick = ()=>{
+  if(!confirm('Clear allies, enemies, and remove ft_setup from localStorage?')) return;
   state.allies = [];
   state.enemies = [];
-  saveDraft();
-  renderRoster();
-  ioArea.value = '';
+  localStorage.removeItem('ft_setup');
+  renderLists();
 };
 
-/* ========= Save to localStorage for battle page ========= */
-function saveDraft(){
-  const payload = { allies: state.allies, enemies: state.enemies, ts: Date.now() };
-  localStorage.setItem('ft_setup', JSON.stringify(payload));
+/* helpers */
+function clampInt(v, def, min, max){
+  const n = Number(v);
+  if(!Number.isFinite(n)) return def;
+  return Math.max(min, Math.min(max, Math.round(n)));
 }
-saveBtn.onclick = saveDraft;
-
-/* ========= Filters ========= */
-chips.addEventListener('click', (e)=>{
-  const c = e.target.closest('.chip'); if(!c) return;
-  for(const chip of chips.querySelectorAll('.chip')) chip.classList.remove('active');
-  c.classList.add('active');
-  state.filterRole = c.dataset.role;
-  renderClasses();
-});
-search.addEventListener('input', (e)=>{ state.query = e.target.value; renderClasses(); });
-
-/* ========= Boot ========= */
-(function boot(){
-  try{
-    const prev = JSON.parse(localStorage.getItem('ft_setup')||'null');
-    if(prev && prev.allies && prev.enemies){
-      state.allies = prev.allies;
-      state.enemies = prev.enemies;
-    }
-  }catch(e){}
-  renderClasses();
-  renderRoster();
-})();
 </script>
 </body>
 </html>
