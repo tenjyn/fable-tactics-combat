@@ -580,8 +580,11 @@
     </section>
   </main>
 
+<script src="class-data.js"></script>
 <script>
 /* Embedded sprite URIs or URLs. Replace with your own files if you like. */
+const CLASS_ENTRIES = window.FABLE_DATA.CLASS_DATABASE;
+const CLASS_NAMES = CLASS_ENTRIES.map(entry=>entry.name);
 const SPRITES = (()=>{
   const spriteSvg = (label, primary, accent, glyph)=>{
     const id = label.replace(/[^a-z0-9]/gi,'');
@@ -607,19 +610,24 @@ const SPRITES = (()=>{
     </svg>`;
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   };
-  return {
-    Knight: spriteSvg('Knight','#3b6bff','#91b4ff','⚔'),
-    Fighter: spriteSvg('Fighter','#f97316','#facc15','🥊'),
-    Rogue: spriteSvg('Rogue','#0f766e','#22d3ee','🗡'),
-    Archer: spriteSvg('Archer','#2dd4bf','#60a5fa','🏹'),
-    Bruiser: spriteSvg('Bruiser','#f87171','#fb7185','💥'),
-    Imp: spriteSvg('Imp','#fb923c','#ef4444','🔥'),
-    Cleric: spriteSvg('Cleric','#a855f7','#f0abfc','✚'),
-    Bard: spriteSvg('Bard','#f472b6','#facc15','🎵'),
-    Druid: spriteSvg('Druid','#22c55e','#86efac','🌿'),
-    Enchanter: spriteSvg('Enchanter','#6366f1','#a855f7','✨'),
-    Shaman: spriteSvg('Shaman','#0ea5e9','#38bdf8','🌀'),
-  };
+  const palettes = [
+    ['#3b6bff','#91b4ff'],
+    ['#f97316','#facc15'],
+    ['#14b8a6','#60a5fa'],
+    ['#f472b6','#c084fc'],
+    ['#22c55e','#a3e635'],
+    ['#f87171','#fb7185'],
+    ['#0ea5e9','#38bdf8'],
+    ['#ef4444','#f97316'],
+    ['#a855f7','#f0abfc'],
+    ['#eab308','#f97316']
+  ];
+  const glyphs = window.FABLE_DATA.GLYPH_OVERRIDES || {};
+  return Object.fromEntries(CLASS_NAMES.map((label, idx)=>{
+    const [primary, accent] = palettes[idx % palettes.length];
+    const glyph = glyphs[label] || label[0] || '?';
+    return [label, spriteSvg(label, primary, accent, glyph)];
+  }));
 })();
 
 /* ========= Core / Grid ========= */
@@ -706,21 +714,167 @@ const AbilityLib={
     use(user,target,log){addStatus(target,"Root",log);log(`${user.name} roots ${target.name} in place!`);} },
 };
 
-/* ========= Templates ========= */
-const UnitTemplates = {
-  Knight:{ label:"Knight", name:"Tallis (Knight)", stats:{maxHp:60,atk:14,def:10,spd:7}, abilities:["PowerStrike","Guard"], range:1 },
-  Fighter:{ label:"Fighter", name:"Fighter", stats:{maxHp:54,atk:13,def:9, spd:9}, abilities:["PowerStrike","Guard"], range:1 },
-  Rogue:{ label:"Rogue", name:"Rogue", stats:{maxHp:42,atk:12,def:6, spd:13}, abilities:["PowerStrike","Guard"], range:1 },
-  Archer:{ label:"Archer", name:"Clover (Archer)", stats:{maxHp:44,atk:11,def:7, spd:12}, abilities:["BleedingShot","Recover"], range:3 },
-  Bruiser:{ label:"Bruiser", name:"Goblin Bruiser", stats:{maxHp:40,atk:12,def:6, spd:8}, abilities:["PowerStrike"], range:1 },
-  Imp:{ label:"Imp", name:"Woad Imp", stats:{maxHp:32,atk:9, def:5, spd:11}, abilities:["BleedingShot"], range:3 },
+const SKILL_BEHAVIORS = window.FABLE_DATA.SKILL_BEHAVIORS;
+const skillKey = window.FABLE_DATA.skillKey;
 
-  Cleric:{ label:"Cleric", name:"Cleric", stats:{maxHp:46,atk:9, def:8, spd:9}, abilities:["Heal","Shield"], range:3 },
-  Bard:{ label:"Bard", name:"Bard", stats:{maxHp:42,atk:9, def:7, spd:12}, abilities:["Inspire","Recover"], range:3 },
-  Druid:{ label:"Druid", name:"Druid", stats:{maxHp:44,atk:10,def:7, spd:10}, abilities:["Root","Heal"], range:3 },
-  Enchanter:{ label:"Enchanter", name:"Enchanter", stats:{maxHp:38,atk:10,def:6, spd:11}, abilities:["Shield","Inspire"], range:3 },
-  Shaman:{ label:"Shaman", name:"Shaman", stats:{maxHp:44,atk:11,def:7, spd:10}, abilities:["Heal","Inspire"], range:3 },
-};
+function ensureAbilityForSkill(name){
+  const key = skillKey(name);
+  if(AbilityLib[key]) return key;
+  const behavior = SKILL_BEHAVIORS[name] || 'attackMelee';
+  AbilityLib[key] = makeAbilityFromBehavior(name, behavior);
+  return key;
+}
+
+function makeAbilityFromBehavior(name, behavior){
+  switch(behavior){
+    case 'attackRanged':
+      return {
+        name,
+        desc: `${name}: Ranged strike.`,
+        cooldown:1, range:3, target:'enemy',
+        use(user,target,log){
+          const atk = effAtk(user);
+          const dmg = computeDamage(atk, effDef(target));
+          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
+        }
+      };
+    case 'attackRangedRoot':
+      return {
+        name,
+        desc: `${name}: Ranged strike that roots.`,
+        cooldown:2, range:3, target:'enemy',
+        use(user,target,log){
+          const atk = effAtk(user);
+          const dmg = computeDamage(atk, effDef(target));
+          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
+          if(!target.dead){ addStatus(target,'Root',log); log(`${target.name} is rooted by ${name}.`); }
+        }
+      };
+    case 'attackMeleeBleed':
+      return {
+        name,
+        desc: `${name}: Close strike that bleeds.`,
+        cooldown:2, range:1, target:'enemy',
+        use(user,target,log){
+          const atk = effAtk(user);
+          const dmg = computeDamage(atk, effDef(target));
+          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
+          if(!target.dead){ addStatus(target,'Bleed',log); log(`${target.name} bleeds from ${name}.`); }
+        }
+      };
+    case 'attackLifeSteal':
+      return {
+        name,
+        desc: `${name}: Strike and siphon life.`,
+        cooldown:2, range:2, target:'enemy',
+        use(user,target,log){
+          const atk = effAtk(user);
+          const dmg = computeDamage(atk, effDef(target));
+          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
+          if(dmg>0 && !user.dead){
+            const before = user.hp;
+            user.hp = clamp(user.hp + Math.ceil(dmg/2), 0, user.stats.maxHp);
+            const healed = user.hp - before;
+            if(healed>0){ log(`${user.name} siphons <span class=\"heal\">+${healed}</span> HP.`); }
+          }
+        }
+      };
+    case 'buffSelfGuard':
+      return {
+        name,
+        desc: `${name}: Brace for impact.`,
+        cooldown:2, range:0, target:'self',
+        use(user,_target,log){ addStatus(user,'Guard',log); log(`${user.name} uses ${name} and steadies their defense.`); }
+      };
+    case 'buffSelfInspire':
+      return {
+        name,
+        desc: `${name}: Empower self.`,
+        cooldown:2, range:0, target:'self',
+        use(user,_target,log){ addStatus(user,'Inspire',log); log(`${user.name} channels ${name}.`); }
+      };
+    case 'buffAllyGuard':
+      return {
+        name,
+        desc: `${name}: Protect an ally.`,
+        cooldown:2, range:3, target:'ally',
+        use(user,target,log){ addStatus(target,'Guard',log); log(`${user.name} uses ${name} to shield ${target.name}.`); }
+      };
+    case 'buffAllyInspire':
+      return {
+        name,
+        desc: `${name}: Bolster an ally.`,
+        cooldown:2, range:3, target:'ally',
+        use(user,target,log){ addStatus(target,'Inspire',log); log(`${user.name} inspires ${target.name} with ${name}.`); }
+      };
+    case 'heal':
+      return {
+        name,
+        desc: `${name}: Restore an ally.`,
+        cooldown:2, range:3, target:'ally',
+        use(user,target,log){
+          const before = target.hp;
+          target.hp = clamp(target.hp + 18, 0, target.stats.maxHp);
+          const healed = target.hp - before;
+          log(`${user.name} uses ${name} on ${target.name} for <span class=\"heal\">+${healed}</span> HP.`);
+        }
+      };
+    case 'root':
+      return {
+        name,
+        desc: `${name}: Immobilize an enemy.`,
+        cooldown:2, range:3, target:'enemy',
+        use(user,target,log){ addStatus(target,'Root',log); log(`${user.name} uses ${name} to root ${target.name}.`); }
+      };
+    case 'swap':
+      return {
+        name,
+        desc: `${name}: Swap positions with an ally.`,
+        cooldown:2, range:3, target:'ally',
+        use(user,target,log){
+          if(user===target) return;
+          if(!user.pos || !target.pos){ log(`${name} fizzles; both units must be placed.`); return; }
+          const ux = user.pos.x, uy = user.pos.y;
+          user.pos.x = target.pos.x;
+          user.pos.y = target.pos.y;
+          target.pos.x = ux;
+          target.pos.y = uy;
+          log(`${user.name} swaps places with ${target.name} using ${name}.`);
+        }
+      };
+    case 'attackMelee':
+    default:
+      return {
+        name,
+        desc: `${name}: Close-range strike.`,
+        cooldown:1, range:1, target:'enemy',
+        use(user,target,log){
+          const atk = effAtk(user);
+          const dmg = computeDamage(atk, effDef(target));
+          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
+        }
+      };
+  }
+}
+
+/* ========= Templates ========= */
+const UnitTemplates = Object.fromEntries(CLASS_ENTRIES.map(entry=>{
+  const derived = window.FABLE_DATA.computeDerivedStats(entry);
+  const abilityKeys = (entry.startingSkills||[]).map(skill=>ensureAbilityForSkill(skill));
+  const abilities = abilityKeys.length ? abilityKeys : ['PowerStrike'];
+  return [entry.name, {
+    label: entry.name,
+    name: window.FABLE_DATA.defaultNameFor(entry.name),
+    stats:{ maxHp: derived.maxHp, atk: derived.atk, def: derived.def, spd: derived.spd },
+    abilities,
+    range: derived.range,
+    epMax: entry.resources?.EP ?? 2,
+    mov: entry.resources?.MOV ?? 4,
+    attributes: entry.stats,
+    attunement: entry.attunement,
+    resources: entry.resources
+  }];
+}));
 
 function makeUnit(tplKey, team, pos){
   const T = UnitTemplates[tplKey] || UnitTemplates.Knight;
@@ -729,10 +883,12 @@ function makeUnit(tplKey, team, pos){
     name: T.name, team, tplKey,
     stats: {...T.stats}, hp:T.stats.maxHp, dead:false,
     temp:{defBonus:0,defend:false,atkBuff:0,spdBuff:0,shield:0}, statuses:[],
-    abilities: T.abilities.map(k=>({key:k,cd:0})),
-    range: T.range,
+    abilities: (T.abilities||[]).map(k=>({key:k,cd:0})),
+    range: T.range ?? 1,
     pos: pos? {...pos} : null,
-    ep: 0, epMax: 2
+    ep: 0, epMax: T.epMax ?? 2,
+    mov: T.mov ?? 4,
+    dataset: T
   };
 }
 
@@ -1107,9 +1263,9 @@ presetBtn.onclick=()=>{
   G.units.push(makeUnit("Archer","ally",{x:0,y:Math.min(GRID.h-1,midY+1)}));
   G.units.push(makeUnit("Cleric","ally",{x:0,y:Math.max(0,midY-1)}));
 
-  G.units.push(makeUnit("Bruiser","enemy",{x:GRID.w-1,y:midY}));
-  G.units.push(makeUnit("Imp","enemy",{x:GRID.w-1,y:Math.min(GRID.h-1,midY+1)}));
-  G.units.push(makeUnit("Druid","enemy",{x:GRID.w-1,y:Math.max(0,midY-1)}));
+  G.units.push(makeUnit("Warlock","enemy",{x:GRID.w-1,y:midY}));
+  G.units.push(makeUnit("Reaper","enemy",{x:GRID.w-1,y:Math.min(GRID.h-1,midY+1)}));
+  G.units.push(makeUnit("Shaman","enemy",{x:GRID.w-1,y:Math.max(0,midY-1)}));
   render();
 };
 clearBtn.onclick=()=>{ G.units=[]; render(); };
