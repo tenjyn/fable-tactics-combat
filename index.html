@@ -95,10 +95,10 @@
     padding:26px 26px 60px;
     display:grid;
     gap:22px;
-    grid-template-columns: minmax(0, 1.65fr) minmax(0, 0.7fr);
+    grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.7fr) minmax(0, 0.85fr);
     grid-template-areas:
-      "board side"
-      "controls log";
+      "actions board side"
+      "actions board log";
     align-items:start;
     position:relative;
   }
@@ -210,7 +210,7 @@
   }
   .board { grid-area:board; }
   .side { grid-area:side; display:grid; gap:18px; }
-  .controls { grid-area:controls; display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; }
+  .controls { grid-area:actions; display:flex; flex-direction:column; gap:18px; align-items:stretch; }
   .log { grid-area:log; max-height:340px; overflow:auto; background:rgba(10,13,22,.75); backdrop-filter:blur(8px); }
   h2 {
     margin:0 0 10px;
@@ -356,7 +356,11 @@
   button.nav-btn:hover { transform:none; }
   button.nav-btn:disabled { color:rgba(154,163,178,.6); }
   .btn-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .controls .btn-row { flex-direction:column; align-items:stretch; }
+  .controls .btn-row button { width:100%; text-align:center; }
   .targetRow { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .controls .targetRow { flex-direction:column; }
+  .controls .targetRow > * { width:100%; }
   .targetBtn {
     padding:8px 12px;
     font-size:12px;
@@ -807,14 +811,19 @@
       grid-template-columns: 1fr;
       grid-template-areas:
         "board"
+        "actions"
         "side"
-        "controls"
         "log";
       padding:24px 18px 48px;
       gap:18px;
     }
     .side { grid-template-columns:1fr; }
     .panel.board { padding:20px 18px 24px; }
+    .controls .btn-row { flex-direction:row; }
+    .controls .btn-row button { width:auto; flex:1 1 140px; }
+    .controls .targetRow { flex-direction:row; }
+    .controls .targetRow > * { width:auto; flex:1 1 160px; }
+    .controls { gap:12px; }
   }
 </style>
 </head>
@@ -822,10 +831,10 @@
   <header>
     <h1>Fable Tactics • Sprites + Terrain + A*</h1>
     <nav>
+      <button id="quickSetupBtn" class="nav-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="setupDropdown">Quick Start</button>
       <a href="game-setup.html">Game Setup</a>
       <a href="selector.html">Party Selector</a>
       <a href="unit-icons.html">Unit Icons</a>
-      <button id="quickSetupBtn" class="nav-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="setupDropdown">Quick Setup</button>
       <button id="navStartBtn" class="nav-btn primary" type="button">Start Battle</button>
       <button id="navAutoBtn" class="nav-btn" type="button" title="Let the AI play for you">Auto Battle</button>
     </nav>
@@ -835,8 +844,8 @@
   <div id="setupDropdown" class="setup-dropdown" role="dialog" aria-modal="true" aria-labelledby="setupHeading" hidden>
     <section class="panel" id="setupPanel">
       <div class="dropdown-header">
-        <h2 id="setupHeading">Quick Setup</h2>
-        <button id="setupCloseBtn" class="icon-btn" type="button" aria-label="Close quick setup"><span aria-hidden="true">×</span></button>
+        <h2 id="setupHeading">Quick Start</h2>
+        <button id="setupCloseBtn" class="icon-btn" type="button" aria-label="Close quick start"><span aria-hidden="true">×</span></button>
       </div>
       <div class="small">Choose build/team. Toggle obstacle or terrain painting. Water is impassable. Obstacles block LOS.</div>
       <div class="divider"></div>
