@@ -4,41 +4,215 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Fable Tactics – Party Selector</title>
-<style>
-  :root { --panel:#171922; --muted:#9aa3b2; --accent:#7fe6a2; }
-  * { box-sizing:border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
-  body { margin:0; background:linear-gradient(180deg,#0b0c0f,#12131a); color:white; }
-  header { padding:16px 20px; border-bottom:1px solid #222633; background:#12141c; position:sticky; top:0; z-index:5; }
-  header h1 { margin:0; font-size:18px; letter-spacing:.4px; }
-  main { max-width:1100px; margin:0 auto; padding:20px; display:grid; gap:16px; grid-template-columns: 1fr 1fr; }
-  .panel { background:var(--panel); border:1px solid #24283a; border-radius:12px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,.25); }
-  h2 { margin:0 0 10px; font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.12em; }
-  .small { font-size:12px; color:var(--muted); }
-  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
-  .col { display:flex; flex-direction:column; gap:6px; }
-  label { font-size:12px; color:var(--muted); }
-  input[type="text"], input[type="number"], select {
-    padding:10px 12px; background:#0f1420; color:#fff; border:1px solid #2a3246; border-radius:10px; min-width:120px;
-  }
-  input[type="number"] { width:92px; }
-  button { background:#1c2636; color:white; border:1px solid #2b3144; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
-  button:hover { border-color:#3a425d; }
-  button.ghost { background:transparent; border-color:#2b3144; }
-  button.primary { background:#1e2e3d; border-color:#405a62; }
-  button.warn { background:#3a1d1d; border-color:#6c3737; }
-  .lists { display:grid; gap:16px; grid-template-columns: 1fr 1fr; }
-  .unitCard {
-    display:grid; grid-template-columns: 56px 1fr auto; gap:10px; align-items:center;
-    padding:10px; margin:6px 0; background:#11131a; border:1px solid #1f2330; border-radius:10px;
-  }
-  .sprite { width:56px; height:56px; border-radius:8px; background:#0f1420; background-size:cover; background-position:center; border:1px solid #2b3144; }
-  .name { font-weight:700; }
-  .meta { font-size:12px; color:var(--muted); }
-  .pill { font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid #2b3144; background:#111520; opacity:.9; margin-left:6px; }
-  .footer { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  .notice { font-size:12px; color:#cfe9d9; }
-  .sep { height:1px; background:#222634; margin:8px 0; }
-</style>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Unbounded:wght@600&display=swap');
+    :root {
+      --bg:#080910;
+      --panel:#161927;
+      --panel-border:#24283a;
+      --accent:#7fe6a2;
+      --muted:#9aa3b2;
+    }
+    * { box-sizing:border-box; font-family:'Outfit', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    body {
+      margin:0;
+      min-height:100vh;
+      background:
+        radial-gradient(circle at 16% 18%, rgba(127,230,162,.12) 0%, transparent 45%),
+        radial-gradient(circle at 85% 12%, rgba(94,129,244,.14) 0%, transparent 50%),
+        linear-gradient(180deg,#0a0d16,#0f1320 55%,#10121c 100%);
+      color:white;
+      position:relative;
+      overflow-x:hidden;
+    }
+    body::before {
+      content:"";
+      position:fixed;
+      inset:-120px;
+      background-image:radial-gradient(rgba(255,255,255,.12) 0 1px, transparent 1px);
+      background-size:64px 64px;
+      opacity:.4;
+      mix-blend-mode:screen;
+      pointer-events:none;
+      z-index:-2;
+    }
+    header {
+      padding:18px 24px;
+      border-bottom:1px solid rgba(94,129,244,.24);
+      background:linear-gradient(135deg, rgba(18,24,44,.94), rgba(12,15,26,.92));
+      position:sticky;
+      top:0;
+      z-index:5;
+      backdrop-filter:blur(12px);
+    }
+    header h1 {
+      margin:0;
+      font-family:'Unbounded','Outfit',system-ui;
+      font-size:18px;
+      letter-spacing:.55px;
+      text-transform:uppercase;
+    }
+    main {
+      max-width:1100px;
+      margin:0 auto;
+      padding:26px 22px 48px;
+      display:grid;
+      gap:18px;
+      grid-template-columns: 1fr 1fr;
+      position:relative;
+    }
+    main::before {
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:26px;
+      background:radial-gradient(circle at 12% 6%, rgba(94,129,244,.22), transparent 60%),
+                 radial-gradient(circle at 88% 18%, rgba(126,230,162,.16), transparent 60%);
+      opacity:.55;
+      z-index:-1;
+    }
+    .panel {
+      background:linear-gradient(180deg, rgba(22,25,39,.92), rgba(12,14,24,.94));
+      border:1px solid var(--panel-border);
+      border-radius:14px;
+      padding:18px;
+      box-shadow:0 18px 36px rgba(0,0,0,.32);
+      position:relative;
+      overflow:hidden;
+    }
+    .panel::before {
+      content:"";
+      position:absolute;
+      inset:1px;
+      border-radius:12px;
+      background:linear-gradient(160deg, rgba(255,255,255,.045), rgba(15,18,32,.8));
+      z-index:-1;
+    }
+    .panel::after {
+      content:"";
+      position:absolute;
+      inset:-45% -35% auto;
+      height:70%;
+      background:radial-gradient(circle, rgba(94,129,244,.1) 0%, transparent 75%);
+      opacity:0;
+      transition:opacity .35s ease;
+      pointer-events:none;
+    }
+    .panel:hover::after { opacity:1; }
+    h2 {
+      margin:0 0 12px;
+      font-size:13px;
+      font-weight:600;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    h2::after {
+      content:"";
+      display:block;
+      margin-top:8px;
+      width:48px;
+      height:2px;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(94,129,244,.6), transparent);
+    }
+    .small { font-size:12px; color:var(--muted); }
+    .sep { height:1px; background:rgba(52,58,86,.6); margin:12px 0; border-radius:999px; }
+    .row { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; }
+    .col { display:flex; flex-direction:column; gap:6px; min-width:140px; }
+    label { font-size:12px; color:var(--muted); }
+    input[type="text"], input[type="number"], select {
+      padding:8px 10px;
+      background:#0f1420;
+      color:#fff;
+      border:1px solid rgba(42,50,70,.85);
+      border-radius:10px;
+      box-shadow:0 8px 16px rgba(0,0,0,.25) inset;
+    }
+    input[type="number"] { width:92px; }
+    input[type="range"] { accent-color:var(--accent); }
+    button {
+      background:rgba(26,36,54,.92);
+      color:white;
+      border:1px solid rgba(48,58,92,.9);
+      padding:10px 16px;
+      border-radius:11px;
+      cursor:pointer;
+      font-weight:600;
+      letter-spacing:.02em;
+      transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    button::after {
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(135deg, rgba(94,129,244,.18), transparent 60%);
+      opacity:0;
+      transition:opacity .2s ease;
+      pointer-events:none;
+    }
+    button:hover {
+      border-color:rgba(114,153,255,.9);
+      transform:translateY(-1px);
+      box-shadow:0 10px 18px rgba(14,18,34,.35);
+    }
+    button:hover::after { opacity:.55; }
+    button.primary {
+      background:linear-gradient(135deg, rgba(33,58,84,.95), rgba(41,94,114,.92));
+      border-color:rgba(86,190,180,.85);
+      box-shadow:0 8px 18px rgba(12,34,42,.45);
+    }
+    button.primary::after { background:linear-gradient(135deg, rgba(127,230,162,.3), transparent 65%); }
+    button.ghost { background:rgba(18,24,37,.75); border-color:rgba(50,60,92,.65); }
+    button.warn { background:linear-gradient(135deg, rgba(90,33,33,.92), rgba(56,18,24,.92)); border-color:rgba(177,72,72,.8); }
+    button:disabled { opacity:.6; cursor:not-allowed; box-shadow:none; transform:none; }
+    button:disabled::after { display:none; }
+    .footer { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .notice { font-size:12px; color:#cfe9d9; opacity:.85; }
+    code { background:rgba(18,24,37,.8); padding:2px 6px; border-radius:6px; border:1px solid rgba(52,64,92,.6); }
+    .lists { display:grid; gap:18px; grid-template-columns: 1fr 1fr; }
+    #allyList, #enemyList { display:flex; flex-direction:column; gap:10px; }
+    .unitCard {
+      position:relative;
+      display:grid;
+      grid-template-columns: 64px 1fr auto;
+      gap:14px;
+      align-items:center;
+      padding:12px 14px;
+      background:linear-gradient(120deg, rgba(15,18,32,.85), rgba(17,23,41,.92));
+      border:1px solid rgba(58,66,104,.7);
+      border-radius:12px;
+      box-shadow:0 12px 24px rgba(4,6,12,.45);
+    }
+    .unitCard::after {
+      content:"";
+      position:absolute;
+      inset:auto 18px -6px;
+      height:1px;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(127,230,162,.4), transparent 70%);
+      opacity:.3;
+      pointer-events:none;
+    }
+    .sprite {
+      width:64px;
+      height:64px;
+      border-radius:12px;
+      background:#0f1420;
+      background-size:cover;
+      background-position:center;
+      border:1px solid rgba(72,92,140,.6);
+      box-shadow:0 10px 20px rgba(0,0,0,.35);
+    }
+    #preview { width:96px; height:96px; border-radius:16px; border:1px solid rgba(72,92,140,.6); box-shadow:0 14px 28px rgba(0,0,0,.4); background-size:cover; background-position:center; margin-top:10px; }
+    .name { font-weight:700; font-size:14px; }
+    .meta { font-size:12px; color:var(--muted); display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+    .meta .metaClass { color:#e0e8ff; font-weight:500; }
+    .meta .pos { padding:2px 6px; border-radius:6px; background:rgba(24,32,52,.8); border:1px solid rgba(44,60,92,.6); font-size:11px; letter-spacing:.03em; }
+    .pill { font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid rgba(76,86,120,.8); background:rgba(16,23,41,.6); }
+  </style>
 </head>
 <body>
   <header><h1>Fable Tactics – Party Selector</h1></header>
@@ -77,7 +251,7 @@
       </div>
       <div class="sep"></div>
       <div class="small">Sprite preview</div>
-      <div id="preview" class="sprite" style="width:96px; height:96px;"></div>
+      <div id="preview" class="sprite"></div>
     </section>
 
     <section class="panel">
@@ -126,19 +300,45 @@ const CLASSES = [
 ];
 
 /* Sprite map (use your real paths if you have them) */
-const SPRITES = {
-  Knight: "https://via.placeholder.com/128x128?text=Knight",
-  Fighter:"https://via.placeholder.com/128x128?text=Fighter",
-  Rogue:  "https://via.placeholder.com/128x128?text=Rogue",
-  Archer: "https://via.placeholder.com/128x128?text=Archer",
-  Bruiser:"https://via.placeholder.com/128x128?text=Bruiser",
-  Imp:    "https://via.placeholder.com/128x128?text=Imp",
-  Cleric: "https://via.placeholder.com/128x128?text=Cleric",
-  Bard:   "https://via.placeholder.com/128x128?text=Bard",
-  Druid:  "https://via.placeholder.com/128x128?text=Druid",
-  Enchanter:"https://via.placeholder.com/128x128?text=Enchanter",
-  Shaman: "https://via.placeholder.com/128x128?text=Shaman"
-};
+const SPRITES = (()=>{
+  const spriteSvg = (label, primary, accent, glyph)=>{
+    const id = label.replace(/[^a-z0-9]/gi,'');
+    const safeGlyph = glyph || label[0] || '?';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+      <defs>
+        <linearGradient id="grad${id}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${primary}"/>
+          <stop offset="100%" stop-color="${accent}"/>
+        </linearGradient>
+        <radialGradient id="glow${id}" cx="0.3" cy="0.2" r="0.85">
+          <stop offset="0%" stop-color="rgba(255,255,255,0.45)"/>
+          <stop offset="60%" stop-color="rgba(255,255,255,0.1)"/>
+          <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+        </radialGradient>
+      </defs>
+      <rect width="128" height="128" rx="22" fill="url(#grad${id})"/>
+      <rect width="128" height="128" rx="22" fill="url(#glow${id})" opacity="0.55"/>
+      <circle cx="108" cy="28" r="18" fill="rgba(255,255,255,0.16)"/>
+      <circle cx="32" cy="18" r="12" fill="rgba(0,0,0,0.18)"/>
+      <text x="64" y="78" text-anchor="middle" font-family="'Outfit', 'Segoe UI', sans-serif" font-size="56" fill="#ffffff" opacity="0.92">${safeGlyph}</text>
+      <text x="64" y="112" text-anchor="middle" font-family="'Outfit', 'Segoe UI', sans-serif" font-size="18" fill="#f8fbff" letter-spacing="1">${label}</text>
+    </svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  };
+  return {
+    Knight: spriteSvg('Knight','#3b6bff','#91b4ff','⚔'),
+    Fighter: spriteSvg('Fighter','#f97316','#facc15','🥊'),
+    Rogue: spriteSvg('Rogue','#0f766e','#22d3ee','🗡'),
+    Archer: spriteSvg('Archer','#2dd4bf','#60a5fa','🏹'),
+    Bruiser: spriteSvg('Bruiser','#f87171','#fb7185','💥'),
+    Imp: spriteSvg('Imp','#fb923c','#ef4444','🔥'),
+    Cleric: spriteSvg('Cleric','#a855f7','#f0abfc','✚'),
+    Bard: spriteSvg('Bard','#f472b6','#facc15','🎵'),
+    Druid: spriteSvg('Druid','#22c55e','#86efac','🌿'),
+    Enchanter: spriteSvg('Enchanter','#6366f1','#a855f7','✨'),
+    Shaman: spriteSvg('Shaman','#0ea5e9','#38bdf8','🌀'),
+  };
+})();
 
 /* Reasonable default names if user leaves blank */
 const DEFAULT_NAMES = {
@@ -231,13 +431,13 @@ function renderLists(){
 }
 
 function cardHTML(u,team,idx){
-  const pos = u.pos ? ` • POS (${u.pos.x},${u.pos.y})` : ' • POS auto';
+  const posLabel = u.pos ? `(${u.pos.x},${u.pos.y})` : 'auto';
   return `
     <div class="unitCard">
       <div class="sprite" style="background-image:url('${SPRITES[u.tpl]||""}')"></div>
       <div>
         <div class="name">${u.name}</div>
-        <div class="meta">${u.tpl}<span class="pill">${team.toUpperCase()}</span>${pos}</div>
+        <div class="meta"><span class="metaClass">${u.tpl}</span><span class="pill">${team.toUpperCase()}</span><span class="pos">POS ${posLabel}</span></div>
       </div>
       <div><button class="ghost" data-del data-team="${team}" data-idx="${idx}">Remove</button></div>
     </div>
