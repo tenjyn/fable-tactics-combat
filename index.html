@@ -85,12 +85,12 @@
     flex:1;
   }
   main {
-    max-width:1320px;
+    max-width:min(1480px, 96vw);
     margin:0 auto;
     padding:26px 26px 60px;
     display:grid;
     gap:22px;
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.75fr);
+    grid-template-columns: minmax(0, 1.65fr) minmax(0, 0.7fr);
     grid-template-areas:
       "board side"
       "controls log";
@@ -342,12 +342,12 @@
   }
 
   .grid {
-    --cell: 64px;
+    --cell: 72px;
     display:grid;
     grid-template-columns: repeat(var(--w), var(--cell));
     grid-template-rows: repeat(var(--h), var(--cell));
     gap:10px;
-    padding:20px;
+    padding:18px;
     border-radius:18px;
     background:radial-gradient(circle at 20% 20%, rgba(94,129,244,.18), transparent 55%),
                rgba(11,16,26,.9);
@@ -574,7 +574,7 @@
   #phaseTitle { font-size:16px; letter-spacing:.06em; color:#e1f5ff; margin-bottom:14px; }
   #boardHint { color:#b7c9ff; margin-top:10px; background:rgba(21,30,54,.55); border:1px solid rgba(72,92,140,.45); padding:8px 12px; border-radius:10px; box-shadow:0 10px 18px rgba(5,8,16,.4); }
   #boardHint:empty { display:none; }
-  #board { position:relative; z-index:0; }
+  #board { position:relative; z-index:0; margin:0 auto; overflow:hidden; }
   #board::before { content:""; position:absolute; inset:-18px; border-radius:18px; background:radial-gradient(circle at 20% 10%, rgba(127,230,162,.1), transparent 65%); opacity:.7; pointer-events:none; z-index:-1; }
 
   #log { display:flex; flex-direction:column; gap:8px; padding-right:6px; }
@@ -661,7 +661,7 @@
     display:flex;
     flex-direction:column;
     gap:18px;
-    padding:22px 22px 26px;
+    padding:20px 20px 26px;
   }
   .panel.board .legend { margin-top:6px; }
 
@@ -727,8 +727,8 @@
             <button id="applyGridBtn" class="ghost">Apply</button>
 
             <div class="small" style="margin-left:16px">Zoom:</div>
-            <input id="zoomRange" type="range" min="44" max="84" value="64" step="2">
-            <span id="zoomVal" class="small mono">64px</span>
+            <input id="zoomRange" type="range" min="16" max="96" value="72" step="2">
+            <span id="zoomVal" class="small mono">72px</span>
           </div>
 
           <div class="btn-row">
@@ -861,7 +861,7 @@ const SPRITES = (()=>{
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const choice=(arr)=>arr[Math.floor(Math.random()*arr.length)];
-const GRID = { w: 8, h: 6, cell: 64, obstacles: new Set(), terrain: new Map() };
+const GRID = { w: 8, h: 6, cell: 72, desiredCell: 72, obstacles: new Set(), terrain: new Map() };
 const key=(x,y)=>`${x},${y}`;
 const hasObs=(x,y)=>GRID.obstacles.has(key(x,y));
 const dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
@@ -1287,6 +1287,40 @@ const applyGridBtn = document.getElementById('applyGridBtn');
 const zoomRange = document.getElementById('zoomRange');
 const zoomVal = document.getElementById('zoomVal');
 
+function parsePx(value){
+  return typeof value === 'string' ? parseFloat(value) || 0 : 0;
+}
+
+function fitBoardCellToPanel(updateControls = true){
+  const panel = BOARD.closest('.panel.board');
+  const desired = GRID.desiredCell ?? GRID.cell;
+  let applied = desired;
+
+  if(panel){
+    const panelStyles = getComputedStyle(panel);
+    const boardStyles = getComputedStyle(BOARD);
+    const availableWidth = panel.clientWidth - parsePx(panelStyles.paddingLeft) - parsePx(panelStyles.paddingRight);
+    const paddingX = parsePx(boardStyles.paddingLeft) + parsePx(boardStyles.paddingRight);
+    const gap = parsePx(boardStyles.columnGap || boardStyles.gap);
+    const totalGap = gap * Math.max(0, GRID.w - 1);
+    const maxCell = (availableWidth - paddingX - totalGap) / GRID.w;
+    if(Number.isFinite(maxCell) && maxCell > 0){
+      const step = parseFloat(zoomRange.step) || 1;
+      const safeMax = Math.floor((maxCell - 0.5) / step) * step;
+      if(safeMax > 0){
+        applied = Math.min(desired, safeMax);
+      }
+    }
+  }
+
+  GRID.cell = applied;
+  BOARD.style.setProperty('--cell', applied + 'px');
+  if(updateControls){
+    zoomRange.value = applied;
+    zoomVal.textContent = applied + 'px';
+  }
+}
+
 const obstacleBtn=document.getElementById('obstacleBtn');
 const clearObsBtn=document.getElementById('clearObsBtn');
 
@@ -1334,9 +1368,7 @@ function getSelectedTeam(){
 function syncGridControls(){
   gridWInput.value = GRID.w;
   gridHInput.value = GRID.h;
-  zoomRange.value = GRID.cell;
-  zoomVal.textContent = GRID.cell + 'px';
-  BOARD.style.setProperty('--cell', GRID.cell + 'px');
+  fitBoardCellToPanel();
   obstacleBtn.textContent = `Obstacle Mode: ${G.obstacleMode?'ON':'OFF'}`;
   terrainBtn.textContent = `Terrain Mode: ${G.terrainMode?'ON':'OFF'}`;
 }
@@ -1362,10 +1394,10 @@ function applyGridSize(w,h){
 }
 applyGridBtn.onclick = ()=> applyGridSize(gridWInput.value, gridHInput.value);
 zoomRange.oninput = ()=>{
-  GRID.cell = parseInt(zoomRange.value,10) || GRID.cell;
-  zoomVal.textContent = GRID.cell + 'px';
-  BOARD.style.setProperty('--cell', GRID.cell+'px');
+  GRID.desiredCell = parseInt(zoomRange.value,10) || GRID.desiredCell;
+  fitBoardCellToPanel();
 };
+window.addEventListener('resize', ()=>fitBoardCellToPanel());
 obstacleBtn.onclick=()=>{
   G.obstacleMode=!G.obstacleMode;
   if(G.obstacleMode) G.terrainMode=false;
@@ -1393,7 +1425,8 @@ function resetBoardState(){
   G.terrainMode=false;
   GRID.w=8;
   GRID.h=6;
-  GRID.cell=64;
+  GRID.cell=72;
+  GRID.desiredCell=72;
   GRID.obstacles.clear();
   GRID.terrain.clear();
   activeBuild="Knight";
@@ -1421,7 +1454,7 @@ function render(){
   PHASE.textContent = G.phase==="setup" ? "Setup: Place Units & Terrain" : "Battle";
   BOARD.style.setProperty('--w', GRID.w);
   BOARD.style.setProperty('--h', GRID.h);
-  BOARD.style.setProperty('--cell', GRID.cell + 'px');
+  fitBoardCellToPanel();
 
   if(G.phase==="setup"){
     SETUP_PANEL.style.display="";
