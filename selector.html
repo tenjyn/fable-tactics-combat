@@ -319,6 +319,25 @@
       letter-spacing:.02em;
       color:var(--muted);
     }
+    .category-badge {
+      font-weight:600;
+      letter-spacing:.03em;
+    }
+    .category-badge.category-combat {
+      background:rgba(127,230,162,.16);
+      border-color:rgba(127,230,162,.45);
+      color:#9bf5c2;
+    }
+    .category-badge.category-support {
+      background:rgba(244,114,182,.16);
+      border-color:rgba(244,114,182,.45);
+      color:#f9a8d4;
+    }
+    .category-badge.category-utility {
+      background:rgba(96,165,250,.16);
+      border-color:rgba(96,165,250,.45);
+      color:#bfdbfe;
+    }
   </style>
 </head>
 <body>
@@ -370,13 +389,16 @@
 
     <section class="panel" style="grid-column: 1 / -1;">
       <h2>Class Browser</h2>
-      <div class="small">Browse every class in the roster, filter by attunement type, and click a tile to select it instantly.</div>
+      <div class="small">Browse every class in the roster, filter by attunement type or battlefield role category, and click a tile to select it instantly.</div>
       <div id="classFilters" class="classFilters">
         <button class="filterBtn active" data-filter="all">All</button>
         <button class="filterBtn" data-filter="martial">Martial (No Attune)</button>
         <button class="filterBtn" data-filter="fae">Fae Attuned</button>
         <button class="filterBtn" data-filter="dream">Dream Attuned</button>
         <button class="filterBtn" data-filter="hybrid">Hybrid</button>
+        <button class="filterBtn" data-filter="combat">Combat Units</button>
+        <button class="filterBtn" data-filter="support">Support Units</button>
+        <button class="filterBtn" data-filter="utility">Utility Units</button>
       </div>
       <div id="classGrid" class="classGrid"></div>
     </section>
@@ -519,7 +541,10 @@ const CLASS_FILTER_CONFIG = {
   hybrid: { predicate: entry=>{
     const attune = entry.attunement || {};
     return (attune.FAE ?? 0) > 0 && (attune.DREAM ?? 0) > 0;
-  } }
+  } },
+  combat: { predicate: entry => (entry.category || 'Combat') === 'Combat' },
+  support: { predicate: entry => (entry.category || 'Combat') === 'Support' },
+  utility: { predicate: entry => (entry.category || 'Combat') === 'Utility' }
 };
 
 let currentClassFilter = 'all';
@@ -577,6 +602,8 @@ function classTileHTML(entry){
   const skills = Array.isArray(entry.startingSkills) ? entry.startingSkills : [];
   const skillPreview = skills.length > 3 ? `${skills.slice(0,3).join(', ')}…` : skills.join(', ');
   const derived = window.FABLE_DATA.computeDerivedStats(entry);
+  const category = entry.category || 'Combat';
+  const categorySlug = category.toLowerCase();
   return `
     <div class="classTile" data-class="${entry.name}">
       <div class="thumb" style="background-image:url('${SPRITES[entry.name]||""}')"></div>
@@ -584,6 +611,7 @@ function classTileHTML(entry){
         <div class="title">${entry.name}</div>
         <div class="statsLine">HP ${derived.maxHp} • ATK ${derived.atk} • DEF ${derived.def} • SPD ${derived.spd} • RNG ${derived.range}</div>
         <div class="tagsLine">
+          <span class="tag category-badge category-${categorySlug}">${category} Unit</span>
           <span class="tag">FAE ${fae}</span>
           <span class="tag">DREAM ${dream}</span>
           ${skillPreview ? `<span class="tag">Skills: ${skillPreview}</span>` : ''}
@@ -610,9 +638,11 @@ function updatePreview(){
       const attune = entry.attunement || {};
       const res = entry.resources || {};
       const skills = (entry.startingSkills||[]).join(', ');
+      const category = entry.category || 'Combat';
       classInfo.innerHTML = `
         <div><strong>Core:</strong> STR ${core.STR} • DEX ${core.DEX} • CON ${core.CON} • INT ${core.INT} • WIS ${core.WIS} • CHA ${core.CHA}</div>
         <div><strong>Attune:</strong> FAE ${attune.FAE ?? 0} • DREAM ${attune.DREAM ?? 0}</div>
+        <div><strong>Category:</strong> ${category}</div>
         <div><strong>Vitals:</strong> HP ${res.HP ?? '-'} • EP ${res.EP ?? '-'} • AP ${res.AP ?? '-'} • MOV ${res.MOV ?? '-'}</div>
         <div><strong>Skills:</strong> ${skills}</div>
       `;

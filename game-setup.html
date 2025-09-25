@@ -331,6 +331,25 @@
       background:rgba(26,34,56,.88);
       border:1px solid rgba(60,74,118,.8);
     }
+    .category-badge {
+      font-weight:600;
+      letter-spacing:.03em;
+    }
+    .category-badge.category-combat {
+      background:rgba(127,230,162,.16);
+      border-color:rgba(127,230,162,.45);
+      color:#9bf5c2;
+    }
+    .category-badge.category-support {
+      background:rgba(244,114,182,.16);
+      border-color:rgba(244,114,182,.45);
+      color:#f9a8d4;
+    }
+    .category-badge.category-utility {
+      background:rgba(96,165,250,.16);
+      border-color:rgba(96,165,250,.45);
+      color:#bfdbfe;
+    }
     #classSearchRow {
       display:flex;
       flex-wrap:wrap;
@@ -461,10 +480,18 @@
 
     <section class="panel" id="libraryPanel">
       <h2>Class &amp; Unit Library</h2>
-      <div class="small">Browse every available class and battlefield role. Use the library as a quick reference while planning encounters.</div>
+      <div class="small">Browse every available class and battlefield role. Filter by name, category, or stats as a quick reference while planning encounters.</div>
       <div id="classSearchRow">
         <label style="min-width:220px; flex:1">Search Classes
           <input type="text" id="classSearch" placeholder="Filter by class name or skill..." />
+        </label>
+        <label style="width:220px">Category
+          <select id="classCategory">
+            <option value="all">All Categories</option>
+            <option value="combat">Combat Units</option>
+            <option value="support">Support Units</option>
+            <option value="utility">Utility Units</option>
+          </select>
         </label>
         <label style="width:220px">Sort By
           <select id="classSort">
@@ -812,6 +839,15 @@
       const statBlock = document.createElement('div');
       statBlock.innerHTML = '<div class="small">Class Overview</div>';
 
+      const categoryRow = document.createElement('div');
+      categoryRow.className = 'chip-row';
+      const categoryChip = document.createElement('span');
+      const category = classInfo.category || 'Combat';
+      categoryChip.className = `chip category-badge category-${category.toLowerCase()}`;
+      categoryChip.textContent = `${category} Unit`;
+      categoryRow.append(categoryChip);
+      statBlock.append(categoryRow);
+
       const statsGrid = document.createElement('div');
       statsGrid.className = 'stat-grid';
       Object.entries(classInfo.stats).forEach(([key, val]) => {
@@ -932,6 +968,8 @@
       const grid = document.getElementById('classGrid');
       const search = document.getElementById('classSearch').value.trim().toLowerCase();
       const sortBy = document.getElementById('classSort').value;
+      const categoryFilterEl = document.getElementById('classCategory');
+      const categoryFilter = categoryFilterEl ? categoryFilterEl.value : 'all';
       let entries = CLASS_DATA.slice();
 
       if (search) {
@@ -939,6 +977,10 @@
           if (entry.name.toLowerCase().includes(search)) return true;
           return entry.startingSkills.some(skill => skill.toLowerCase().includes(search));
         });
+      }
+
+      if (categoryFilter !== 'all') {
+        entries = entries.filter(entry => (entry.category || 'Combat').toLowerCase() === categoryFilter);
       }
 
       entries.sort((a, b) => {
@@ -964,7 +1006,10 @@
         title.textContent = entry.name;
         const statline = document.createElement('div');
         statline.className = 'statline';
+        const category = entry.category || 'Combat';
+        const categorySlug = category.toLowerCase();
         statline.innerHTML = `
+          <span class="pill category-badge category-${categorySlug}">${category}</span>
           <span class="pill">HP ${entry.resources.HP}</span>
           <span class="pill">MOV ${entry.resources.MOV}</span>
           <span class="pill">STR ${entry.stats.STR}</span>
@@ -994,7 +1039,7 @@
       if (!entries.length) {
         const empty = document.createElement('div');
         empty.className = 'empty-state';
-        empty.textContent = 'No classes match your filters. Clear the search to view all options again.';
+        empty.textContent = 'No classes match your filters. Clear the search or category filter to view all options again.';
         grid.append(empty);
       }
     }
@@ -1032,6 +1077,9 @@
       renderClassGrid();
     });
     document.getElementById('classSort').addEventListener('change', () => {
+      renderClassGrid();
+    });
+    document.getElementById('classCategory').addEventListener('change', () => {
       renderClassGrid();
     });
 
