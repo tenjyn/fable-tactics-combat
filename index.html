@@ -65,15 +65,16 @@
     flex:1;
   }
   main {
-    max-width:1240px;
+    max-width:1320px;
     margin:0 auto;
-    padding:26px 22px 46px;
+    padding:26px 26px 60px;
     display:grid;
-    gap:18px;
-    grid-template-columns: 1.1fr 0.9fr;
+    gap:22px;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.75fr);
     grid-template-areas:
       "board side"
       "controls log";
+    align-items:start;
     position:relative;
   }
   main::before {
@@ -325,15 +326,13 @@
     display:grid;
     grid-template-columns: repeat(var(--w), var(--cell));
     grid-template-rows: repeat(var(--h), var(--cell));
-    gap:8px;
-    overflow:auto;
-    max-height:70vh;
-    padding:14px;
-    border-radius:16px;
-    background:radial-gradient(circle at 20% 20%, rgba(94,129,244,.15), transparent 55%),
-               rgba(11,16,26,.88);
-    border:1px solid rgba(44,56,88,.8);
-    box-shadow:inset 0 0 18px rgba(0,0,0,.45);
+    gap:10px;
+    padding:20px;
+    border-radius:18px;
+    background:radial-gradient(circle at 20% 20%, rgba(94,129,244,.18), transparent 55%),
+               rgba(11,16,26,.9);
+    border:1px solid rgba(44,56,88,.82);
+    box-shadow:inset 0 0 24px rgba(0,0,0,.42);
     position:relative;
   }
   .grid::after {
@@ -638,7 +637,28 @@
     box-shadow:0 0 10px rgba(127,230,162,.6);
   }
 
-  .panel.board .legend { margin-top:14px; }
+  .panel.board {
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    padding:22px 22px 26px;
+  }
+  .panel.board .legend { margin-top:6px; }
+
+  @media (max-width: 1100px) {
+    main {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "board"
+        "side"
+        "controls"
+        "log";
+      padding:24px 18px 48px;
+      gap:18px;
+    }
+    .side { grid-template-columns:1fr; }
+    .panel.board { padding:20px 18px 24px; }
+  }
 </style>
 </head>
 <body>
