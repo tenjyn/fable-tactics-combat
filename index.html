@@ -838,7 +838,33 @@ const AbilityLib={
 };
 
 const SKILL_BEHAVIORS = window.FABLE_DATA.SKILL_BEHAVIORS;
+const SKILL_DATA = window.FABLE_DATA.SKILL_DATA || {};
 const skillKey = window.FABLE_DATA.skillKey;
+
+function skillMeta(name){
+  return SKILL_DATA[name];
+}
+
+function skillRange(meta, fallback){
+  return typeof meta?.rangeValue === 'number' ? meta.rangeValue : fallback;
+}
+
+function skillCooldown(meta, fallback){
+  return typeof meta?.cooldown === 'number' ? meta.cooldown : fallback;
+}
+
+function skillDesc(name, fallback, meta){
+  if(!meta) return fallback;
+  const effect = (meta.effect || '').trim();
+  const effectText = effect ? (/[.!?]$/.test(effect) ? effect : `${effect}.`) : '';
+  const costParts = [];
+  if(typeof meta.ep === 'number') costParts.push(`EP ${meta.ep}`);
+  if(typeof meta.ap === 'number') costParts.push(`AP ${meta.ap}`);
+  const costText = costParts.length ? ` Cost: ${costParts.join(', ')}.` : '';
+  const tags = Array.isArray(meta.tags) && meta.tags.length ? ` Tags: ${meta.tags.join(', ')}.` : '';
+  const typeText = meta.type ? ` Type: ${meta.type}.` : '';
+  return `${name}: ${effectText}${costText}${tags}${typeText}`.trim();
+}
 
 function ensureAbilityForSkill(name){
   const key = skillKey(name);
@@ -850,22 +876,29 @@ function ensureAbilityForSkill(name){
 
 function makeAbilityFromBehavior(name, behavior){
   switch(behavior){
-    case 'attackRanged':
+    case 'attackRanged': {
+      const meta = skillMeta(name);
+      const range = skillRange(meta, 3);
+      const cooldown = skillCooldown(meta, 1);
       return {
         name,
-        desc: `${name}: Ranged strike.`,
-        cooldown:1, range:3, target:'enemy',
+        desc: skillDesc(name, `${name}: Ranged strike.`, meta),
+        cooldown, range, target:'enemy',
         use(user,target,log){
           const atk = effAtk(user);
           const dmg = computeDamage(atk, effDef(target));
           applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
         }
       };
-    case 'attackRangedRoot':
+    }
+    case 'attackRangedRoot': {
+      const meta = skillMeta(name);
+      const range = skillRange(meta, 3);
+      const cooldown = skillCooldown(meta, 2);
       return {
         name,
-        desc: `${name}: Ranged strike that roots.`,
-        cooldown:2, range:3, target:'enemy',
+        desc: skillDesc(name, `${name}: Ranged strike that roots.`, meta),
+        cooldown, range, target:'enemy',
         use(user,target,log){
           const atk = effAtk(user);
           const dmg = computeDamage(atk, effDef(target));
@@ -873,11 +906,15 @@ function makeAbilityFromBehavior(name, behavior){
           if(!target.dead){ addStatus(target,'Root',log); log(`${target.name} is rooted by ${name}.`); }
         }
       };
-    case 'attackMeleeBleed':
+    }
+    case 'attackMeleeBleed': {
+      const meta = skillMeta(name);
+      const range = skillRange(meta, 1);
+      const cooldown = skillCooldown(meta, 2);
       return {
         name,
-        desc: `${name}: Close strike that bleeds.`,
-        cooldown:2, range:1, target:'enemy',
+        desc: skillDesc(name, `${name}: Close strike that bleeds.`, meta),
+        cooldown, range, target:'enemy',
         use(user,target,log){
           const atk = effAtk(user);
           const dmg = computeDamage(atk, effDef(target));
@@ -885,11 +922,15 @@ function makeAbilityFromBehavior(name, behavior){
           if(!target.dead){ addStatus(target,'Bleed',log); log(`${target.name} bleeds from ${name}.`); }
         }
       };
-    case 'attackLifeSteal':
+    }
+    case 'attackLifeSteal': {
+      const meta = skillMeta(name);
+      const range = skillRange(meta, 2);
+      const cooldown = skillCooldown(meta, 2);
       return {
         name,
-        desc: `${name}: Strike and siphon life.`,
-        cooldown:2, range:2, target:'enemy',
+        desc: skillDesc(name, `${name}: Strike and siphon life.`, meta),
+        cooldown, range, target:'enemy',
         use(user,target,log){
           const atk = effAtk(user);
           const dmg = computeDamage(atk, effDef(target));
@@ -902,39 +943,59 @@ function makeAbilityFromBehavior(name, behavior){
           }
         }
       };
-    case 'buffSelfGuard':
+    }
+    case 'buffSelfGuard': {
+      const meta = skillMeta(name);
+      const range = skillRange(meta, 0);
+      const cooldown = skillCooldown(meta, 2);
       return {
         name,
-        desc: `${name}: Brace for impact.`,
-        cooldown:2, range:0, target:'self',
+        desc: skillDesc(name, `${name}: Brace for impact.`, meta),
+        cooldown, range, target:'self',
         use(user,_target,log){ addStatus(user,'Guard',log); log(`${user.name} uses ${name} and steadies their defense.`); }
       };
-    case 'buffSelfInspire':
+    }
+    case 'buffSelfInspire': {
+      const meta = skillMeta(name);
+      const range = skillRange(meta, 0);
+      const cooldown = skillCooldown(meta, 2);
       return {
         name,
-        desc: `${name}: Empower self.`,
-        cooldown:2, range:0, target:'self',
+        desc: skillDesc(name, `${name}: Empower self.`, meta),
+        cooldown, range, target:'self',
         use(user,_target,log){ addStatus(user,'Inspire',log); log(`${user.name} channels ${name}.`); }
       };
-    case 'buffAllyGuard':
+    }
+    case 'buffAllyGuard': {
+      const meta = skillMeta(name);
+      const range = skillRange(meta, 3);
+      const cooldown = skillCooldown(meta, 2);
       return {
         name,
-        desc: `${name}: Protect an ally.`,
-        cooldown:2, range:3, target:'ally',
+        desc: skillDesc(name, `${name}: Protect an ally.`, meta),
+        cooldown, range, target:'ally',
         use(user,target,log){ addStatus(target,'Guard',log); log(`${user.name} uses ${name} to shield ${target.name}.`); }
       };
-    case 'buffAllyInspire':
+    }
+    case 'buffAllyInspire': {
+      const meta = skillMeta(name);
+      const range = skillRange(meta, 3);
+      const cooldown = skillCooldown(meta, 2);
       return {
         name,
-        desc: `${name}: Bolster an ally.`,
-        cooldown:2, range:3, target:'ally',
+        desc: skillDesc(name, `${name}: Bolster an ally.`, meta),
+        cooldown, range, target:'ally',
         use(user,target,log){ addStatus(target,'Inspire',log); log(`${user.name} inspires ${target.name} with ${name}.`); }
       };
-    case 'heal':
+    }
+    case 'heal': {
+      const meta = skillMeta(name);
+      const range = skillRange(meta, 3);
+      const cooldown = skillCooldown(meta, 2);
       return {
         name,
-        desc: `${name}: Restore an ally.`,
-        cooldown:2, range:3, target:'ally',
+        desc: skillDesc(name, `${name}: Restore an ally.`, meta),
+        cooldown, range, target:'ally',
         use(user,target,log){
           const before = target.hp;
           target.hp = clamp(target.hp + 18, 0, target.stats.maxHp);
@@ -942,18 +1003,26 @@ function makeAbilityFromBehavior(name, behavior){
           log(`${user.name} uses ${name} on ${target.name} for <span class=\"heal\">+${healed}</span> HP.`);
         }
       };
-    case 'root':
+    }
+    case 'root': {
+      const meta = skillMeta(name);
+      const range = skillRange(meta, 3);
+      const cooldown = skillCooldown(meta, 2);
       return {
         name,
-        desc: `${name}: Immobilize an enemy.`,
-        cooldown:2, range:3, target:'enemy',
+        desc: skillDesc(name, `${name}: Immobilize an enemy.`, meta),
+        cooldown, range, target:'enemy',
         use(user,target,log){ addStatus(target,'Root',log); log(`${user.name} uses ${name} to root ${target.name}.`); }
       };
-    case 'swap':
+    }
+    case 'swap': {
+      const meta = skillMeta(name);
+      const range = skillRange(meta, 3);
+      const cooldown = skillCooldown(meta, 2);
       return {
         name,
-        desc: `${name}: Swap positions with an ally.`,
-        cooldown:2, range:3, target:'ally',
+        desc: skillDesc(name, `${name}: Swap positions with an ally.`, meta),
+        cooldown, range, target:'ally',
         use(user,target,log){
           if(user===target) return;
           if(!user.pos || !target.pos){ log(`${name} fizzles; both units must be placed.`); return; }
@@ -965,18 +1034,23 @@ function makeAbilityFromBehavior(name, behavior){
           log(`${user.name} swaps places with ${target.name} using ${name}.`);
         }
       };
+    }
     case 'attackMelee':
-    default:
+    default: {
+      const meta = skillMeta(name);
+      const range = skillRange(meta, 1);
+      const cooldown = skillCooldown(meta, 1);
       return {
         name,
-        desc: `${name}: Close-range strike.`,
-        cooldown:1, range:1, target:'enemy',
+        desc: skillDesc(name, `${name}: Close-range strike.`, meta),
+        cooldown, range, target:'enemy',
         use(user,target,log){
           const atk = effAtk(user);
           const dmg = computeDamage(atk, effDef(target));
           applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
         }
       };
+    }
   }
 }
 
