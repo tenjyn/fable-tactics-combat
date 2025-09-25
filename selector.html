@@ -44,6 +44,9 @@
       top:0;
       z-index:5;
       backdrop-filter:blur(12px);
+      display:flex;
+      align-items:center;
+      gap:18px;
     }
     header h1 {
       margin:0;
@@ -51,6 +54,27 @@
       font-size:18px;
       letter-spacing:.55px;
       text-transform:uppercase;
+      flex:1;
+    }
+    header nav {
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    header nav a {
+      color:var(--muted);
+      text-decoration:none;
+      font-size:12px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(60,74,118,.75);
+      background:rgba(16,22,38,.76);
+    }
+    header nav a:hover {
+      color:#fff;
+      border-color:rgba(114,153,255,.9);
     }
     main {
       max-width:1100px;
@@ -298,7 +322,13 @@
   </style>
 </head>
 <body>
-  <header><h1>Fable Tactics – Party Selector</h1></header>
+  <header>
+    <h1>Fable Tactics – Party Selector</h1>
+    <nav>
+      <a href="index.html">Combat Board</a>
+      <a href="game-setup.html">Game Setup</a>
+    </nav>
+  </header>
   <main>
     <section class="panel">
       <h2>Build Unit</h2>
