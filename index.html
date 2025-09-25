@@ -61,7 +61,8 @@
     gap:12px;
     align-items:center;
   }
-  header nav a {
+  header nav a,
+  header nav button.nav-btn {
     color:var(--muted);
     text-decoration:none;
     font-size:12px;
@@ -71,8 +72,12 @@
     border-radius:999px;
     border:1px solid rgba(60,74,118,.75);
     background:rgba(16,22,38,.76);
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
   }
-  header nav a:hover {
+  header nav a:hover,
+  header nav button.nav-btn:hover {
     color:#fff;
     border-color:rgba(114,153,255,.9);
   }
@@ -305,6 +310,28 @@
   button.warn { background:linear-gradient(135deg, rgba(90,33,33,.92), rgba(56,18,24,.92)); border-color:rgba(177,72,72,.8); }
   button:disabled { opacity:.55; cursor:not-allowed; box-shadow:none; transform:none; }
   button:disabled::after { display:none; }
+  button.nav-btn {
+    padding:8px 14px;
+    border-radius:999px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    font-size:12px;
+    font-weight:600;
+    background:rgba(16,22,38,.76);
+    border:1px solid rgba(60,74,118,.75);
+    color:var(--muted);
+    box-shadow:none;
+    transform:none;
+    transition:border-color .18s ease, background .18s ease, color .18s ease;
+  }
+  button.nav-btn::after { display:none; }
+  button.nav-btn.primary {
+    color:#fff;
+    background:linear-gradient(135deg, rgba(33,58,84,.95), rgba(41,94,114,.92));
+    border-color:rgba(86,190,180,.85);
+  }
+  button.nav-btn:hover { transform:none; }
+  button.nav-btn:disabled { color:rgba(154,163,178,.6); }
   .btn-row { display:flex; gap:10px; flex-wrap:wrap; }
   .targetRow { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
   .targetBtn {
@@ -687,6 +714,8 @@
     <nav>
       <a href="game-setup.html">Game Setup</a>
       <a href="selector.html">Party Selector</a>
+      <button id="navStartBtn" class="nav-btn primary" type="button">Start Battle</button>
+      <button id="navAutoBtn" class="nav-btn" type="button" title="Let the AI play for you">Auto Battle</button>
     </nav>
     <button id="resetBtn" class="warn" type="button">Reset Board</button>
   </header>
@@ -1280,6 +1309,8 @@ const presetBtn=document.getElementById('presetBtn');
 const fromSelectorBtn=document.getElementById('fromSelectorBtn');
 const clearBtn=document.getElementById('clearBtn');
 const startBtn=document.getElementById('startBtn');
+const navStartBtn=document.getElementById('navStartBtn');
+const navAutoBtn=document.getElementById('navAutoBtn');
 
 const gridWInput = document.getElementById('gridW');
 const gridHInput = document.getElementById('gridH');
@@ -1463,6 +1494,16 @@ function render(){
     ATTACK.disabled=ABILITY.disabled=DEFEND.disabled=MOVE.disabled=END.disabled=true;
     AUTO.disabled=true;
     AUTO.textContent="Auto-Play";
+    startBtn.disabled=false;
+    if(navStartBtn){
+      navStartBtn.disabled=false;
+      navStartBtn.classList.add('primary');
+    }
+    if(navAutoBtn){
+      navAutoBtn.disabled=true;
+      navAutoBtn.textContent='Auto Battle';
+      navAutoBtn.classList.remove('primary');
+    }
   }else{
     SETUP_PANEL.style.display="none";
     PARTY_PANEL.style.display="";
@@ -1470,6 +1511,16 @@ function render(){
     // reflect Auto state
     AUTO.disabled=false;
     AUTO.textContent = G.auto ? "Auto-Play: ON" : "Auto-Play";
+    startBtn.disabled=true;
+    if(navStartBtn){
+      navStartBtn.disabled=true;
+      navStartBtn.classList.remove('primary');
+    }
+    if(navAutoBtn){
+      navAutoBtn.disabled=false;
+      navAutoBtn.textContent = G.auto ? 'Auto Battle: ON' : 'Auto Battle';
+      navAutoBtn.classList.toggle('primary', G.auto);
+    }
 
     const playerTurn=G.acting && G.acting.team==='ally' && !G.acting.dead;
     const locked = G.auto; // when Auto is ON, disable manual controls
@@ -1689,14 +1740,17 @@ fromSelectorBtn.onclick = () => {
   }
 };
 
-startBtn.onclick=()=>{
+function startBattle(){
   const a=living('ally').length, e=living('enemy').length;
   if(a===0 || e===0){ alert("Place at least one Ally and one Enemy."); return; }
   G.phase="battle";
   for(const u of G.units){ u.dead=false; u.hp=u.stats.maxHp; u.statuses=[]; u.temp={defBonus:0,defend:false,atkBuff:0,spdBuff:0,shield:0}; for(const a of u.abilities) a.cd=0; if(!u.pos){ autoPlace(u); } }
   log("<i>The battle begins.</i>");
   nextTurn_init();
-};
+}
+
+startBtn.onclick=startBattle;
+if(navStartBtn) navStartBtn.onclick=startBattle;
 
 function autoPlace(u){
   const leftCols = 2, rightCols = 2;
@@ -1800,13 +1854,16 @@ END.onclick=()=>{
   G.moveMode=false; log(`${G.acting.name} ends their turn.`); endTurn();
 };
 
-AUTO.onclick=()=>{
+function toggleAutoPlay(){
   G.auto=!G.auto;
   render(); // reflect new label/disabled states
   if(G.auto && G.acting && G.acting.team==='ally'){
     aiAct(); // kick it off immediately if it's our turn
   }
-};
+}
+
+AUTO.onclick=toggleAutoPlay;
+if(navAutoBtn) navAutoBtn.onclick=toggleAutoPlay;
 
 /* ========= Turn flow ========= */
 function nextTurn_init(){
