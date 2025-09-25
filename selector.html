@@ -212,6 +212,16 @@
     .meta .metaClass { color:#e0e8ff; font-weight:500; }
     .meta .pos { padding:2px 6px; border-radius:6px; background:rgba(24,32,52,.8); border:1px solid rgba(44,60,92,.6); font-size:11px; letter-spacing:.03em; }
     .pill { font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid rgba(76,86,120,.8); background:rgba(16,23,41,.6); }
+    .classInfo {
+      margin-top:12px;
+      padding:12px;
+      border-radius:10px;
+      background:rgba(15,20,32,.78);
+      border:1px solid rgba(60,72,110,.7);
+      box-shadow:0 8px 16px rgba(0,0,0,.25) inset;
+      line-height:1.6;
+    }
+    .classInfo strong { color:#e5f0ff; }
   </style>
 </head>
 <body>
@@ -252,6 +262,7 @@
       <div class="sep"></div>
       <div class="small">Sprite preview</div>
       <div id="preview" class="sprite"></div>
+      <div id="classInfo" class="classInfo small"></div>
     </section>
 
     <section class="panel">
@@ -292,12 +303,10 @@
     </section>
   </main>
 
+<script src="class-data.js"></script>
 <script>
-/* Keep this in sync with the game's UnitTemplates keys */
-const CLASSES = [
-  "Knight","Fighter","Rogue","Archer","Bruiser","Imp",
-  "Cleric","Bard","Druid","Enchanter","Shaman"
-];
+const CLASS_ENTRIES = window.FABLE_DATA.CLASS_DATABASE;
+const CLASS_NAMES = CLASS_ENTRIES.map(entry=>entry.name);
 
 /* Sprite map (use your real paths if you have them) */
 const SPRITES = (()=>{
@@ -325,35 +334,29 @@ const SPRITES = (()=>{
     </svg>`;
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   };
-  return {
-    Knight: spriteSvg('Knight','#3b6bff','#91b4ff','⚔'),
-    Fighter: spriteSvg('Fighter','#f97316','#facc15','🥊'),
-    Rogue: spriteSvg('Rogue','#0f766e','#22d3ee','🗡'),
-    Archer: spriteSvg('Archer','#2dd4bf','#60a5fa','🏹'),
-    Bruiser: spriteSvg('Bruiser','#f87171','#fb7185','💥'),
-    Imp: spriteSvg('Imp','#fb923c','#ef4444','🔥'),
-    Cleric: spriteSvg('Cleric','#a855f7','#f0abfc','✚'),
-    Bard: spriteSvg('Bard','#f472b6','#facc15','🎵'),
-    Druid: spriteSvg('Druid','#22c55e','#86efac','🌿'),
-    Enchanter: spriteSvg('Enchanter','#6366f1','#a855f7','✨'),
-    Shaman: spriteSvg('Shaman','#0ea5e9','#38bdf8','🌀'),
-  };
+  const palettes = [
+    ['#3b6bff','#91b4ff'],
+    ['#f97316','#facc15'],
+    ['#14b8a6','#60a5fa'],
+    ['#f472b6','#c084fc'],
+    ['#22c55e','#a3e635'],
+    ['#f87171','#fb7185'],
+    ['#0ea5e9','#38bdf8'],
+    ['#ef4444','#f97316'],
+    ['#a855f7','#f0abfc'],
+    ['#eab308','#f97316']
+  ];
+  const glyphs = window.FABLE_DATA.GLYPH_OVERRIDES || {};
+  return Object.fromEntries(CLASS_NAMES.map((label, idx)=>{
+    const [primary, accent] = palettes[idx % palettes.length];
+    const glyph = glyphs[label] || label[0] || '?';
+    return [label, spriteSvg(label, primary, accent, glyph)];
+  }));
 })();
 
-/* Reasonable default names if user leaves blank */
-const DEFAULT_NAMES = {
-  Knight: "Tallis (Knight)",
-  Fighter:"Fighter",
-  Rogue:"Rogue",
-  Archer:"Clover (Archer)",
-  Bruiser:"Goblin Bruiser",
-  Imp: "Woad Imp",
-  Cleric:"Cleric",
-  Bard:"Bard",
-  Druid:"Druid",
-  Enchanter:"Enchanter",
-  Shaman:"Shaman"
-};
+function defaultNameFor(cls){
+  return window.FABLE_DATA.defaultNameFor(cls);
+}
 
 const state = {
   gridW: 8,
@@ -370,6 +373,7 @@ const xInput = document.getElementById('xInput');
 const yInput = document.getElementById('yInput');
 const addBtn = document.getElementById('addBtn');
 const preview = document.getElementById('preview');
+const classInfo = document.getElementById('classInfo');
 
 const gridW = document.getElementById('gridW');
 const gridH = document.getElementById('gridH');
@@ -382,8 +386,8 @@ const enemyList = document.getElementById('enemyList');
 
 /* init */
 (function init(){
-  classSel.innerHTML = CLASSES.map(c=>`<option value="${c}">${c}</option>`).join('');
-  classSel.value = "Knight";
+  classSel.innerHTML = CLASS_NAMES.map(c=>`<option value="${c}">${c}</option>`).join('');
+  classSel.value = CLASS_NAMES[0] || "Knight";
   updatePreview();
   gridW.value = state.gridW; gridH.value = state.gridH;
   renderLists();
@@ -392,13 +396,30 @@ const enemyList = document.getElementById('enemyList');
 function updatePreview(){
   const c = classSel.value;
   preview.style.backgroundImage = `url("${SPRITES[c]||''}")`;
+  if(classInfo){
+    const entry = CLASS_ENTRIES.find(e=>e.name===c);
+    if(entry){
+      const core = entry.stats || {};
+      const attune = entry.attunement || {};
+      const res = entry.resources || {};
+      const skills = (entry.startingSkills||[]).join(', ');
+      classInfo.innerHTML = `
+        <div><strong>Core:</strong> STR ${core.STR} • DEX ${core.DEX} • CON ${core.CON} • INT ${core.INT} • WIS ${core.WIS} • CHA ${core.CHA}</div>
+        <div><strong>Attune:</strong> FAE ${attune.FAE ?? 0} • DREAM ${attune.DREAM ?? 0}</div>
+        <div><strong>Vitals:</strong> HP ${res.HP ?? '-'} • EP ${res.EP ?? '-'} • AP ${res.AP ?? '-'} • MOV ${res.MOV ?? '-'}</div>
+        <div><strong>Skills:</strong> ${skills}</div>
+      `;
+    } else {
+      classInfo.textContent = '';
+    }
+  }
 }
 classSel.addEventListener('change', updatePreview);
 
 /* Add unit */
 addBtn.onclick = ()=>{
   const tpl = classSel.value;
-  const name = (nameInput.value||"").trim() || DEFAULT_NAMES[tpl] || tpl;
+  const name = (nameInput.value||"").trim() || defaultNameFor(tpl);
   const team = teamSel.value;
   let pos = null;
 
