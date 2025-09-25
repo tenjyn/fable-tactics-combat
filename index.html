@@ -52,6 +52,9 @@
     top:0;
     z-index:5;
     backdrop-filter:blur(12px);
+    display:flex;
+    align-items:center;
+    gap:18px;
   }
   header h1 {
     margin:0;
@@ -59,6 +62,7 @@
     font-size:18px;
     letter-spacing:.55px;
     text-transform:uppercase;
+    flex:1;
   }
   main {
     max-width:1240px;
@@ -593,7 +597,10 @@
 </style>
 </head>
 <body>
-  <header><h1>Fable Tactics • Sprites + Terrain + A*</h1></header>
+  <header>
+    <h1>Fable Tactics • Sprites + Terrain + A*</h1>
+    <button id="resetBtn" class="warn" type="button">Reset Board</button>
+  </header>
   <main>
     <section class="panel board">
       <h2 id="phaseTitle">Setup: Place Units & Terrain</h2>
@@ -1076,6 +1083,7 @@ const BOARD_HINT=document.getElementById('boardHint');
 const SETUP_PANEL=document.getElementById('setupPanel');
 const PARTY_PANEL=document.getElementById('partyPanel');
 const ENEMY_PANEL=document.getElementById('enemyPanel');
+const resetBtn=document.getElementById('resetBtn');
 
 const PARTY=document.getElementById('partyList');
 const ENEMIES=document.getElementById('enemyList');
@@ -1137,6 +1145,16 @@ function getSelectedTeam(){
 }
 
 /* ========= Grid controls ========= */
+function syncGridControls(){
+  gridWInput.value = GRID.w;
+  gridHInput.value = GRID.h;
+  zoomRange.value = GRID.cell;
+  zoomVal.textContent = GRID.cell + 'px';
+  BOARD.style.setProperty('--cell', GRID.cell + 'px');
+  obstacleBtn.textContent = `Obstacle Mode: ${G.obstacleMode?'ON':'OFF'}`;
+  terrainBtn.textContent = `Terrain Mode: ${G.terrainMode?'ON':'OFF'}`;
+}
+
 function applyGridSize(w,h){
   GRID.w = Math.max(4, Math.min(16, parseInt(w)||GRID.w));
   GRID.h = Math.max(3, Math.min(12, parseInt(h)||GRID.h));
@@ -1153,6 +1171,7 @@ function applyGridSize(w,h){
     u.pos.x = Math.max(0, Math.min(GRID.w-1, u.pos.x));
     u.pos.y = Math.max(0, Math.min(GRID.h-1, u.pos.y));
   }
+  syncGridControls();
   render();
 }
 applyGridBtn.onclick = ()=> applyGridSize(gridWInput.value, gridHInput.value);
@@ -1176,6 +1195,37 @@ terrainBtn.onclick=()=>{
   render();
 };
 clearObsBtn.onclick=()=>{ GRID.obstacles.clear(); render(); };
+
+function resetBoardState(){
+  G.phase="setup";
+  G.units=[];
+  G.acting=null;
+  G.round=1;
+  G.moveMode=false;
+  G.auto=false;
+  G.obstacleMode=false;
+  G.terrainMode=false;
+  GRID.w=8;
+  GRID.h=6;
+  GRID.cell=64;
+  GRID.obstacles.clear();
+  GRID.terrain.clear();
+  activeBuild="Knight";
+  terrainType.value='plain';
+  TARGETS.innerHTML='';
+  ABILROW.innerHTML='';
+  LOG.innerHTML='';
+  BOARD_HINT.innerHTML='';
+  syncGridControls();
+  renderBuildButtons();
+  render();
+}
+
+resetBtn.onclick=()=>{
+  const battleInProgress = G.phase==='battle' && anyLiving('ally') && anyLiving('enemy');
+  if(battleInProgress && !confirm('A battle is currently in progress. Reset the board?')) return;
+  resetBoardState();
+};
 
 /* ========= Rendering ========= */
 function log(msg){ const el=document.createElement('div'); el.className='toast'; el.innerHTML=msg; LOG.appendChild(el); LOG.scrollTop=LOG.scrollHeight; }
@@ -1706,11 +1756,7 @@ function aiAct(){
 (function boot(){
   renderBuildButtons();
   render();
-  BOARD.style.setProperty('--cell', GRID.cell + 'px');
-  gridWInput.value = GRID.w;
-  gridHInput.value = GRID.h;
-  zoomRange.value = GRID.cell;
-  zoomVal.textContent = GRID.cell + 'px';
+  syncGridControls();
 })();
 </script>
 </body>
