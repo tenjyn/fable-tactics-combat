@@ -201,12 +201,86 @@
     from { transform:translateY(-8px); opacity:0; }
     to { transform:translateY(0); opacity:1; }
   }
-  @media (max-width: 720px) {
+  @media (max-width: 1280px) {
+    main {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-areas:
+        "board board"
+        "actions side"
+        "log log";
+      padding:24px 20px 52px;
+    }
+    .log { max-height:none; }
+  }
+  @media (max-width: 960px) {
+    header {
+      flex-wrap:wrap;
+      align-items:flex-start;
+      gap:14px;
+    }
+    header h1 { flex:1 0 100%; }
+    header nav {
+      width:100%;
+      justify-content:flex-start;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    header nav a,
+    header nav button.nav-btn {
+      padding:7px 12px;
+      letter-spacing:.12em;
+    }
     .setup-dropdown {
-      left:12px;
-      right:12px;
+      top:74px;
+      left:18px;
+      right:18px;
       width:auto;
     }
+    main {
+      grid-template-columns:minmax(0, 1fr);
+      grid-template-areas:
+        "board"
+        "actions"
+        "side"
+        "log";
+      padding:22px 18px 46px;
+      gap:20px;
+    }
+    .side { gap:16px; }
+    .controls { gap:16px; }
+    .grid { --cell: 64px; gap:8px; padding:16px; }
+  }
+  @media (max-width: 720px) {
+    header { padding:16px 18px; }
+    main {
+      padding:20px 16px 42px;
+      gap:18px;
+    }
+    .panel { padding:14px; }
+    h2 { font-size:12px; }
+    h2::after { width:38px; }
+    .btn-row { flex-direction:column; width:100%; }
+    .btn-row button { width:100%; }
+    .targetRow { flex-direction:column; }
+    .targetRow > * { width:100%; }
+    .setup-dropdown {
+      left:14px;
+      right:14px;
+    }
+    .grid { --cell: 56px; gap:7px; padding:14px; }
+    .legend { gap:8px; }
+  }
+  @media (max-width: 520px) {
+    header nav a,
+    header nav button.nav-btn {
+      flex:1 1 calc(50% - 6px);
+      justify-content:center;
+      text-align:center;
+    }
+    .grid { --cell: 48px; gap:6px; padding:12px; }
+    .unit { flex-wrap:wrap; }
+    .unit .row { flex-direction:column; align-items:flex-start; gap:6px; }
+    .controls .btn-row { gap:8px; }
   }
   .board { grid-area:board; }
   .side { grid-area:side; display:grid; gap:18px; }
