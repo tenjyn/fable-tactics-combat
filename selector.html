@@ -222,6 +222,79 @@
       line-height:1.6;
     }
     .classInfo strong { color:#e5f0ff; }
+    .classFilters { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0; }
+    .classFilters .filterBtn {
+      padding:6px 12px;
+      font-size:12px;
+      border-radius:999px;
+      background:rgba(18,24,37,.8);
+      border:1px solid rgba(48,58,92,.7);
+      box-shadow:0 4px 10px rgba(0,0,0,.28);
+    }
+    .classFilters .filterBtn.active {
+      border-color:rgba(127,230,162,.85);
+      color:var(--accent);
+      box-shadow:0 0 12px rgba(127,230,162,.28);
+    }
+    .classGrid {
+      display:grid;
+      gap:12px;
+      grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .classGridEmpty {
+      grid-column:1 / -1;
+      padding:12px;
+      border-radius:10px;
+      background:rgba(18,24,37,.65);
+      border:1px solid rgba(52,60,96,.6);
+      text-align:center;
+    }
+    .classTile {
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      padding:12px 14px;
+      border-radius:14px;
+      background:linear-gradient(130deg, rgba(15,18,32,.88), rgba(18,24,40,.94));
+      border:1px solid rgba(60,72,110,.7);
+      box-shadow:0 12px 24px rgba(4,6,12,.42);
+      text-align:left;
+      cursor:pointer;
+      transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }
+    .classTile:hover {
+      transform:translateY(-2px);
+      box-shadow:0 18px 28px rgba(8,14,28,.5);
+      border-color:rgba(94,129,244,.6);
+    }
+    .classTile.selected {
+      border-color:rgba(127,230,162,.85);
+      box-shadow:0 0 0 2px rgba(127,230,162,.28), 0 18px 30px rgba(14,30,26,.55);
+    }
+    .classTile .thumb {
+      width:64px;
+      height:64px;
+      border-radius:12px;
+      background:#0f1420;
+      background-size:cover;
+      background-position:center;
+      border:1px solid rgba(72,92,140,.6);
+      box-shadow:0 10px 18px rgba(0,0,0,.32);
+      flex-shrink:0;
+    }
+    .classTile .details { flex:1; display:flex; flex-direction:column; gap:6px; }
+    .classTile .title { font-weight:600; font-size:14px; color:#e4ecff; letter-spacing:.02em; }
+    .classTile .statsLine { font-size:12px; color:var(--muted); }
+    .classTile .tagsLine { display:flex; flex-wrap:wrap; gap:6px; }
+    .classTile .tag {
+      font-size:11px;
+      padding:2px 6px;
+      border-radius:6px;
+      background:rgba(20,28,44,.85);
+      border:1px solid rgba(52,64,96,.75);
+      letter-spacing:.02em;
+      color:var(--muted);
+    }
   </style>
 </head>
 <body>
@@ -263,6 +336,19 @@
       <div class="small">Sprite preview</div>
       <div id="preview" class="sprite"></div>
       <div id="classInfo" class="classInfo small"></div>
+    </section>
+
+    <section class="panel" style="grid-column: 1 / -1;">
+      <h2>Class Browser</h2>
+      <div class="small">Browse every class in the roster, filter by attunement type, and click a tile to select it instantly.</div>
+      <div id="classFilters" class="classFilters">
+        <button class="filterBtn active" data-filter="all">All</button>
+        <button class="filterBtn" data-filter="martial">Martial (No Attune)</button>
+        <button class="filterBtn" data-filter="fae">Fae Attuned</button>
+        <button class="filterBtn" data-filter="dream">Dream Attuned</button>
+        <button class="filterBtn" data-filter="hybrid">Hybrid</button>
+      </div>
+      <div id="classGrid" class="classGrid"></div>
     </section>
 
     <section class="panel">
@@ -374,6 +460,8 @@ const yInput = document.getElementById('yInput');
 const addBtn = document.getElementById('addBtn');
 const preview = document.getElementById('preview');
 const classInfo = document.getElementById('classInfo');
+const classFiltersEl = document.getElementById('classFilters');
+const classGrid = document.getElementById('classGrid');
 
 const gridW = document.getElementById('gridW');
 const gridH = document.getElementById('gridH');
@@ -384,6 +472,29 @@ const clearBtn = document.getElementById('clearBtn');
 const allyList = document.getElementById('allyList');
 const enemyList = document.getElementById('enemyList');
 
+const CLASS_FILTER_CONFIG = {
+  all: { predicate: ()=>true },
+  martial: { predicate: entry=>{
+    const attune = entry.attunement || {};
+    return (attune.FAE ?? 0) === 0 && (attune.DREAM ?? 0) === 0;
+  } },
+  fae: { predicate: entry=>{
+    const attune = entry.attunement || {};
+    return (attune.FAE ?? 0) > 0;
+  } },
+  dream: { predicate: entry=>{
+    const attune = entry.attunement || {};
+    return (attune.DREAM ?? 0) > 0;
+  } },
+  hybrid: { predicate: entry=>{
+    const attune = entry.attunement || {};
+    return (attune.FAE ?? 0) > 0 && (attune.DREAM ?? 0) > 0;
+  } }
+};
+
+let currentClassFilter = 'all';
+let classFilterButtons = [];
+
 /* init */
 (function init(){
   classSel.innerHTML = CLASS_NAMES.map(c=>`<option value="${c}">${c}</option>`).join('');
@@ -391,7 +502,73 @@ const enemyList = document.getElementById('enemyList');
   updatePreview();
   gridW.value = state.gridW; gridH.value = state.gridH;
   renderLists();
+  setupClassBrowser();
 })();
+
+function setupClassBrowser(){
+  if(!classFiltersEl || !classGrid) return;
+  classFilterButtons = Array.from(classFiltersEl.querySelectorAll('[data-filter]'));
+  classFilterButtons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      currentClassFilter = btn.dataset.filter || 'all';
+      classFilterButtons.forEach(b=>b.classList.toggle('active', b===btn));
+      renderClassGrid();
+    });
+  });
+  renderClassGrid();
+}
+
+function renderClassGrid(){
+  if(!classGrid) return;
+  const predicate = (CLASS_FILTER_CONFIG[currentClassFilter] || CLASS_FILTER_CONFIG.all).predicate;
+  const entries = CLASS_ENTRIES.filter(predicate).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  if(!entries.length){
+    classGrid.innerHTML = `<div class="classGridEmpty small">No classes match this filter.</div>`;
+    highlightSelectedClass();
+    return;
+  }
+  classGrid.innerHTML = entries.map(entry=>classTileHTML(entry)).join('');
+  classGrid.querySelectorAll('.classTile').forEach(tile=>{
+    tile.addEventListener('click', ()=>{
+      const cls = tile.dataset.class;
+      if(cls){
+        classSel.value = cls;
+        updatePreview();
+      }
+    });
+  });
+  highlightSelectedClass();
+}
+
+function classTileHTML(entry){
+  const attune = entry.attunement || {};
+  const fae = attune.FAE ?? 0;
+  const dream = attune.DREAM ?? 0;
+  const skills = Array.isArray(entry.startingSkills) ? entry.startingSkills : [];
+  const skillPreview = skills.length > 3 ? `${skills.slice(0,3).join(', ')}…` : skills.join(', ');
+  const derived = window.FABLE_DATA.computeDerivedStats(entry);
+  return `
+    <div class="classTile" data-class="${entry.name}">
+      <div class="thumb" style="background-image:url('${SPRITES[entry.name]||""}')"></div>
+      <div class="details">
+        <div class="title">${entry.name}</div>
+        <div class="statsLine">HP ${derived.maxHp} • ATK ${derived.atk} • DEF ${derived.def} • SPD ${derived.spd} • RNG ${derived.range}</div>
+        <div class="tagsLine">
+          <span class="tag">FAE ${fae}</span>
+          <span class="tag">DREAM ${dream}</span>
+          ${skillPreview ? `<span class="tag">Skills: ${skillPreview}</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function highlightSelectedClass(){
+  if(!classGrid) return;
+  classGrid.querySelectorAll('.classTile').forEach(tile=>{
+    tile.classList.toggle('selected', tile.dataset.class === classSel.value);
+  });
+}
 
 function updatePreview(){
   const c = classSel.value;
@@ -413,6 +590,7 @@ function updatePreview(){
       classInfo.textContent = '';
     }
   }
+  highlightSelectedClass();
 }
 classSel.addEventListener('change', updatePreview);
 
