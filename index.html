@@ -838,7 +838,48 @@ const AbilityLib={
 };
 
 const SKILL_BEHAVIORS = window.FABLE_DATA.SKILL_BEHAVIORS;
+const SKILL_MECHANICS = window.FABLE_DATA.SKILL_MECHANICS || {};
 const skillKey = window.FABLE_DATA.skillKey;
+
+function deriveRange(raw, fallback){
+  if(raw==null) return fallback;
+  if(typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  const str = String(raw).toLowerCase();
+  if(str.includes('self') && !/(\d+)/.test(str) && !str.includes('adjacent')) return 0;
+  if(str.includes('adjacent')) return Math.max(1, fallback ?? 1);
+  if(str.includes('melee')) return 1;
+  if(str.includes('cone')) return fallback ?? 2;
+  const match = str.match(/(\d+)/);
+  if(match) return parseInt(match[1],10);
+  return fallback;
+}
+
+function deriveCooldown(raw, fallback){
+  if(typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  const parsed = parseInt(raw, 10);
+  if(Number.isFinite(parsed)) return parsed;
+  return fallback;
+}
+
+function deriveDescription(name, effect, fallback){
+  if(effect && effect.trim){
+    const trimmed = effect.trim();
+    if(trimmed.length){
+      return `${name}: ${/[.!?]$/.test(trimmed) ? trimmed : trimmed + '.'}`;
+    }
+  }
+  return fallback;
+}
+
+function abilityMeta(name, fallbackRange, fallbackCooldown, fallbackDesc){
+  const mech = SKILL_MECHANICS?.[name];
+  return {
+    mech,
+    range: deriveRange(mech?.range, fallbackRange),
+    cooldown: deriveCooldown(mech?.cooldown, fallbackCooldown),
+    desc: deriveDescription(name, mech?.effect, fallbackDesc)
+  };
+}
 
 function ensureAbilityForSkill(name){
   const key = skillKey(name);
@@ -849,136 +890,184 @@ function ensureAbilityForSkill(name){
 }
 
 function makeAbilityFromBehavior(name, behavior){
-  switch(behavior){
-    case 'attackRanged':
-      return {
-        name,
-        desc: `${name}: Ranged strike.`,
-        cooldown:1, range:3, target:'enemy',
-        use(user,target,log){
-          const atk = effAtk(user);
-          const dmg = computeDamage(atk, effDef(target));
-          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
-        }
-      };
-    case 'attackRangedRoot':
-      return {
-        name,
-        desc: `${name}: Ranged strike that roots.`,
-        cooldown:2, range:3, target:'enemy',
-        use(user,target,log){
-          const atk = effAtk(user);
-          const dmg = computeDamage(atk, effDef(target));
-          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
-          if(!target.dead){ addStatus(target,'Root',log); log(`${target.name} is rooted by ${name}.`); }
-        }
-      };
-    case 'attackMeleeBleed':
-      return {
-        name,
-        desc: `${name}: Close strike that bleeds.`,
-        cooldown:2, range:1, target:'enemy',
-        use(user,target,log){
-          const atk = effAtk(user);
-          const dmg = computeDamage(atk, effDef(target));
-          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
-          if(!target.dead){ addStatus(target,'Bleed',log); log(`${target.name} bleeds from ${name}.`); }
-        }
-      };
-    case 'attackLifeSteal':
-      return {
-        name,
-        desc: `${name}: Strike and siphon life.`,
-        cooldown:2, range:2, target:'enemy',
-        use(user,target,log){
-          const atk = effAtk(user);
-          const dmg = computeDamage(atk, effDef(target));
-          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
-          if(dmg>0 && !user.dead){
-            const before = user.hp;
-            user.hp = clamp(user.hp + Math.ceil(dmg/2), 0, user.stats.maxHp);
-            const healed = user.hp - before;
-            if(healed>0){ log(`${user.name} siphons <span class=\"heal\">+${healed}</span> HP.`); }
+    switch(behavior){
+      case 'attackRanged': {
+        const meta = abilityMeta(name, 3, 1, `${name}: Ranged strike.`);
+        return {
+          name,
+          desc: meta.desc,
+          cooldown: meta.cooldown,
+          range: meta.range,
+          target:'enemy',
+          use(user,target,log){
+            const atk = effAtk(user);
+            const dmg = computeDamage(atk, effDef(target));
+            applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
           }
-        }
-      };
-    case 'buffSelfGuard':
-      return {
-        name,
-        desc: `${name}: Brace for impact.`,
-        cooldown:2, range:0, target:'self',
-        use(user,_target,log){ addStatus(user,'Guard',log); log(`${user.name} uses ${name} and steadies their defense.`); }
-      };
-    case 'buffSelfInspire':
-      return {
-        name,
-        desc: `${name}: Empower self.`,
-        cooldown:2, range:0, target:'self',
-        use(user,_target,log){ addStatus(user,'Inspire',log); log(`${user.name} channels ${name}.`); }
-      };
-    case 'buffAllyGuard':
-      return {
-        name,
-        desc: `${name}: Protect an ally.`,
-        cooldown:2, range:3, target:'ally',
-        use(user,target,log){ addStatus(target,'Guard',log); log(`${user.name} uses ${name} to shield ${target.name}.`); }
-      };
-    case 'buffAllyInspire':
-      return {
-        name,
-        desc: `${name}: Bolster an ally.`,
-        cooldown:2, range:3, target:'ally',
-        use(user,target,log){ addStatus(target,'Inspire',log); log(`${user.name} inspires ${target.name} with ${name}.`); }
-      };
-    case 'heal':
-      return {
-        name,
-        desc: `${name}: Restore an ally.`,
-        cooldown:2, range:3, target:'ally',
-        use(user,target,log){
-          const before = target.hp;
-          target.hp = clamp(target.hp + 18, 0, target.stats.maxHp);
-          const healed = target.hp - before;
-          log(`${user.name} uses ${name} on ${target.name} for <span class=\"heal\">+${healed}</span> HP.`);
-        }
-      };
-    case 'root':
-      return {
-        name,
-        desc: `${name}: Immobilize an enemy.`,
-        cooldown:2, range:3, target:'enemy',
-        use(user,target,log){ addStatus(target,'Root',log); log(`${user.name} uses ${name} to root ${target.name}.`); }
-      };
-    case 'swap':
-      return {
-        name,
-        desc: `${name}: Swap positions with an ally.`,
-        cooldown:2, range:3, target:'ally',
-        use(user,target,log){
-          if(user===target) return;
-          if(!user.pos || !target.pos){ log(`${name} fizzles; both units must be placed.`); return; }
-          const ux = user.pos.x, uy = user.pos.y;
-          user.pos.x = target.pos.x;
-          user.pos.y = target.pos.y;
-          target.pos.x = ux;
-          target.pos.y = uy;
-          log(`${user.name} swaps places with ${target.name} using ${name}.`);
-        }
-      };
-    case 'attackMelee':
-    default:
-      return {
-        name,
-        desc: `${name}: Close-range strike.`,
-        cooldown:1, range:1, target:'enemy',
-        use(user,target,log){
-          const atk = effAtk(user);
-          const dmg = computeDamage(atk, effDef(target));
-          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
-        }
-      };
+        };
+      }
+      case 'attackRangedRoot': {
+        const metaRoot = abilityMeta(name, 3, 2, `${name}: Ranged strike that roots.`);
+        return {
+          name,
+          desc: metaRoot.desc,
+          cooldown: metaRoot.cooldown,
+          range: metaRoot.range,
+          target:'enemy',
+          use(user,target,log){
+            const atk = effAtk(user);
+            const dmg = computeDamage(atk, effDef(target));
+            applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
+            if(!target.dead){ addStatus(target,'Root',log); log(`${target.name} is rooted by ${name}.`); }
+          }
+        };
+      }
+      case 'attackMeleeBleed': {
+        const metaBleed = abilityMeta(name, 1, 2, `${name}: Close strike that bleeds.`);
+        return {
+          name,
+          desc: metaBleed.desc,
+          cooldown: metaBleed.cooldown,
+          range: metaBleed.range,
+          target:'enemy',
+          use(user,target,log){
+            const atk = effAtk(user);
+            const dmg = computeDamage(atk, effDef(target));
+            applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
+            if(!target.dead){ addStatus(target,'Bleed',log); log(`${target.name} bleeds from ${name}.`); }
+          }
+        };
+      }
+      case 'attackLifeSteal': {
+        const metaLeech = abilityMeta(name, 2, 2, `${name}: Strike and siphon life.`);
+        return {
+          name,
+          desc: metaLeech.desc,
+          cooldown: metaLeech.cooldown,
+          range: metaLeech.range,
+          target:'enemy',
+          use(user,target,log){
+            const atk = effAtk(user);
+            const dmg = computeDamage(atk, effDef(target));
+            applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
+            if(dmg>0 && !user.dead){
+              const before = user.hp;
+              user.hp = clamp(user.hp + Math.ceil(dmg/2), 0, user.stats.maxHp);
+              const healed = user.hp - before;
+              if(healed>0){ log(`${user.name} siphons <span class=\"heal\">+${healed}</span> HP.`); }
+            }
+          }
+        };
+      }
+      case 'buffSelfGuard': {
+        const metaGuardSelf = abilityMeta(name, 0, 2, `${name}: Brace for impact.`);
+        return {
+          name,
+          desc: metaGuardSelf.desc,
+          cooldown: metaGuardSelf.cooldown,
+          range: metaGuardSelf.range,
+          target:'self',
+          use(user,_target,log){ addStatus(user,'Guard',log); log(`${user.name} uses ${name} and steadies their defense.`); }
+        };
+      }
+      case 'buffSelfInspire': {
+        const metaInspireSelf = abilityMeta(name, 0, 2, `${name}: Empower self.`);
+        return {
+          name,
+          desc: metaInspireSelf.desc,
+          cooldown: metaInspireSelf.cooldown,
+          range: metaInspireSelf.range,
+          target:'self',
+          use(user,_target,log){ addStatus(user,'Inspire',log); log(`${user.name} channels ${name}.`); }
+        };
+      }
+      case 'buffAllyGuard': {
+        const metaGuardAlly = abilityMeta(name, 3, 2, `${name}: Protect an ally.`);
+        return {
+          name,
+          desc: metaGuardAlly.desc,
+          cooldown: metaGuardAlly.cooldown,
+          range: metaGuardAlly.range,
+          target:'ally',
+          use(user,target,log){ addStatus(target,'Guard',log); log(`${user.name} uses ${name} to shield ${target.name}.`); }
+        };
+      }
+      case 'buffAllyInspire': {
+        const metaInspireAlly = abilityMeta(name, 3, 2, `${name}: Bolster an ally.`);
+        return {
+          name,
+          desc: metaInspireAlly.desc,
+          cooldown: metaInspireAlly.cooldown,
+          range: metaInspireAlly.range,
+          target:'ally',
+          use(user,target,log){ addStatus(target,'Inspire',log); log(`${user.name} inspires ${target.name} with ${name}.`); }
+        };
+      }
+      case 'heal': {
+        const metaHeal = abilityMeta(name, 3, 2, `${name}: Restore an ally.`);
+        return {
+          name,
+          desc: metaHeal.desc,
+          cooldown: metaHeal.cooldown,
+          range: metaHeal.range,
+          target:'ally',
+          use(user,target,log){
+            const before = target.hp;
+            target.hp = clamp(target.hp + 18, 0, target.stats.maxHp);
+            const healed = target.hp - before;
+            log(`${user.name} uses ${name} on ${target.name} for <span class=\"heal\">+${healed}</span> HP.`);
+          }
+        };
+      }
+      case 'root': {
+        const metaRootOnly = abilityMeta(name, 3, 2, `${name}: Immobilize an enemy.`);
+        return {
+          name,
+          desc: metaRootOnly.desc,
+          cooldown: metaRootOnly.cooldown,
+          range: metaRootOnly.range,
+          target:'enemy',
+          use(user,target,log){ addStatus(target,'Root',log); log(`${user.name} uses ${name} to root ${target.name}.`); }
+        };
+      }
+      case 'swap': {
+        const metaSwap = abilityMeta(name, 3, 2, `${name}: Swap positions with an ally.`);
+        return {
+          name,
+          desc: metaSwap.desc,
+          cooldown: metaSwap.cooldown,
+          range: metaSwap.range,
+          target:'ally',
+          use(user,target,log){
+            if(user===target) return;
+            if(!user.pos || !target.pos){ log(`${name} fizzles; both units must be placed.`); return; }
+            const ux = user.pos.x, uy = user.pos.y;
+            user.pos.x = target.pos.x;
+            user.pos.y = target.pos.y;
+            target.pos.x = ux;
+            target.pos.y = uy;
+            log(`${user.name} swaps places with ${target.name} using ${name}.`);
+          }
+        };
+      }
+      case 'attackMelee':
+      default: {
+        const metaDefault = abilityMeta(name, 1, 1, `${name}: Close-range strike.`);
+        return {
+          name,
+          desc: metaDefault.desc,
+          cooldown: metaDefault.cooldown,
+          range: metaDefault.range,
+          target:'enemy',
+          use(user,target,log){
+            const atk = effAtk(user);
+            const dmg = computeDamage(atk, effDef(target));
+            applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
+          }
+        };
+      }
+    }
   }
-}
 
 /* ========= Templates ========= */
 const UnitTemplates = Object.fromEntries(CLASS_ENTRIES.map(entry=>{

@@ -119,6 +119,95 @@
     "Anchor Zone":"buffAllyGuard"
   };
 
+  const SKILL_MECHANICS = {
+    "Taunt":{type:"Command",ep:1,ap:1,range:"2 hex AoE",cooldown:2,effect:"Enemies in range must target the user.",synergy:["Morale","Control"]},
+    "Shield Wall":{type:"Defensive",ep:1,ap:1,range:"Self + Adjacent",cooldown:3,effect:"+50% CON and prevents knockback.",synergy:["Defense"]},
+    "Parry":{type:"Defensive",ep:1,ap:1,range:"Melee",cooldown:1,effect:"Negate the next melee hit and counter for half damage.",synergy:["Counter"]},
+    "Arcane Bolt":{type:"Offensive",ep:1,ap:1,range:"3 hex",cooldown:0,effect:"Deal INT ×1.2 arcane damage.",synergy:["Arcane"]},
+    "Elemental Blast":{type:"Offensive",ep:1,ap:2,range:"2 hex AoE",cooldown:3,effect:"Deal INT ×1.5 damage of a random element.",synergy:["Elemental"]},
+    "Ward":{type:"Support",ep:1,ap:1,range:"Adjacent Ally",cooldown:2,effect:"Grant +20% RES.",synergy:["Protection"]},
+    "Life Leech":{type:"Offensive",ep:1,ap:1,range:"2 hex",cooldown:2,effect:"Deal INT damage and heal for half dealt.",synergy:["Dark","Sustain"]},
+    "Hex":{type:"Debuff",ep:1,ap:1,range:"3 hex",cooldown:2,effect:"-2 STR and DEX for 2 turns.",synergy:["Curse"]},
+    "Dark Pact":{type:"Special",ep:1,ap:2,range:"Self",cooldown:4,effect:"Lose 5 HP to gain +2 INT for 2 turns.",synergy:["Dark","Pact"]},
+    "Snipe":{type:"Offensive",ep:1,ap:2,range:"6 hex",cooldown:2,effect:"Ranged attack that ignores 50% DEF.",synergy:["Ranged"]},
+    "Volley":{type:"Offensive",ep:1,ap:2,range:"Line 5 hex",cooldown:3,effect:"Line AoE that excels against 3+ targets.",synergy:["Ranged","AoE"]},
+    "Pinning Shot":{type:"Offensive",ep:1,ap:1,range:"4 hex",cooldown:2,effect:"Deal DEX damage and reduce MOV by 2.",synergy:["Control"]},
+    "Slipstream Step":{type:"Movement",ep:1,ap:1,range:"Self",cooldown:1,effect:"Move while ignoring zones of control.",synergy:["Mobility"]},
+    "Trap Sense":{type:"Passive",ep:0,ap:0,range:"2 hex",cooldown:null,effect:"Reveal nearby traps.",synergy:["Detection"]},
+    "Ambush":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:0,effect:"Deal bonus damage if the target has not acted.",synergy:["Stealth","Critical"]},
+    "Heal":{type:"Support",ep:1,ap:1,range:"Adjacent Ally",cooldown:2,effect:"Restore WIS ×2 HP.",synergy:["Holy"]},
+    "Turn Undead":{type:"Offensive",ep:1,ap:2,range:"3 hex AoE",cooldown:3,effect:"Deal WIS ×1.5 damage to Undead.",synergy:["Holy","Anti-Undead"]},
+    "Ward Chant":{type:"Support",ep:1,ap:2,range:"2 hex AoE",cooldown:3,effect:"Allies become immune to debuffs for 1 turn.",synergy:["Holy","Chant"]},
+    "Shapeshift":{type:"Special",ep:1,ap:2,range:"Self",cooldown:5,effect:"Transform into wolf (+DEX) or bear (+STR).",synergy:["Nature"]},
+    "Entangle":{type:"Control",ep:1,ap:1,range:"3 hex",cooldown:2,effect:"Root the target; MOV becomes 0 for 1 turn.",synergy:["Nature","Root"]},
+    "Restorative Wind":{type:"Healing",ep:1,ap:2,range:"2 hex AoE",cooldown:3,effect:"Heal WIS ×1.2 HP and cure Fatigue.",synergy:["Wind"]},
+    "Power Strike":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:0,effect:"Deal STR ×1.5 damage with a chance to stagger.",synergy:["Physical"]},
+    "Counter":{type:"Defensive",ep:1,ap:1,range:"Self",cooldown:1,effect:"Prepare to counter the next melee hit.",synergy:["Counter"]},
+    "Weapon Stance":{type:"Utility",ep:0,ap:0,range:"Self",cooldown:null,effect:"Toggle between +STR or +DEF stance.",synergy:["Stance"]},
+    "Backstab":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:0,effect:"Deal bonus damage from behind.",synergy:["Stealth","Critical"]},
+    "Poisoned Dagger":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:2,effect:"Deal STR damage and apply Poison for 3 turns.",synergy:["Poison"]},
+    "Camouflage":{type:"Stealth",ep:1,ap:1,range:"Self",cooldown:3,effect:"Become hidden until an enemy is adjacent.",synergy:["Stealth"]},
+    "Counterstrike":{type:"Defensive",ep:1,ap:1,range:"Self",cooldown:1,effect:"Reflect 50% of melee damage taken.",synergy:["Counter"]},
+    "Chi Strike":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:0,effect:"Deal WIS damage and stun.",synergy:["Ki"]},
+    "Palm of Flame":{type:"Offensive",ep:1,ap:2,range:"Cone",cooldown:3,effect:"Fire cone damage that ignites terrain.",synergy:["Fire"]},
+    "Totem Call":{type:"Utility",ep:1,ap:2,range:"2 hex",cooldown:5,effect:"Summon a Spirit Totem that emits an aura.",synergy:["Spirit"]},
+    "Spirit Bind":{type:"Debuff",ep:1,ap:1,range:"3 hex",cooldown:3,effect:"Target loses 1 EP for 1 turn.",synergy:["Spirit"]},
+    "Stormsong":{type:"Offensive",ep:1,ap:2,range:"3 hex AoE",cooldown:3,effect:"Deal lightning damage and inflict Shock.",synergy:["Storm"]},
+    "Zone Control":{type:"Command",ep:1,ap:1,range:"2 hex aura",cooldown:2,effect:"Enemies moving in range trigger opportunity attacks.",synergy:["Control"]},
+    "Shield Slam":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:2,effect:"Deal STR damage and stagger.",synergy:["Stun"]},
+    "Fortify":{type:"Defensive",ep:1,ap:1,range:"Self",cooldown:3,effect:"Gain +30% CON for 2 turns.",synergy:["Defense"]},
+    "Deploy Turret":{type:"Utility",ep:1,ap:2,range:"2 hex",cooldown:4,effect:"Summon a turret that fires DEX-based shots.",synergy:["Construct"]},
+    "Trap":{type:"Utility",ep:1,ap:1,range:"1 hex",cooldown:3,effect:"Place a snare that roots and deals damage.",synergy:["Trap"]},
+    "Salvage Duty":{type:"Utility",ep:0,ap:1,range:"Self",cooldown:null,effect:"Collect salvage for extra loot.",synergy:["Resource"]},
+    "Raise Skeleton":{type:"Summon",ep:1,ap:2,range:"Adjacent",cooldown:5,effect:"Summon an undead minion.",synergy:["Necro"]},
+    "Fear":{type:"Debuff",ep:1,ap:1,range:"3 hex AoE",cooldown:3,effect:"Reduce CHA and morale of enemies.",synergy:["Fear"]},
+    "Soul Drain":{type:"Offensive",ep:1,ap:1,range:"2 hex",cooldown:2,effect:"Deal INT damage and reduce WIS.",synergy:["Dark"]},
+    "Shadow Strike":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:0,effect:"Deal DEX and DREAM damage.",synergy:["Shadow"]},
+    "Harvest Soul":{type:"Offensive",ep:1,ap:2,range:"Melee",cooldown:3,effect:"Deal STR ×1.5 damage and heal for the damage dealt.",synergy:["Dark"]},
+    "Fade Step":{type:"Movement",ep:1,ap:1,range:"3 hex",cooldown:2,effect:"Teleport to a shadow tile.",synergy:["Shadow"]},
+    "Harmony Strike":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:0,effect:"Deal STR + CHA damage with bonus if an ally is nearby.",synergy:["Harmony"]},
+    "Discordant Wave":{type:"Offensive",ep:1,ap:2,range:"2 hex AoE",cooldown:3,effect:"Deal INT damage and inflict Confuse.",synergy:["Chaos"]},
+    "Resonance":{type:"Support",ep:1,ap:1,range:"Adjacent Ally",cooldown:2,effect:"Grant +10% damage for 1 turn.",synergy:["Song"]},
+    "Trick Shot":{type:"Offensive",ep:1,ap:1,range:"4 hex",cooldown:0,effect:"Ricochet to a second target.",synergy:["Ranged"]},
+    "Ricochet":{type:"Offensive",ep:1,ap:2,range:"Line 3 hex",cooldown:2,effect:"Hit up to three enemies in a line.",synergy:["Ranged"]},
+    "Quickdraw":{type:"Utility",ep:0,ap:0,range:"Self",cooldown:null,effect:"Always acts first.",synergy:["Speed"]},
+    "Smoke Vanish":{type:"Stealth",ep:1,ap:1,range:"Self",cooldown:2,effect:"Become hidden until your next attack.",synergy:["Stealth"]},
+    "Kunai Throw":{type:"Offensive",ep:1,ap:1,range:"3 hex",cooldown:0,effect:"Throw a kunai for DEX damage; apply Bleed on crit.",synergy:["Ranged"]},
+    "Shadowstep":{type:"Movement",ep:1,ap:1,range:"4 hex",cooldown:2,effect:"Teleport behind an enemy and gain a free strike.",synergy:["Shadow"]},
+    "Iaido Strike":{type:"Offensive",ep:1,ap:2,range:"Melee",cooldown:2,effect:"Perform a high-damage opening strike.",synergy:["Duel"]},
+    "Discipline Stance":{type:"Utility",ep:0,ap:0,range:"Self",cooldown:null,effect:"Toggle between +DEX or +STR.",synergy:["Stance"]},
+    "Resolve":{type:"Support",ep:1,ap:1,range:"Self",cooldown:3,effect:"Become immune to fear and charm.",synergy:["Spirit"]},
+    "Disarm":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:2,effect:"Remove the target's weapon for 1 turn.",synergy:["Control"]},
+    "Broadside":{type:"Offensive",ep:1,ap:2,range:"Line 3 hex",cooldown:3,effect:"Deal STR damage in a line and knock back.",synergy:["AoE"]},
+    "Rally or Rum":{type:"Support",ep:1,ap:1,range:"2 hex AoE",cooldown:3,effect:"Boost morale and cure Fear.",synergy:["Morale"]},
+    "Charge":{type:"Offensive",ep:1,ap:2,range:"4 hex line",cooldown:3,effect:"Deal STR ×2 damage and knock back.",synergy:["Cavalry"]},
+    "Formation Guard":{type:"Defensive",ep:1,ap:1,range:"Adjacent Allies",cooldown:2,effect:"Grant +DEF to formation allies.",synergy:["Defense"]},
+    "Tactical Rally":{type:"Command",ep:1,ap:2,range:"2 hex AoE",cooldown:4,effect:"Allies gain +1 AP for the turn.",synergy:["Command"]},
+    "Boarding Action":{type:"Offensive",ep:1,ap:2,range:"2 hex",cooldown:3,effect:"Leap to target, deal STR damage, and disorient.",synergy:["Pirate"]},
+    "Morale Breaker":{type:"Debuff",ep:1,ap:1,range:"2 hex AoE",cooldown:3,effect:"Lower CHA and morale of enemies.",synergy:["Morale"]},
+    "Naval Tactics":{type:"Passive",ep:0,ap:0,range:"Self",cooldown:null,effect:"Ignore movement penalties from water.",synergy:["Movement"]},
+    "Flameblade":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:0,effect:"Imbue weapon with fire for 2 turns.",synergy:["Fire"]},
+    "Arcane Slash":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:2,effect:"Deal INT damage and knock back.",synergy:["Arcane"]},
+    "Elemental Guard":{type:"Defensive",ep:1,ap:1,range:"Self",cooldown:3,effect:"Resist fire, ice, and lightning.",synergy:["Elemental"]},
+    "Tempo Strike":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:0,effect:"Deal STR damage with bonus if a Bard or Dancer is nearby.",synergy:["Rhythm"]},
+    "Chant Rally":{type:"Support",ep:1,ap:2,range:"2 hex AoE",cooldown:3,effect:"Raise morale and damage for allies.",synergy:["Chant"]},
+    "Momentum Slash":{type:"Offensive",ep:1,ap:2,range:"3 hex line",cooldown:3,effect:"Damage scales with attacks this round.",synergy:["Combo"]},
+    "Alchemy Strike":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:0,effect:"Deal random elemental damage.",synergy:["Alchemy"]},
+    "Scrap Bomb":{type:"Offensive",ep:1,ap:2,range:"2 hex AoE",cooldown:3,effect:"Explosive AoE that leaves a salvage tile.",synergy:["Alchemy"]},
+    "Essence Burn":{type:"Debuff",ep:1,ap:1,range:"3 hex",cooldown:2,effect:"Reduce INT and FAE for 2 turns.",synergy:["Alchemy"]},
+    "Swap Places":{type:"Utility",ep:1,ap:1,range:"2 hex",cooldown:2,effect:"Swap positions with an ally.",synergy:["Position"]},
+    "Intercept":{type:"Defensive",ep:1,ap:1,range:"2 hex",cooldown:2,effect:"Take damage in place of an ally.",synergy:["Guard"]},
+    "Silent Guard":{type:"Stealth",ep:1,ap:1,range:"Self",cooldown:3,effect:"Become hidden and gain DEF.",synergy:["Stealth"]},
+    "Ignite":{type:"Offensive",ep:1,ap:1,range:"2 hex",cooldown:2,effect:"Deal fire damage and apply Burn.",synergy:["Fire"]},
+    "Reveal Shadows":{type:"Utility",ep:0,ap:0,range:"3 hex AoE",cooldown:null,effect:"Reveal hidden units in the area.",synergy:["Reveal"]},
+    "Firebrand":{type:"Offensive",ep:1,ap:2,range:"Cone",cooldown:3,effect:"Fire AoE that ignites terrain.",synergy:["Fire"]},
+    "Parry-Riposte":{type:"Offensive",ep:1,ap:1,range:"Melee",cooldown:1,effect:"Block a hit and retaliate instantly.",synergy:["Duel"]},
+    "Showboat":{type:"Support",ep:0,ap:1,range:"Self",cooldown:3,effect:"Boost self morale while lowering nearby enemies'.",synergy:["Performance"]},
+    "Teleport Rift":{type:"Movement",ep:1,ap:2,range:"5 hex",cooldown:3,effect:"Teleport an ally or self.",synergy:["Rift"]},
+    "Banish":{type:"Control",ep:1,ap:2,range:"3 hex",cooldown:3,effect:"Remove the target from the field for 1 turn.",synergy:["Rift"]},
+    "Anchor Zone":{type:"Defensive",ep:1,ap:1,range:"2 hex AoE",cooldown:4,effect:"Block teleport or blink within the zone.",synergy:["Rift"]}
+  };
+
   const DEFAULT_NAME_OVERRIDES = {
     Knight:"Tallis (Knight)",
     Archer:"Clover (Archer)"
@@ -168,6 +257,10 @@
     return DEFAULT_NAME_OVERRIDES[name] || name;
   }
 
+  function mechanicsForSkill(name){
+    return SKILL_MECHANICS[name] || null;
+  }
+
   function inferRange(entry){
     const rangedRegex = /(Shot|Throw|Bolt|Blast|Gun|Rift|Banish|Kunai|Ricochet|Quickdraw|Broadside|Volley|Snipe|Song|Wave|Wind|Bomb|Ignite|Essence|Spirit|Storm|Anchor|Teleport)/i;
     if(entry.startingSkills.some(skill=>rangedRegex.test(skill))) return 3;
@@ -190,10 +283,12 @@
   global.FABLE_DATA = {
     CLASS_DATABASE,
     SKILL_BEHAVIORS,
+    SKILL_MECHANICS,
     GLYPH_OVERRIDES,
     defaultNameFor,
     skillKey,
     inferRange,
-    computeDerivedStats
+    computeDerivedStats,
+    mechanicsForSkill
   };
 })(window);
