@@ -303,17 +303,59 @@
       box-shadow:0 10px 18px rgba(14,26,24,.38);
     }
     label { font-size:12px; color:var(--muted); display:flex; flex-direction:column; gap:6px; }
-    input[type="text"], input[type="number"], select, textarea {
-      padding:9px 11px;
-      background:#0f1420;
+    input[type="text"], input[type="number"] {
+      padding:10px 12px;
+      background:linear-gradient(160deg, rgba(17,23,37,.95), rgba(10,14,25,.92));
       color:#fff;
-      border:1px solid rgba(42,50,70,.85);
+      border:1px solid rgba(68,96,146,.7);
       border-radius:10px;
       box-shadow:0 8px 16px rgba(0,0,0,.25) inset;
       font-size:13px;
       resize:vertical;
+      transition:border-color .18s ease, box-shadow .18s ease;
     }
-    textarea { min-height:68px; }
+    input[type="text"]:focus-visible,
+    input[type="number"]:focus-visible,
+    textarea:focus-visible {
+      outline:none;
+      border-color:rgba(127,230,162,.9);
+      box-shadow:0 0 0 1px rgba(127,230,162,.35), 0 12px 24px rgba(16,38,40,.45);
+    }
+    select {
+      appearance:none;
+      padding:12px 40px 12px 14px;
+      min-height:42px;
+      background:linear-gradient(160deg, rgba(18,26,44,.96), rgba(13,18,32,.94));
+      color:#fff;
+      border:1px solid rgba(74,108,166,.75);
+      border-radius:12px;
+      box-shadow:0 10px 20px rgba(0,0,0,.28) inset;
+      font-weight:500;
+      letter-spacing:.01em;
+      transition:border-color .18s ease, box-shadow .18s ease;
+      cursor:pointer;
+      background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 8"><path fill="%237fe6a2" d="M1.3.7 6 5.4 10.7.7 12 2 6 8 0 2z"/></svg>');
+      background-repeat:no-repeat;
+      background-size:14px 10px;
+      background-position:right 14px center;
+    }
+    select:focus-visible {
+      outline:none;
+      border-color:rgba(127,230,162,.9);
+      box-shadow:0 0 0 1px rgba(127,230,162,.35), 0 14px 28px rgba(18,44,40,.45);
+    }
+    select:hover { border-color:rgba(127,230,162,.75); }
+    textarea {
+      min-height:68px;
+      padding:12px 14px;
+      background:linear-gradient(160deg, rgba(17,23,37,.95), rgba(10,14,25,.92));
+      color:#fff;
+      border:1px solid rgba(68,96,146,.7);
+      border-radius:12px;
+      box-shadow:0 8px 16px rgba(0,0,0,.25) inset;
+      transition:border-color .18s ease, box-shadow .18s ease;
+      resize:vertical;
+    }
     .form-row {
       display:flex;
       gap:14px;
