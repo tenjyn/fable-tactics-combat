@@ -29,6 +29,34 @@
     { name:"Torchbearer", stats:{STR:7,DEX:5,CON:6,INT:4,WIS:4,CHA:4}, attunement:{FAE:6,DREAM:0}, resources:{HP:29,EP:1,AP:2,MOV:5}, startingSkills:["Ignite","Reveal Shadows","Firebrand"] },
     { name:"Swashbuckler", stats:{STR:6,DEX:8,CON:5,INT:4,WIS:3,CHA:6}, attunement:{FAE:0,DREAM:0}, resources:{HP:28,EP:1,AP:2,MOV:6}, startingSkills:["Taunt","Parry-Riposte","Showboat"] },
     { name:"Riftwarden", stats:{STR:5,DEX:5,CON:6,INT:6,WIS:7,CHA:4}, attunement:{FAE:0,DREAM:8}, resources:{HP:28,EP:1,AP:2,MOV:5}, startingSkills:["Teleport Rift","Banish","Anchor Zone"] },
+    { name:"Bard", stats:{STR:3,DEX:4,CON:5,INT:5,WIS:5,CHA:9}, attunement:{FAE:0,DREAM:3}, resources:{HP:26,EP:1,AP:2,MOV:5}, startingSkills:["Inspiring Ballad","Cleansing Chorus","Battle Hymn"] },
+    { name:"Dancer", stats:{STR:3,DEX:8,CON:4,INT:4,WIS:5,CHA:7}, attunement:{FAE:0,DREAM:2}, resources:{HP:22,EP:1,AP:2,MOV:7}, startingSkills:["Mirrorstep","Dodge Dance","Action Gift"] },
+    { name:"Diplomat", stats:{STR:3,DEX:4,CON:4,INT:5,WIS:6,CHA:9}, attunement:{FAE:0,DREAM:2}, resources:{HP:22,EP:1,AP:2,MOV:5}, startingSkills:["Parley","Influence Morale","Truce"] },
+    { name:"Commander", stats:{STR:5,DEX:5,CON:7,INT:4,WIS:5,CHA:8}, attunement:{FAE:0,DREAM:0}, resources:{HP:32,EP:1,AP:2,MOV:4}, startingSkills:["Command Authority","Deploy Orders","Rallying Cry"] },
+    { name:"Quartermaster", stats:{STR:4,DEX:4,CON:6,INT:7,WIS:7,CHA:5}, attunement:{FAE:0,DREAM:0}, resources:{HP:30,EP:1,AP:2,MOV:4}, startingSkills:["Supply Drop","Stamina Boost","Resupply"] },
+    { name:"Librarian", stats:{STR:3,DEX:4,CON:5,INT:9,WIS:6,CHA:4}, attunement:{FAE:0,DREAM:2}, resources:{HP:26,EP:1,AP:2,MOV:4}, startingSkills:["Reveal Weakness","Lore Archive","Battle Scan"] },
+    { name:"Beastmaster", stats:{STR:5,DEX:5,CON:6,INT:4,WIS:6,CHA:6}, attunement:{FAE:0,DREAM:0}, resources:{HP:30,EP:1,AP:2,MOV:5}, startingSkills:["Summon Beast","Command Beast","Wild Roar"] },
+    { name:"Herbalist", stats:{STR:4,DEX:4,CON:5,INT:6,WIS:8,CHA:4}, attunement:{FAE:0,DREAM:0}, resources:{HP:26,EP:1,AP:2,MOV:5}, startingSkills:["Herbal Remedy","Poison Bomb","Antidote"] },
+    { name:"Oracle", stats:{STR:3,DEX:4,CON:4,INT:6,WIS:9,CHA:5}, attunement:{FAE:2,DREAM:8}, resources:{HP:22,EP:1,AP:2,MOV:4}, startingSkills:["Prophecy","Veil Sight","Fate Bind"] },
+    { name:"Chaplain", stats:{STR:4,DEX:4,CON:6,INT:5,WIS:8,CHA:6}, attunement:{FAE:0,DREAM:0}, resources:{HP:30,EP:1,AP:2,MOV:4}, startingSkills:["Sacred Ward","Blessing","Inspire Courage"] },
+    { name:"Archivist", stats:{STR:3,DEX:4,CON:5,INT:8,WIS:6,CHA:5}, attunement:{FAE:0,DREAM:2}, resources:{HP:26,EP:1,AP:2,MOV:4}, startingSkills:["Record Action","Shift Turn Order","Knowledge Recall"] },
+    { name:"Soothsayer", stats:{STR:3,DEX:4,CON:4,INT:6,WIS:8,CHA:5}, attunement:{FAE:0,DREAM:8}, resources:{HP:22,EP:1,AP:2,MOV:4}, startingSkills:["Omen","Redirect Curse","Hex Prolong"] },
+    { name:"Caretaker", stats:{STR:4,DEX:4,CON:6,INT:5,WIS:8,CHA:5}, attunement:{FAE:0,DREAM:0}, resources:{HP:30,EP:1,AP:2,MOV:4}, startingSkills:["Stabilize","Nurture","Revive"] },
+    { name:"Chanter", stats:{STR:4,DEX:5,CON:5,INT:6,WIS:7,CHA:7}, attunement:{FAE:0,DREAM:2}, resources:{HP:26,EP:1,AP:2,MOV:5}, startingSkills:["Aura Chant","Sustained Hymn","Passive Blessing"] },
+    { name:"Merchant", stats:{STR:3,DEX:4,CON:5,INT:6,WIS:5,CHA:9}, attunement:{FAE:0,DREAM:0}, resources:{HP:26,EP:1,AP:2,MOV:5}, startingSkills:["Bargain","Market Manipulation","Greed is Good"] },
+    { name:"Cartographer", stats:{STR:3,DEX:5,CON:5,INT:7,WIS:7,CHA:5}, attunement:{FAE:0,DREAM:0}, resources:{HP:27,EP:1,AP:2,MOV:5}, startingSkills:["Reveal Map","Alter Terrain","Pathfinder"] },
+    { name:"Witch", stats:{STR:3,DEX:5,CON:4,INT:6,WIS:5,CHA:5}, attunement:{FAE:8,DREAM:7}, resources:{HP:22,EP:1,AP:2,MOV:5}, startingSkills:["Hex","Illusion","Charm"] },
+    { name:"Runesmith", stats:{STR:4,DEX:4,CON:5,INT:8,WIS:7,CHA:4}, attunement:{FAE:0,DREAM:0}, resources:{HP:26,EP:1,AP:2,MOV:4}, startingSkills:["Rune Ward","Explosive Glyph","Runic Enhancement"] },
+    { name:"Tailor", stats:{STR:3,DEX:7,CON:4,INT:6,WIS:5,CHA:6}, attunement:{FAE:6,DREAM:3}, resources:{HP:22,EP:1,AP:2,MOV:6}, startingSkills:["Illusion Stitch","Armor Weave","Disguise"] },
+    { name:"Navigator", stats:{STR:4,DEX:6,CON:5,INT:5,WIS:7,CHA:5}, attunement:{FAE:0,DREAM:0}, resources:{HP:27,EP:1,AP:2,MOV:6}, startingSkills:["Pathfinder","Sea Legs","Sky Mark"] },
+    { name:"Folk Companion", stats:{STR:4,DEX:5,CON:5,INT:4,WIS:4,CHA:4}, attunement:{FAE:0,DREAM:0}, resources:{HP:24,EP:1,AP:2,MOV:6}, startingSkills:["Trickster Fox","Owl Sight","Bear Roar"] },
+    { name:"Artificer", stats:{STR:4,DEX:5,CON:6,INT:8,WIS:5,CHA:4}, attunement:{FAE:0,DREAM:0}, resources:{HP:28,EP:1,AP:2,MOV:4}, startingSkills:["Gadget Deploy","Overclock","Repair"] },
+    { name:"Chronicler", stats:{STR:3,DEX:4,CON:5,INT:6,WIS:6,CHA:7}, attunement:{FAE:0,DREAM:2}, resources:{HP:26,EP:1,AP:2,MOV:5}, startingSkills:["Record Heroics","Echo of Past","Tale Boost"] },
+    { name:"Trapper", stats:{STR:4,DEX:7,CON:5,INT:5,WIS:5,CHA:5}, attunement:{FAE:0,DREAM:0}, resources:{HP:27,EP:1,AP:2,MOV:6}, startingSkills:["Snare","Pitfall","Net Toss"] },
+    { name:"Tinker", stats:{STR:3,DEX:6,CON:5,INT:7,WIS:5,CHA:5}, attunement:{FAE:0,DREAM:0}, resources:{HP:27,EP:1,AP:2,MOV:5}, startingSkills:["Build Ladder","Bridge","Quick Tool"] },
+    { name:"Courier", stats:{STR:3,DEX:7,CON:4,INT:5,WIS:5,CHA:7}, attunement:{FAE:0,DREAM:0}, resources:{HP:24,EP:1,AP:2,MOV:7}, startingSkills:["Swap Positions","Item Transfer","Messenger"] },
+    { name:"Scrapper", stats:{STR:6,DEX:5,CON:7,INT:4,WIS:4,CHA:4}, attunement:{FAE:0,DREAM:0}, resources:{HP:32,EP:1,AP:2,MOV:5}, startingSkills:["Scavenge","Improvised Weapon","Salvage Armor"] },
+    { name:"Signalist", stats:{STR:3,DEX:5,CON:5,INT:6,WIS:5,CHA:8}, attunement:{FAE:0,DREAM:0}, resources:{HP:27,EP:1,AP:2,MOV:5}, startingSkills:["Flare","Flag Orders","Reveal Zone"] },
   ];
 
   const SKILL_BEHAVIORS = {
@@ -116,7 +144,89 @@
     "Showboat":"buffSelfInspire",
     "Teleport Rift":"buffSelfInspire",
     "Banish":"attackRanged",
-    "Anchor Zone":"buffAllyGuard"
+    "Anchor Zone":"buffAllyGuard",
+    "Inspiring Ballad":"buffAllyInspire",
+    "Cleansing Chorus":"heal",
+    "Battle Hymn":"buffAllyInspire",
+    "Mirrorstep":"buffSelfInspire",
+    "Dodge Dance":"buffSelfGuard",
+    "Action Gift":"buffAllyInspire",
+    "Parley":"buffAllyGuard",
+    "Influence Morale":"buffAllyInspire",
+    "Truce":"buffAllyGuard",
+    "Command Authority":"buffAllyInspire",
+    "Deploy Orders":"buffAllyInspire",
+    "Rallying Cry":"buffAllyInspire",
+    "Supply Drop":"heal",
+    "Stamina Boost":"buffAllyInspire",
+    "Resupply":"heal",
+    "Reveal Weakness":"attackRanged",
+    "Lore Archive":"buffSelfInspire",
+    "Battle Scan":"buffAllyGuard",
+    "Summon Beast":"attackMelee",
+    "Command Beast":"buffAllyInspire",
+    "Wild Roar":"attackRanged",
+    "Herbal Remedy":"heal",
+    "Poison Bomb":"attackRanged",
+    "Antidote":"heal",
+    "Prophecy":"buffAllyInspire",
+    "Veil Sight":"buffSelfGuard",
+    "Fate Bind":"attackRanged",
+    "Sacred Ward":"buffAllyGuard",
+    "Blessing":"buffAllyGuard",
+    "Inspire Courage":"buffAllyInspire",
+    "Record Action":"buffAllyInspire",
+    "Shift Turn Order":"buffAllyInspire",
+    "Knowledge Recall":"buffSelfInspire",
+    "Omen":"attackRanged",
+    "Redirect Curse":"buffAllyGuard",
+    "Hex Prolong":"attackRanged",
+    "Stabilize":"heal",
+    "Nurture":"heal",
+    "Revive":"heal",
+    "Aura Chant":"buffAllyGuard",
+    "Sustained Hymn":"buffAllyInspire",
+    "Passive Blessing":"buffAllyGuard",
+    "Bargain":"buffSelfInspire",
+    "Market Manipulation":"buffSelfInspire",
+    "Greed is Good":"buffSelfInspire",
+    "Reveal Map":"buffSelfGuard",
+    "Alter Terrain":"attackRanged",
+    "Pathfinder":"buffSelfInspire",
+    "Illusion":"attackRanged",
+    "Charm":"attackRanged",
+    "Rune Ward":"buffAllyGuard",
+    "Explosive Glyph":"attackRanged",
+    "Runic Enhancement":"buffAllyGuard",
+    "Illusion Stitch":"buffAllyGuard",
+    "Armor Weave":"buffAllyGuard",
+    "Disguise":"buffSelfGuard",
+    "Sea Legs":"buffSelfGuard",
+    "Sky Mark":"attackRanged",
+    "Trickster Fox":"attackRanged",
+    "Owl Sight":"buffSelfGuard",
+    "Bear Roar":"attackMelee",
+    "Gadget Deploy":"attackRanged",
+    "Overclock":"buffSelfInspire",
+    "Repair":"heal",
+    "Record Heroics":"buffAllyInspire",
+    "Echo of Past":"buffAllyInspire",
+    "Tale Boost":"buffAllyInspire",
+    "Snare":"root",
+    "Pitfall":"root",
+    "Net Toss":"root",
+    "Build Ladder":"buffSelfInspire",
+    "Bridge":"buffSelfInspire",
+    "Quick Tool":"buffSelfInspire",
+    "Swap Positions":"swap",
+    "Item Transfer":"buffAllyInspire",
+    "Messenger":"buffSelfInspire",
+    "Scavenge":"buffSelfInspire",
+    "Improvised Weapon":"attackMelee",
+    "Salvage Armor":"buffSelfGuard",
+    "Flare":"attackRanged",
+    "Flag Orders":"buffAllyInspire",
+    "Reveal Zone":"buffAllyGuard"
   };
 
   const RAW_SKILL_DATA = {
@@ -205,7 +315,89 @@
     "Showboat":{type:"Support",ep:0,ap:1,range:"Self",cooldown:3,effect:"Boost morale and lower nearby enemy morale.",tags:["Performance"]},
     "Teleport Rift":{type:"Movement",ep:1,ap:2,range:"5 hex",cooldown:3,effect:"Teleport an ally or self.",tags:["Rift"]},
     "Banish":{type:"Control",ep:1,ap:2,range:"3 hex",cooldown:3,effect:"Remove a target from the field for 1 turn.",tags:["Rift"]},
-    "Anchor Zone":{type:"Defensive",ep:1,ap:1,range:"2 hex AoE",cooldown:4,effect:"Blocks teleport and blink effects in the zone.",tags:["Rift"]}
+    "Anchor Zone":{type:"Defensive",ep:1,ap:1,range:"2 hex AoE",cooldown:4,effect:"Blocks teleport and blink effects in the zone.",tags:["Rift"]},
+    "Inspiring Ballad":{type:"Support",ep:1,ap:1,range:"2 hex AoE",cooldown:3,effect:"Allies gain +15% damage for 2 turns.",tags:["Song","Morale"]},
+    "Cleansing Chorus":{type:"Support",ep:1,ap:2,range:"2 hex AoE",cooldown:3,effect:"Heal WIS ×1.2 HP and cleanse 1 debuff.",tags:["Song","Cleanse"]},
+    "Battle Hymn":{type:"Support",ep:1,ap:2,range:"2 hex AoE",cooldown:4,effect:"Grant allies +1 AP for the next turn.",tags:["Song","Rally"]},
+    "Mirrorstep":{type:"Movement",ep:1,ap:1,range:"3 hex",cooldown:1,effect:"Blink to an empty tile and gain Evasion.",tags:["Dance"]},
+    "Dodge Dance":{type:"Defensive",ep:1,ap:1,range:"Self",cooldown:2,effect:"Gain +30% DEX and Dodge chance for 1 turn.",tags:["Dance"]},
+    "Action Gift":{type:"Support",ep:1,ap:2,range:"Adjacent Ally",cooldown:3,effect:"Target ally gains 1 bonus action.",tags:["Dance","Rally"]},
+    "Parley":{type:"Utility",ep:1,ap:1,range:"3 hex",cooldown:3,effect:"Attempt to pacify enemies, lowering CHA attacks.",tags:["Diplomacy"]},
+    "Influence Morale":{type:"Support",ep:1,ap:1,range:"2 hex AoE",cooldown:3,effect:"Raise ally morale and lower enemy morale.",tags:["Diplomacy"]},
+    "Truce":{type:"Control",ep:1,ap:2,range:"3 hex",cooldown:4,effect:"Target enemy cannot attack this round.",tags:["Diplomacy"]},
+    "Command Authority":{type:"Command",ep:1,ap:1,range:"2 hex AoE",cooldown:2,effect:"Allies gain +10% DEF and STR.",tags:["Leadership"]},
+    "Deploy Orders":{type:"Command",ep:1,ap:2,range:"3 hex",cooldown:3,effect:"Direct an ally to immediately reposition 2 hex.",tags:["Leadership"]},
+    "Rallying Cry":{type:"Command",ep:1,ap:2,range:"3 hex AoE",cooldown:4,effect:"Allies gain +1 AP and morale.",tags:["Leadership"]},
+    "Supply Drop":{type:"Support",ep:1,ap:2,range:"4 hex",cooldown:3,effect:"Throw supplies that restore 10 HP and 1 EP.",tags:["Logistics"]},
+    "Stamina Boost":{type:"Support",ep:1,ap:1,range:"Adjacent Ally",cooldown:2,effect:"Target gains +1 AP this round.",tags:["Logistics"]},
+    "Resupply":{type:"Support",ep:1,ap:2,range:"3 hex AoE",cooldown:4,effect:"Restore 1 EP to allies in range.",tags:["Logistics"]},
+    "Reveal Weakness":{type:"Debuff",ep:1,ap:1,range:"3 hex",cooldown:2,effect:"Reduce target DEF by 20% for 2 turns.",tags:["Scan"]},
+    "Lore Archive":{type:"Utility",ep:0,ap:1,range:"Self",cooldown:0,effect:"Store knowledge to gain +INT next analysis.",tags:["Archive"]},
+    "Battle Scan":{type:"Utility",ep:1,ap:1,range:"3 hex",cooldown:2,effect:"Reveal target stats and resistances.",tags:["Scan"]},
+    "Summon Beast":{type:"Summon",ep:1,ap:2,range:"Adjacent",cooldown:4,effect:"Call a companion beast to fight for you.",tags:["Beast"]},
+    "Command Beast":{type:"Command",ep:1,ap:1,range:"3 hex",cooldown:1,effect:"Order a beast ally to act immediately.",tags:["Beast"]},
+    "Wild Roar":{type:"Debuff",ep:1,ap:1,range:"2 hex AoE",cooldown:3,effect:"Frighten enemies reducing their morale.",tags:["Beast"]},
+    "Herbal Remedy":{type:"Healing",ep:1,ap:1,range:"Adjacent Ally",cooldown:2,effect:"Heal WIS ×1.5 HP over 2 turns.",tags:["Herbal"]},
+    "Poison Bomb":{type:"Offensive",ep:1,ap:2,range:"2 hex AoE",cooldown:3,effect:"Deal damage and apply Poison for 2 turns.",tags:["Poison"]},
+    "Antidote":{type:"Support",ep:1,ap:1,range:"Adjacent Ally",cooldown:2,effect:"Cure Poison and grant resistance.",tags:["Herbal"]},
+    "Prophecy":{type:"Support",ep:1,ap:1,range:"3 hex",cooldown:3,effect:"Ally gains +20% crit chance for 2 turns.",tags:["Divination"]},
+    "Veil Sight":{type:"Utility",ep:1,ap:1,range:"Self",cooldown:2,effect:"See invisible units and traps for 2 turns.",tags:["Divination"]},
+    "Fate Bind":{type:"Control",ep:1,ap:2,range:"3 hex",cooldown:3,effect:"Link target to share damage with caster.",tags:["Divination"]},
+    "Sacred Ward":{type:"Support",ep:1,ap:1,range:"Adjacent Ally",cooldown:2,effect:"Grant +25% RES for 2 turns.",tags:["Holy"]},
+    "Blessing":{type:"Support",ep:1,ap:1,range:"2 hex AoE",cooldown:3,effect:"Allies gain +10% to all stats for 1 turn.",tags:["Holy"]},
+    "Inspire Courage":{type:"Support",ep:1,ap:1,range:"2 hex AoE",cooldown:3,effect:"Allies gain morale and immunity to fear.",tags:["Holy"]},
+    "Record Action":{type:"Utility",ep:0,ap:1,range:"Self",cooldown:1,effect:"Copy an ally action for later reuse.",tags:["Archive"]},
+    "Shift Turn Order":{type:"Command",ep:1,ap:2,range:"2 hex",cooldown:3,effect:"Swap two allies in the initiative order.",tags:["Archive"]},
+    "Knowledge Recall":{type:"Support",ep:0,ap:1,range:"Self",cooldown:1,effect:"Gain +2 INT for the next skill used.",tags:["Archive"]},
+    "Omen":{type:"Debuff",ep:1,ap:1,range:"3 hex",cooldown:2,effect:"Inflict Doom causing extra damage next hit.",tags:["Fate"]},
+    "Redirect Curse":{type:"Support",ep:1,ap:1,range:"3 hex",cooldown:3,effect:"Move a debuff from ally to enemy.",tags:["Fate"]},
+    "Hex Prolong":{type:"Debuff",ep:1,ap:1,range:"3 hex",cooldown:2,effect:"Extend duration of debuffs on target.",tags:["Fate"]},
+    "Stabilize":{type:"Healing",ep:1,ap:1,range:"Adjacent Ally",cooldown:1,effect:"Prevent target from dropping below 1 HP this turn.",tags:["Care"]},
+    "Nurture":{type:"Healing",ep:1,ap:1,range:"Adjacent Ally",cooldown:2,effect:"Regenerate WIS ×1 HP for 3 turns.",tags:["Care"]},
+    "Revive":{type:"Healing",ep:1,ap:2,range:"Adjacent Ally",cooldown:4,effect:"Revive a downed ally at 30% HP.",tags:["Care"]},
+    "Aura Chant":{type:"Support",ep:1,ap:1,range:"2 hex AoE",cooldown:2,effect:"Project an aura granting +DEF.",tags:["Chant"]},
+    "Sustained Hymn":{type:"Support",ep:1,ap:2,range:"Self",cooldown:3,effect:"Maintain a hymn restoring 1 EP to allies nearby.",tags:["Chant"]},
+    "Passive Blessing":{type:"Support",ep:0,ap:0,range:"Self Aura",cooldown:0,effect:"Allies adjacent gain +5% all resistances.",tags:["Chant"]},
+    "Bargain":{type:"Utility",ep:0,ap:1,range:"Self",cooldown:1,effect:"Gain extra loot and discount on shop actions.",tags:["Trade"]},
+    "Market Manipulation":{type:"Utility",ep:1,ap:1,range:"3 hex",cooldown:3,effect:"Alter prices and morale of nearby foes.",tags:["Trade"]},
+    "Greed is Good":{type:"Support",ep:0,ap:1,range:"Self",cooldown:2,effect:"Convert 5 HP into +2 AP this turn.",tags:["Trade"]},
+    "Reveal Map":{type:"Utility",ep:1,ap:1,range:"Global",cooldown:4,effect:"Uncover hidden tiles and enemies on the map.",tags:["Survey"]},
+    "Alter Terrain":{type:"Control",ep:1,ap:2,range:"3 hex",cooldown:4,effect:"Change terrain tile to difficult ground.",tags:["Survey"]},
+    "Pathfinder":{type:"Support",ep:1,ap:1,range:"Self",cooldown:2,effect:"Ignore terrain penalties for 2 turns.",tags:["Survey"]},
+    "Illusion":{type:"Control",ep:1,ap:1,range:"3 hex",cooldown:2,effect:"Create a decoy that draws enemy attacks.",tags:["Hex"]},
+    "Charm":{type:"Control",ep:1,ap:2,range:"3 hex",cooldown:3,effect:"Force target to act on your behalf for 1 turn.",tags:["Hex"]},
+    "Rune Ward":{type:"Support",ep:1,ap:1,range:"Adjacent Ally",cooldown:2,effect:"Grant +30% resistance to elemental damage.",tags:["Rune"]},
+    "Explosive Glyph":{type:"Offensive",ep:1,ap:2,range:"2 hex",cooldown:3,effect:"Place a glyph that explodes next round.",tags:["Rune"]},
+    "Runic Enhancement":{type:"Support",ep:1,ap:1,range:"Adjacent Ally",cooldown:3,effect:"Imbue ally weapon for +20% damage.",tags:["Rune"]},
+    "Illusion Stitch":{type:"Support",ep:1,ap:1,range:"Adjacent Ally",cooldown:2,effect:"Grant ally a disguise increasing DEF.",tags:["Tailor"]},
+    "Armor Weave":{type:"Support",ep:1,ap:1,range:"Adjacent Ally",cooldown:3,effect:"Increase CON by 15% for 2 turns.",tags:["Tailor"]},
+    "Disguise":{type:"Utility",ep:1,ap:1,range:"Self",cooldown:3,effect:"Become disguised reducing enemy targeting.",tags:["Tailor"]},
+    "Sea Legs":{type:"Support",ep:0,ap:1,range:"Self",cooldown:2,effect:"Ignore water hazards and gain stability.",tags:["Navigation"]},
+    "Sky Mark":{type:"Offensive",ep:1,ap:1,range:"5 hex",cooldown:2,effect:"Mark a target granting bonus ranged damage.",tags:["Navigation"]},
+    "Trickster Fox":{type:"Utility",ep:0,ap:1,range:"Self",cooldown:2,effect:"Gain +DEX and create a decoy trail.",tags:["Beast"]},
+    "Owl Sight":{type:"Utility",ep:0,ap:1,range:"Self",cooldown:2,effect:"Gain night vision and reveal hidden units.",tags:["Beast"]},
+    "Bear Roar":{type:"Offensive",ep:1,ap:1,range:"Cone",cooldown:3,effect:"Deal damage and taunt enemies in front.",tags:["Beast"]},
+    "Gadget Deploy":{type:"Utility",ep:1,ap:2,range:"2 hex",cooldown:3,effect:"Deploy a gadget with random helpful effect.",tags:["Tech"]},
+    "Overclock":{type:"Support",ep:1,ap:1,range:"Self",cooldown:2,effect:"Increase AP by 1 but take 5 damage.",tags:["Tech"]},
+    "Repair":{type:"Support",ep:1,ap:1,range:"Adjacent Ally",cooldown:2,effect:"Restore 15 HP to mechanical allies or 10 HP otherwise.",tags:["Tech"]},
+    "Record Heroics":{type:"Support",ep:0,ap:1,range:"2 hex",cooldown:2,effect:"Grant ally +10% damage when recounted.",tags:["Story"]},
+    "Echo of Past":{type:"Support",ep:1,ap:2,range:"3 hex",cooldown:3,effect:"Repeat the last supportive action used.",tags:["Story"]},
+    "Tale Boost":{type:"Support",ep:0,ap:1,range:"2 hex",cooldown:2,effect:"Allies gain +CHA for morale checks.",tags:["Story"]},
+    "Snare":{type:"Control",ep:1,ap:1,range:"3 hex",cooldown:2,effect:"Root a target for 1 turn.",tags:["Trap"]},
+    "Pitfall":{type:"Control",ep:1,ap:2,range:"1 hex",cooldown:3,effect:"Create a pit causing damage and root on trigger.",tags:["Trap"]},
+    "Net Toss":{type:"Control",ep:1,ap:1,range:"3 hex",cooldown:2,effect:"Immobilize target for 1 turn.",tags:["Trap"]},
+    "Build Ladder":{type:"Utility",ep:1,ap:1,range:"Adjacent",cooldown:2,effect:"Create climbable terrain.",tags:["Construct"]},
+    "Bridge":{type:"Utility",ep:1,ap:2,range:"2 hex",cooldown:3,effect:"Create a temporary bridge over hazards.",tags:["Construct"]},
+    "Quick Tool":{type:"Utility",ep:0,ap:1,range:"Self",cooldown:1,effect:"Gain +1 AP when interacting with objects.",tags:["Construct"]},
+    "Swap Positions":{type:"Utility",ep:1,ap:1,range:"3 hex",cooldown:2,effect:"Swap positions of two allies.",tags:["Logistics"]},
+    "Item Transfer":{type:"Utility",ep:0,ap:1,range:"Adjacent Ally",cooldown:0,effect:"Give an item and grant +1 AP.",tags:["Logistics"]},
+    "Messenger":{type:"Movement",ep:0,ap:1,range:"Self",cooldown:1,effect:"Gain +2 MOV for the round.",tags:["Logistics"]},
+    "Scavenge":{type:"Utility",ep:0,ap:1,range:"Self",cooldown:1,effect:"Recover materials granting +1 EP next turn.",tags:["Salvage"]},
+    "Improvised Weapon":{type:"Offensive",ep:0,ap:1,range:"Melee",cooldown:0,effect:"Deal STR damage with found objects.",tags:["Salvage"]},
+    "Salvage Armor":{type:"Defensive",ep:0,ap:1,range:"Self",cooldown:2,effect:"Gain +20% DEF for 2 turns.",tags:["Salvage"]},
+    "Flare":{type:"Utility",ep:1,ap:1,range:"5 hex",cooldown:2,effect:"Reveal a zone and remove stealth.",tags:["Signal"]},
+    "Flag Orders":{type:"Command",ep:1,ap:1,range:"3 hex AoE",cooldown:2,effect:"Allies follow orders gaining +SPD.",tags:["Signal"]},
+    "Reveal Zone":{type:"Utility",ep:1,ap:1,range:"3 hex AoE",cooldown:3,effect:"Highlight hidden traps and foes.",tags:["Signal"]}
   };
 
   function deriveRangeValue(text){
@@ -265,6 +457,34 @@
     Torchbearer:"🔥",
     Swashbuckler:"🏴",
     Riftwarden:"🌌"
+    ,Bard:"🎼"
+    ,Dancer:"💃"
+    ,Diplomat:"🤝"
+    ,Commander:"🪖"
+    ,Quartermaster:"📦"
+    ,Librarian:"📚"
+    ,Beastmaster:"🐾"
+    ,Herbalist:"🌼"
+    ,Oracle:"🔮"
+    ,Chaplain:"🕊"
+    ,Archivist:"🗂"
+    ,Soothsayer:"🔭"
+    ,Caretaker:"🩺"
+    ,Chanter:"🎤"
+    ,Merchant:"💰"
+    ,Cartographer:"🗺"
+    ,Witch:"🧙"
+    ,Runesmith:"🪨"
+    ,Tailor:"🧵"
+    ,Navigator:"🧭"
+    ,FolkCompanion:"🐕"
+    ,Artificer:"🛠"
+    ,Chronicler:"📝"
+    ,Trapper:"🪤"
+    ,Tinker:"🔧"
+    ,Courier:"📯"
+    ,Scrapper:"🪓"
+    ,Signalist:"🚩"
   };
 
   function skillKey(name){
@@ -282,7 +502,7 @@
   function inferRange(entry){
     const rangedRegex = /(Shot|Throw|Bolt|Blast|Gun|Rift|Banish|Kunai|Ricochet|Quickdraw|Broadside|Volley|Snipe|Song|Wave|Wind|Bomb|Ignite|Essence|Spirit|Storm|Anchor|Teleport)/i;
     if(entry.startingSkills.some(skill=>rangedRegex.test(skill))) return 3;
-    if(/Magician|Warlock|Cleric|Druid|Shaman|Necromancer|Reaper|Symphonist|Gunslinger|Ninja|Spellblade|Torchbearer|Riftwarden|Engineer|Archer|Scout|Privateer|Pirate/i.test(entry.name)) return 3;
+    if(/Magician|Warlock|Cleric|Druid|Shaman|Necromancer|Reaper|Symphonist|Gunslinger|Ninja|Spellblade|Torchbearer|Riftwarden|Engineer|Archer|Scout|Privateer|Pirate|Bard|Dancer|Commander|Quartermaster|Librarian|Beastmaster|Herbalist|Oracle|Chaplain|Archivist|Soothsayer|Caretaker|Chanter|Merchant|Cartographer|Witch|Runesmith|Tailor|Navigator|Folk\sCompanion|Artificer|Chronicler|Trapper|Tinker|Courier|Scrapper|Signalist/i.test(entry.name)) return 3;
     if(entry.stats.DEX >= 8 || entry.stats.INT >= 7) return 2;
     return 1;
   }
