@@ -375,9 +375,31 @@ function applyDamage(target,dmg,log,msg){
     if(msg) log(msg.replace(/for.+/, 'but it was fully absorbed.'));
   }
 }
-function addStatus(u,key,log){ const tpl=StatusLib[key]; if(!tpl) return; const ex=u.statuses.find(s=>s.key===key); if(ex) ex.turnsLeft=tpl.duration; else u.statuses.push({key,turnsLeft:tpl.duration}); tpl.apply(u,log); }
+function addStatus(u,key,log){
+  const tpl=StatusLib[key];
+  if(!tpl) return;
+  const ex=u.statuses.find(s=>s.key===key);
+  if(ex){
+    ex.turnsLeft=tpl.duration;
+    if(tpl.remove) tpl.remove(u,log);
+  } else {
+    u.statuses.push({key,turnsLeft:tpl.duration});
+  }
+  if(tpl.apply) tpl.apply(u,log);
+}
 function tickStatusesStart(u,log){ for(const s of [...u.statuses]){ const tpl=StatusLib[s.key]; if(tpl&&tpl.tick) tpl.tick(u,log); if(u.hp===0) break; } }
-function cleanupStatusesEnd(u,log){ for(const s of [...u.statuses]){ s.turnsLeft-=1; if(s.turnsLeft<=0){ const tpl=StatusLib[s.key]; if(tpl&&tpl.remove) tpl.remove(u,log); u.statuses=u.statuses.filter(x=>x!==s);} } u.temp.defend=false; u.temp.defBonus=0; u.temp.disengaged=false; }
+function cleanupStatusesEnd(u,log){
+  for(const s of [...u.statuses]){
+    s.turnsLeft-=1;
+    if(s.turnsLeft<=0){
+      const tpl=StatusLib[s.key];
+      if(tpl&&tpl.remove) tpl.remove(u,log);
+      u.statuses=u.statuses.filter(x=>x!==s);
+    }
+  }
+  u.temp.defend=false;
+  u.temp.disengaged=false;
+}
 
 /* ========= Turn & Teams ========= */
 function living(team){ return G.units.filter(u=>u.team===team && !u.dead); }
