@@ -56,6 +56,13 @@
       align-items:center;
       gap:24px;
       backdrop-filter:blur(12px);
+      transition:padding .24s ease, background .24s ease, border-color .24s ease;
+    }
+    header.is-condensed {
+      padding:12px 18px;
+      gap:16px;
+      border-bottom-color:rgba(94,129,244,.18);
+      background:linear-gradient(135deg, rgba(16,22,38,.96), rgba(10,13,22,.95));
     }
     header h1 {
       margin:0;
@@ -64,6 +71,13 @@
       letter-spacing:.55px;
       text-transform:uppercase;
       flex:1;
+    }
+    header.is-condensed h1 {
+      font-size:16px;
+      letter-spacing:.42px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
     nav {
       display:flex;
@@ -587,21 +601,66 @@
           "builder"
           "details"
           "library";
+        padding:24px 20px 52px;
+        gap:20px;
       }
+      .panel { padding:16px; }
+      .panel-lead { flex-direction:column; align-items:flex-start; }
+    }
+    @media (max-width: 900px) {
+      header {
+        flex-wrap:wrap;
+        align-items:flex-start;
+        gap:16px;
+        padding:16px 20px;
+      }
+      header h1 { flex:1 0 100%; }
+      nav {
+        width:100%;
+        flex-wrap:wrap;
+        gap:8px;
+        justify-content:flex-start;
+      }
+      header.is-condensed {
+        flex-wrap:nowrap;
+        align-items:center;
+        padding:12px 18px;
+        gap:14px;
+      }
+      header.is-condensed h1 { flex:0 1 auto; }
+      header.is-condensed nav {
+        width:auto;
+        flex:1 1 auto;
+        flex-wrap:nowrap;
+        gap:10px;
+        overflow-x:auto;
+        padding-bottom:2px;
+        -webkit-overflow-scrolling:touch;
+        scrollbar-width:none;
+      }
+      header.is-condensed nav::-webkit-scrollbar { display:none; }
+      header.is-condensed nav a {
+        flex:0 0 auto;
+        padding:6px 10px;
+        font-size:11px;
+        letter-spacing:.1em;
+      }
+      nav a {
+        padding:7px 12px;
+        letter-spacing:.12em;
+      }
+      .metric-group { width:100%; }
     }
     @media (max-width: 720px) {
-      header {
-        flex-direction:column;
-        align-items:flex-start;
-        gap:12px;
-      }
-      nav { flex-wrap:wrap; }
-      .panel-lead { flex-direction:column; }
-      .metric-group { width:100%; }
-      .list-controls { flex-direction:column; align-items:stretch; }
+      main { padding:20px 16px 44px; gap:18px; }
+      .panel { padding:15px; }
+      .panel-copy { max-width:none; }
+      .metric-group { flex-direction:column; }
+      .list-controls { flex-direction:column; align-items:stretch; gap:10px; }
       .filter-chip-row { justify-content:space-between; }
       .unit-actions { flex-direction:row; }
       .unit-actions button { flex:1; }
+      .type-grid { grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); }
     }
   </style>
 </head>
@@ -719,6 +778,35 @@
   </main>
   <script src="class-data.js"></script>
   <script>
+    const HEADER = document.querySelector('header');
+    const navCondenseMedia = window.matchMedia('(max-width: 900px)');
+    let headerCondenseRaf = 0;
+    function applyHeaderCondense(){
+      if(!HEADER) return;
+      if(!navCondenseMedia.matches){
+        HEADER.classList.remove('is-condensed');
+        return;
+      }
+      const shouldCondense = window.scrollY > 48;
+      HEADER.classList.toggle('is-condensed', shouldCondense);
+    }
+    function handleHeaderScroll(){
+      if(headerCondenseRaf) return;
+      headerCondenseRaf = requestAnimationFrame(()=>{
+        headerCondenseRaf = 0;
+        applyHeaderCondense();
+      });
+    }
+    if(HEADER){
+      window.addEventListener('scroll', handleHeaderScroll, {passive:true});
+      window.addEventListener('resize', applyHeaderCondense);
+      if(typeof navCondenseMedia.addEventListener === 'function'){
+        navCondenseMedia.addEventListener('change', applyHeaderCondense);
+      } else if(typeof navCondenseMedia.addListener === 'function'){
+        navCondenseMedia.addListener(applyHeaderCondense);
+      }
+      applyHeaderCondense();
+    }
     const CLASS_DATA = window.FABLE_DATA.CLASS_DATABASE.slice();
     const CLASS_LOOKUP = new Map(CLASS_DATA.map(entry => [entry.name, entry]));
     const UNIT_TYPES = [
