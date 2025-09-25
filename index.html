@@ -114,6 +114,40 @@
     pointer-events:none;
   }
   .panel:hover::after { opacity:1; }
+  .panelHead {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:12px;
+  }
+  #setupPanel .panelHead h2 {
+    margin:0;
+  }
+  #setupPanel[data-collapsed="true"] .panelHead {
+    margin-bottom:0;
+  }
+  .toggleBtn {
+    font-size:11px;
+    padding:6px 12px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .toggleBtn::after {
+    content:"";
+    width:10px;
+    height:10px;
+    border-right:2px solid rgba(148,163,184,.8);
+    border-bottom:2px solid rgba(148,163,184,.8);
+    transform:rotate(45deg);
+    transition:transform .2s ease;
+  }
+  #setupPanel[data-collapsed="false"] .toggleBtn::after {
+    transform:rotate(225deg);
+  }
   .board { grid-area:board; }
   .side { grid-area:side; display:grid; gap:18px; }
   .controls { grid-area:controls; display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; }
@@ -609,63 +643,69 @@
     </section>
 
     <section class="side">
-      <section class="panel" id="setupPanel">
-        <h2>Quick Setup</h2>
-        <div class="small">Choose build/team. Toggle obstacle or terrain painting. Water is impassable. Obstacles block LOS.</div>
-        <div class="divider"></div>
-
-        <div class="btn-row" style="margin-bottom:8px">
-          <label><input type="radio" name="team" value="ally" checked> Allies</label>
-          <label><input type="radio" name="team" value="enemy"> Enemies</label>
+      <section class="panel" id="setupPanel" data-collapsed="true">
+        <div class="panelHead">
+          <h2>Quick Setup</h2>
+          <button id="toggleSetupBtn" class="ghost toggleBtn" type="button" aria-expanded="false" aria-controls="setupContent">Expand</button>
         </div>
 
-        <div class="btn-row" id="buildRow"></div>
+        <div id="setupContent" hidden>
+          <div class="small">Choose build/team. Toggle obstacle or terrain painting. Water is impassable. Obstacles block LOS.</div>
+          <div class="divider"></div>
 
-        <div class="divider"></div>
+          <div class="btn-row" style="margin-bottom:8px">
+            <label><input type="radio" name="team" value="ally" checked> Allies</label>
+            <label><input type="radio" name="team" value="enemy"> Enemies</label>
+          </div>
 
-        <!-- Grid size + zoom -->
-        <div class="btn-row" style="flex-wrap:wrap; align-items:center">
-          <div class="small">Grid:</div>
-          <label class="small">W <input id="gridW" type="number" min="4" max="16" value="8"></label>
-          <label class="small">H <input id="gridH" type="number" min="3" max="12" value="6"></label>
-          <button id="applyGridBtn" class="ghost">Apply</button>
+          <div class="btn-row" id="buildRow"></div>
 
-          <div class="small" style="margin-left:16px">Zoom:</div>
-          <input id="zoomRange" type="range" min="44" max="84" value="64" step="2">
-          <span id="zoomVal" class="small mono">64px</span>
-        </div>
+          <div class="divider"></div>
 
-        <div class="btn-row">
-          <button id="obstacleBtn" class="ghost">Obstacle Mode: OFF</button>
-          <button id="clearObsBtn" class="ghost">Clear Obstacles</button>
-        </div>
+          <!-- Grid size + zoom -->
+          <div class="btn-row" style="flex-wrap:wrap; align-items:center">
+            <div class="small">Grid:</div>
+            <label class="small">W <input id="gridW" type="number" min="4" max="16" value="8"></label>
+            <label class="small">H <input id="gridH" type="number" min="3" max="12" value="6"></label>
+            <button id="applyGridBtn" class="ghost">Apply</button>
 
-        <div class="btn-row" style="align-items:center">
-          <button id="terrainBtn" class="ghost">Terrain Mode: OFF</button>
-          <select id="terrainType">
-            <option value="plain">Plain</option>
-            <option value="forest">Forest (+2 DEF, cost 2)</option>
-            <option value="hill">Hill (+2 ATK, cost 2)</option>
-            <option value="road">Road (cost 1)</option>
-            <option value="swamp">Swamp (-2 ATK, cost 3)</option>
-            <option value="water">Water (impassable)</option>
-          </select>
-        </div>
+            <div class="small" style="margin-left:16px">Zoom:</div>
+            <input id="zoomRange" type="range" min="44" max="84" value="64" step="2">
+            <span id="zoomVal" class="small mono">64px</span>
+          </div>
 
-        <div class="legend">
-          <div class="lg"><span class="dot t-forest"></span>Forest</div>
-          <div class="lg"><span class="dot t-hill"></span>Hill</div>
-          <div class="lg"><span class="dot t-road"></span>Road</div>
-          <div class="lg"><span class="dot t-swamp"></span>Swamp</div>
-          <div class="lg"><span class="dot t-water"></span>Water</div>
-        </div>
+          <div class="btn-row">
+            <button id="obstacleBtn" class="ghost">Obstacle Mode: OFF</button>
+            <button id="clearObsBtn" class="ghost">Clear Obstacles</button>
+          </div>
 
-        <div class="divider"></div>
-        <div class="btn-row">
-          <button id="presetBtn" class="ghost">Preset: Bridge Clash</button>
-          <button id="fromSelectorBtn" class="ghost">Preset: From Selector</button>
-          <button id="clearBtn" class="ghost">Clear Units</button>
-          <button id="startBtn" class="primary">Start Battle</button>
+          <div class="btn-row" style="align-items:center">
+            <button id="terrainBtn" class="ghost">Terrain Mode: OFF</button>
+            <select id="terrainType">
+              <option value="plain">Plain</option>
+              <option value="forest">Forest (+2 DEF, cost 2)</option>
+              <option value="hill">Hill (+2 ATK, cost 2)</option>
+              <option value="road">Road (cost 1)</option>
+              <option value="swamp">Swamp (-2 ATK, cost 3)</option>
+              <option value="water">Water (impassable)</option>
+            </select>
+          </div>
+
+          <div class="legend">
+            <div class="lg"><span class="dot t-forest"></span>Forest</div>
+            <div class="lg"><span class="dot t-hill"></span>Hill</div>
+            <div class="lg"><span class="dot t-road"></span>Road</div>
+            <div class="lg"><span class="dot t-swamp"></span>Swamp</div>
+            <div class="lg"><span class="dot t-water"></span>Water</div>
+          </div>
+
+          <div class="divider"></div>
+          <div class="btn-row">
+            <button id="presetBtn" class="ghost">Preset: Bridge Clash</button>
+            <button id="fromSelectorBtn" class="ghost">Preset: From Selector</button>
+            <button id="clearBtn" class="ghost">Clear Units</button>
+            <button id="startBtn" class="primary">Start Battle</button>
+          </div>
         </div>
       </section>
 
@@ -1164,6 +1204,9 @@ const ENEMIES=document.getElementById('enemyList');
 const TURNBAR=document.getElementById('turnbar');
 const LOG=document.getElementById('log');
 
+const toggleSetupBtn=document.getElementById('toggleSetupBtn');
+const setupContent=document.getElementById('setupContent');
+
 const ATTACK=document.getElementById('attackBtn');
 const ABILITY=document.getElementById('abilityBtn');
 const DEFEND=document.getElementById('defendBtn');
@@ -1192,6 +1235,22 @@ const clearObsBtn=document.getElementById('clearObsBtn');
 
 const terrainBtn=document.getElementById('terrainBtn');
 const terrainType=document.getElementById('terrainType');
+
+function setSetupCollapsed(collapsed){
+  if(!toggleSetupBtn || !setupContent) return;
+  SETUP_PANEL.setAttribute('data-collapsed', collapsed ? 'true' : 'false');
+  setupContent.hidden = collapsed;
+  toggleSetupBtn.setAttribute('aria-expanded', String(!collapsed));
+  toggleSetupBtn.textContent = collapsed ? 'Expand' : 'Collapse';
+}
+
+if(toggleSetupBtn){
+  setSetupCollapsed(true);
+  toggleSetupBtn.addEventListener('click', ()=>{
+    const isCollapsed = SETUP_PANEL.getAttribute('data-collapsed') !== 'false';
+    setSetupCollapsed(!isCollapsed);
+  });
+}
 
 /* ========= Build buttons ========= */
 let activeBuild="Knight";
@@ -1292,6 +1351,7 @@ function resetBoardState(){
   BOARD_HINT.innerHTML='';
   syncGridControls();
   renderBuildButtons();
+  setSetupCollapsed(true);
   render();
 }
 
