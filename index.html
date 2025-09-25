@@ -56,6 +56,26 @@
     align-items:center;
     gap:18px;
   }
+  header nav {
+    display:flex;
+    gap:12px;
+    align-items:center;
+  }
+  header nav a {
+    color:var(--muted);
+    text-decoration:none;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    padding:8px 12px;
+    border-radius:999px;
+    border:1px solid rgba(60,74,118,.75);
+    background:rgba(16,22,38,.76);
+  }
+  header nav a:hover {
+    color:#fff;
+    border-color:rgba(114,153,255,.9);
+  }
   header h1 {
     margin:0;
     font-family:'Unbounded', 'Outfit', system-ui;
@@ -664,6 +684,10 @@
 <body>
   <header>
     <h1>Fable Tactics • Sprites + Terrain + A*</h1>
+    <nav>
+      <a href="game-setup.html">Game Setup</a>
+      <a href="selector.html">Party Selector</a>
+    </nav>
     <button id="resetBtn" class="warn" type="button">Reset Board</button>
   </header>
   <main>

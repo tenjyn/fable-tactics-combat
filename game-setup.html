@@ -1,0 +1,1044 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fable Tactics – Game Setup</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Unbounded:wght@600&display=swap');
+    :root {
+      --bg:#080910;
+      --panel:#161927;
+      --panel-border:#24283a;
+      --panel-glow:rgba(87,192,185,.18);
+      --accent:#7fe6a2;
+      --accent-soft:rgba(127,230,162,.16);
+      --muted:#9aa3b2;
+      --ally:#7fe6a2;
+      --enemy:#ff9b9b;
+    }
+    * {
+      box-sizing:border-box;
+      font-family:'Outfit', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      margin:0;
+      min-height:100vh;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(127,230,162,.12) 0%, transparent 45%),
+        radial-gradient(circle at 85% 12%, rgba(94,129,244,.16) 0%, transparent 52%),
+        linear-gradient(180deg,#090c15,#0f1320 55%,#10121c 100%);
+      color:white;
+      position:relative;
+      overflow-x:hidden;
+    }
+    body::before {
+      content:"";
+      position:fixed;
+      inset:-140px;
+      background-image:
+        radial-gradient(rgba(255,255,255,.11) 0 1px, transparent 1px),
+        linear-gradient(140deg, rgba(56,189,248,.08), rgba(255,255,255,0));
+      background-size:64px 64px, 100% 100%;
+      opacity:.5;
+      mix-blend-mode:screen;
+      pointer-events:none;
+      z-index:-2;
+    }
+    header {
+      padding:18px 24px;
+      border-bottom:1px solid rgba(94,129,244,.24);
+      background:linear-gradient(135deg, rgba(18,24,44,.94), rgba(12,15,26,.92));
+      position:sticky;
+      top:0;
+      z-index:5;
+      display:flex;
+      align-items:center;
+      gap:24px;
+      backdrop-filter:blur(12px);
+    }
+    header h1 {
+      margin:0;
+      font-family:'Unbounded','Outfit',system-ui;
+      font-size:18px;
+      letter-spacing:.55px;
+      text-transform:uppercase;
+      flex:1;
+    }
+    nav {
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    nav a {
+      color:var(--muted);
+      text-decoration:none;
+      font-size:12px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(60,74,118,.75);
+      background:rgba(16,22,38,.76);
+    }
+    nav a:hover {
+      color:#fff;
+      border-color:rgba(114,153,255,.9);
+    }
+    main {
+      max-width:1260px;
+      margin:0 auto;
+      padding:26px 22px 48px;
+      display:grid;
+      gap:18px;
+      grid-template-columns:1.1fr 0.9fr;
+      grid-template-areas:
+        "builder details"
+        "library details";
+      position:relative;
+    }
+    main::before {
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:26px;
+      background:radial-gradient(circle at 12% 6%, rgba(94,129,244,.22), transparent 60%),
+                 radial-gradient(circle at 88% 18%, rgba(126,230,162,.16), transparent 60%);
+      opacity:.55;
+      z-index:-1;
+    }
+    .panel {
+      background:linear-gradient(180deg, rgba(22,25,39,.92), rgba(12,14,24,.94));
+      border:1px solid var(--panel-border);
+      border-radius:14px;
+      padding:18px;
+      box-shadow:0 18px 36px rgba(0,0,0,.32);
+      position:relative;
+      overflow:hidden;
+    }
+    .panel::before {
+      content:"";
+      position:absolute;
+      inset:1px;
+      border-radius:12px;
+      background:linear-gradient(160deg, rgba(255,255,255,.045), rgba(15,18,32,.8));
+      z-index:-1;
+    }
+    .panel::after {
+      content:"";
+      position:absolute;
+      inset:-40% -35% auto;
+      height:68%;
+      background:radial-gradient(circle, rgba(94,129,244,.1) 0%, transparent 75%);
+      opacity:0;
+      transition:opacity .35s ease;
+      pointer-events:none;
+    }
+    .panel:hover::after { opacity:1; }
+    #builderPanel { grid-area:builder; }
+    #detailsPanel { grid-area:details; }
+    #libraryPanel { grid-area:library; }
+    h2 {
+      margin:0 0 12px;
+      font-size:13px;
+      font-weight:600;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    h2::after {
+      content:"";
+      display:block;
+      margin-top:8px;
+      width:48px;
+      height:2px;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(94,129,244,.6), transparent);
+    }
+    .small { font-size:12px; color:var(--muted); }
+    .mono { font-family:'JetBrains Mono','Fira Mono','Outfit',monospace; letter-spacing:.04em; }
+    .divider { height:1px; background:rgba(52,58,86,.6); margin:14px 0; border-radius:999px; }
+    button {
+      background:rgba(26,36,54,.9);
+      color:#fff;
+      border:1px solid rgba(48,58,92,.9);
+      padding:9px 14px;
+      border-radius:11px;
+      cursor:pointer;
+      font-weight:600;
+      letter-spacing:.02em;
+      transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    button::after {
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(135deg, rgba(94,129,244,.18), transparent 60%);
+      opacity:0;
+      transition:opacity .2s ease;
+      pointer-events:none;
+    }
+    button:hover {
+      border-color:rgba(114,153,255,.9);
+      transform:translateY(-1px);
+      box-shadow:0 10px 18px rgba(14,18,34,.35);
+    }
+    button:hover::after { opacity:1; }
+    button.primary {
+      background:linear-gradient(135deg, rgba(24,38,58,.95), rgba(28,52,60,.9));
+      border-color:rgba(127,230,162,.85);
+      box-shadow:0 12px 24px rgba(20,44,48,.45);
+    }
+    button.ghost {
+      background:rgba(17,23,39,.74);
+      border-color:rgba(60,74,118,.8);
+      color:var(--muted);
+    }
+    label { font-size:12px; color:var(--muted); display:flex; flex-direction:column; gap:6px; }
+    input[type="text"], input[type="number"], select, textarea {
+      padding:9px 11px;
+      background:#0f1420;
+      color:#fff;
+      border:1px solid rgba(42,50,70,.85);
+      border-radius:10px;
+      box-shadow:0 8px 16px rgba(0,0,0,.25) inset;
+      font-size:13px;
+      resize:vertical;
+    }
+    textarea { min-height:68px; }
+    .form-row {
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      align-items:flex-end;
+    }
+    .form-row > label { min-width:160px; flex:1; }
+    #encounterList {
+      margin:0;
+      padding:0;
+      list-style:none;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .unit-item {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      padding:11px 13px;
+      border-radius:12px;
+      border:1px solid rgba(58,66,104,.7);
+      background:linear-gradient(120deg, rgba(15,18,32,.85), rgba(17,23,41,.92));
+      box-shadow:0 8px 18px rgba(4,6,12,.45);
+      position:relative;
+      cursor:pointer;
+      transition:border-color .18s ease, transform .18s ease;
+    }
+    .unit-item:hover { border-color:rgba(114,153,255,.85); transform:translateY(-2px); }
+    .unit-item.active {
+      border-color:rgba(127,230,162,.85);
+      box-shadow:0 12px 26px rgba(18,38,42,.6);
+    }
+    .unit-marker {
+      width:44px;
+      height:44px;
+      border-radius:12px;
+      background:rgba(16,22,38,.8);
+      border:1px solid rgba(72,92,140,.6);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:600;
+      font-size:18px;
+      text-transform:uppercase;
+      box-shadow:0 6px 14px rgba(0,0,0,.35);
+    }
+    .unit-meta { display:flex; flex-direction:column; gap:2px; }
+    .unit-meta span { font-size:12px; color:var(--muted); }
+    .badge {
+      font-size:11px;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid rgba(76,86,120,.8);
+      background:rgba(16,23,41,.68);
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.12em;
+    }
+    .badge.ally { color:var(--ally); border-color:rgba(127,230,162,.55); }
+    .badge.enemy { color:var(--enemy); border-color:rgba(255,155,155,.55); }
+    .unit-actions {
+      margin-left:auto;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .pill {
+      font-size:11px;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(57,66,110,.8);
+      background:rgba(13,19,33,.9);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .summary-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(120px,1fr));
+      gap:12px;
+      margin:16px 0 10px;
+    }
+    .summary-card {
+      background:rgba(14,18,30,.9);
+      border:1px solid rgba(56,70,110,.75);
+      border-radius:12px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    #detailsPanel h3 {
+      margin:0;
+      font-size:20px;
+    }
+    .stat-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(84px,1fr));
+      gap:10px;
+      margin:12px 0 18px;
+    }
+    .stat-card {
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(58,66,104,.65);
+      background:rgba(15,20,34,.88);
+      font-size:12px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .stat-card strong { font-size:13px; }
+    .chip-row { display:flex; flex-wrap:wrap; gap:8px; }
+    .chip {
+      font-size:11px;
+      padding:4px 9px;
+      border-radius:999px;
+      background:rgba(26,34,56,.88);
+      border:1px solid rgba(60,74,118,.8);
+    }
+    #classSearchRow {
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      align-items:center;
+      margin-bottom:14px;
+    }
+    #classGrid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+      gap:12px;
+      margin-top:12px;
+    }
+    .class-card {
+      border-radius:12px;
+      border:1px solid rgba(52,62,98,.65);
+      background:rgba(14,19,32,.9);
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      font-size:12px;
+    }
+    .class-card strong { font-size:14px; }
+    .class-card .statline { display:flex; flex-wrap:wrap; gap:6px; }
+    .type-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
+      gap:12px;
+      margin-top:18px;
+    }
+    .type-card {
+      border-radius:12px;
+      border:1px solid rgba(60,74,118,.7);
+      background:rgba(13,18,30,.88);
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      font-size:12px;
+    }
+    .type-card h4 {
+      margin:0;
+      font-size:15px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .empty-state {
+      padding:24px;
+      text-align:center;
+      border-radius:12px;
+      border:1px dashed rgba(70,82,120,.6);
+      background:rgba(12,16,28,.72);
+      color:var(--muted);
+    }
+    .encounter-export {
+      margin-top:16px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .encounter-export textarea {
+      width:100%;
+      min-height:120px;
+      font-size:12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Fable Tactics • Game Setup</h1>
+    <nav>
+      <a href="index.html">Combat Board</a>
+      <a href="selector.html">Party Selector</a>
+    </nav>
+  </header>
+  <main>
+    <section class="panel" id="builderPanel">
+      <h2>Encounter Builder</h2>
+      <div class="small">Assemble allied and enemy squads, assign their battlefield roles, and capture notes for your session. Select a unit to see full class details and customize their entry.</div>
+      <div class="divider"></div>
+      <form id="newUnitForm">
+        <div class="form-row">
+          <label>Unit Name
+            <input type="text" id="unitName" placeholder="e.g. Captain Rowan" required />
+          </label>
+          <label>Team
+            <select id="unitTeam">
+              <option value="ally">Allies</option>
+              <option value="enemy">Enemies</option>
+            </select>
+          </label>
+          <label>Class
+            <select id="unitClass"></select>
+          </label>
+          <label>Unit Type
+            <select id="unitType"></select>
+          </label>
+          <label>Level
+            <input type="number" id="unitLevel" value="1" min="1" max="20" />
+          </label>
+        </div>
+        <div class="form-row">
+          <label style="flex:1 1 260px">Encounter Notes
+            <textarea id="unitNotes" placeholder="Unique abilities, goals, morale triggers..."></textarea>
+          </label>
+          <div style="display:flex; flex-direction:column; gap:10px; align-items:flex-start; justify-content:flex-end;">
+            <button class="primary" type="submit">Add Unit</button>
+            <button class="ghost" type="button" id="clearFormBtn">Clear</button>
+          </div>
+        </div>
+      </form>
+      <div class="summary-grid" id="encounterSummary"></div>
+      <ul id="encounterList"></ul>
+      <div class="encounter-export">
+        <button id="exportBtn" type="button">Export Encounter JSON</button>
+        <button id="clearEncounterBtn" type="button" class="ghost">Remove All Units</button>
+      </div>
+      <textarea id="encounterJson" class="mono" readonly placeholder="Exported encounter data will appear here."></textarea>
+    </section>
+
+    <section class="panel" id="detailsPanel">
+      <h2>Unit Details</h2>
+      <div id="detailsContent" class="empty-state">Select a unit from the encounter list to review stats, adjust its entry, and view key class abilities.</div>
+    </section>
+
+    <section class="panel" id="libraryPanel">
+      <h2>Class &amp; Unit Library</h2>
+      <div class="small">Browse every available class and battlefield role. Use the library as a quick reference while planning encounters.</div>
+      <div id="classSearchRow">
+        <label style="min-width:220px; flex:1">Search Classes
+          <input type="text" id="classSearch" placeholder="Filter by class name or skill..." />
+        </label>
+        <label style="width:220px">Sort By
+          <select id="classSort">
+            <option value="name">Name</option>
+            <option value="hp">Max HP</option>
+            <option value="mov">Movement</option>
+            <option value="str">Strength</option>
+            <option value="int">Intellect</option>
+          </select>
+        </label>
+      </div>
+      <div id="classGrid"></div>
+      <div class="divider"></div>
+      <div class="small">Battlefield Roles</div>
+      <div class="type-grid" id="unitTypeGrid"></div>
+    </section>
+  </main>
+  <script src="class-data.js"></script>
+  <script>
+    const CLASS_DATA = window.FABLE_DATA.CLASS_DATABASE.slice();
+    const CLASS_LOOKUP = new Map(CLASS_DATA.map(entry => [entry.name, entry]));
+    const UNIT_TYPES = [
+      { id:'vanguard', icon:'🛡️', name:'Vanguard', description:'Frontline guardians who hold chokepoints and draw enemy pressure. Ideal for protecting fragile allies and anchoring formations.', highlights:['High CON or defensive abilities','Forces foes to engage them','Excellent for narrow terrain'], suggested:['Knight','Warden','Brigadier','Shield-focused Fighter'] },
+      { id:'skirmisher', icon:'⚔️', name:'Skirmisher', description:'Mobile melee combatants who dart between targets and disrupt backlines. They excel at harassing enemies that overextend.', highlights:['High MOV and DEX','Access to mobility or disengage skills','Punishes isolated foes'], suggested:['Rogue','Ninja','Swashbuckler','Monk'] },
+      { id:'artillery', icon:'🏹', name:'Artillery', description:'Ranged specialists that lay down consistent pressure from afar. Keep them protected while they rain damage or control zones.', highlights:['Reliable ranged attacks','Often fragile in close quarters','Benefits from elevation and spotters'], suggested:['Archer','Magician','Gunslinger','Engineer'] },
+      { id:'controller', icon:'🌀', name:'Controller', description:'Masters of area denial and crowd control. Controllers alter the flow of battle with terrain effects, summons, or status conditions.', highlights:['Inflicts roots, slows, or forced movement','Creates hazards or allies','Combos with vanguards to trap enemies'], suggested:['Druid','Warlock','Engineer','Riftwarden','Shaman'] },
+      { id:'support', icon:'✨', name:'Support', description:'Keep the party alive and empowered. Supports heal, cleanse, and boost their allies when the fight gets rough.', highlights:['Provides healing or buffs','Often midline positioning','Pairs well with aggressive strikers'], suggested:['Cleric','Druid','Symphonist','Torchbearer'] },
+      { id:'commander', icon:'🎖️', name:'Commander', description:'Leaders who manipulate initiative, morale, and team tactics. They shine in longer encounters where their calls swing momentum.', highlights:['Grants extra actions or bonuses','Bolsters morale or imposes debuffs','Coordinates combined attacks'], suggested:['Brigadier','Skaldblade','Privateer','Essentier'] }
+    ];
+
+    const state = {
+      units: [],
+      selectedId: null
+    };
+
+    const unitClassSelect = document.getElementById('unitClass');
+    const unitTypeSelect = document.getElementById('unitType');
+    const encounterList = document.getElementById('encounterList');
+    const encounterSummary = document.getElementById('encounterSummary');
+    const encounterJson = document.getElementById('encounterJson');
+    const detailsContent = document.getElementById('detailsContent');
+
+    function populateSelectors() {
+      CLASS_DATA.sort((a, b) => a.name.localeCompare(b.name));
+      CLASS_DATA.forEach(entry => {
+        const opt = document.createElement('option');
+        opt.value = entry.name;
+        opt.textContent = entry.name;
+        unitClassSelect.append(opt);
+      });
+
+      UNIT_TYPES.forEach(type => {
+        const opt = document.createElement('option');
+        opt.value = type.id;
+        opt.textContent = `${type.name}`;
+        unitTypeSelect.append(opt);
+      });
+    }
+
+    function randomId() {
+      return 'u_' + Math.random().toString(36).slice(2, 9);
+    }
+
+    function resetForm() {
+      document.getElementById('unitName').value = '';
+      document.getElementById('unitTeam').value = 'ally';
+      document.getElementById('unitClass').selectedIndex = 0;
+      document.getElementById('unitType').selectedIndex = 0;
+      document.getElementById('unitLevel').value = 1;
+      document.getElementById('unitNotes').value = '';
+    }
+
+    function teamLabel(team) {
+      return team === 'ally' ? 'Ally' : 'Enemy';
+    }
+
+    function typeLabel(typeId) {
+      const found = UNIT_TYPES.find(t => t.id === typeId);
+      return found ? found.name : typeId;
+    }
+
+    function createUnitFromForm() {
+      const name = document.getElementById('unitName').value.trim();
+      const team = document.getElementById('unitTeam').value;
+      const clazz = document.getElementById('unitClass').value;
+      const typeId = document.getElementById('unitType').value;
+      const level = Number(document.getElementById('unitLevel').value) || 1;
+      const notes = document.getElementById('unitNotes').value.trim();
+      return { id: randomId(), name, team, clazz, typeId, level, notes };
+    }
+
+    function renderEncounterSummary() {
+      if (!state.units.length) {
+        encounterSummary.innerHTML = '';
+        return;
+      }
+      const totals = state.units.reduce((acc, unit) => {
+        acc.total++;
+        acc[unit.team]++;
+        acc.types[unit.typeId] = (acc.types[unit.typeId] || 0) + 1;
+        return acc;
+      }, { total: 0, ally: 0, enemy: 0, types: {} });
+
+      const fragments = [
+        `<div class="summary-card"><strong>Total Units</strong><span class="mono">${totals.total}</span></div>`,
+        `<div class="summary-card"><strong>Allies</strong><span class="mono">${totals.ally}</span></div>`,
+        `<div class="summary-card"><strong>Enemies</strong><span class="mono">${totals.enemy}</span></div>`
+      ];
+
+      const typeCards = Object.entries(totals.types).map(([typeId, count]) => {
+        return `<div class="summary-card"><strong>${typeLabel(typeId)}</strong><span class="mono">${count}</span></div>`;
+      });
+
+      encounterSummary.innerHTML = fragments.concat(typeCards).join('');
+    }
+
+    function renderEncounterList() {
+      encounterList.innerHTML = '';
+      if (!state.units.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = 'No units added yet. Use the form above to add allies and enemies to this encounter.';
+        encounterList.append(empty);
+        renderEncounterSummary();
+        detailsContent.className = 'empty-state';
+        detailsContent.textContent = 'Select a unit from the encounter list to review stats, adjust its entry, and view key class abilities.';
+        return;
+      }
+      state.units.forEach(unit => {
+        const li = document.createElement('li');
+        li.className = 'unit-item' + (state.selectedId === unit.id ? ' active' : '');
+        li.dataset.id = unit.id;
+
+        const marker = document.createElement('div');
+        marker.className = 'unit-marker';
+        marker.style.borderColor = unit.team === 'ally' ? 'rgba(127,230,162,.65)' : 'rgba(255,155,155,.65)';
+        marker.style.color = unit.team === 'ally' ? 'var(--ally)' : 'var(--enemy)';
+        marker.textContent = unit.name ? unit.name.charAt(0).toUpperCase() : unit.clazz.charAt(0).toUpperCase();
+
+        const meta = document.createElement('div');
+        meta.className = 'unit-meta';
+        const title = document.createElement('strong');
+        title.textContent = unit.name || unit.clazz;
+        const subtitle = document.createElement('span');
+        subtitle.textContent = `${unit.clazz} • ${typeLabel(unit.typeId)} • Lv ${unit.level}`;
+        const badges = document.createElement('div');
+        badges.className = 'chip-row';
+        const teamBadge = document.createElement('span');
+        teamBadge.className = 'badge ' + unit.team;
+        teamBadge.textContent = teamLabel(unit.team);
+        badges.append(teamBadge);
+        meta.append(title, subtitle, badges);
+
+        const actions = document.createElement('div');
+        actions.className = 'unit-actions';
+        const selectBtn = document.createElement('button');
+        selectBtn.type = 'button';
+        selectBtn.textContent = 'View';
+        selectBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          selectUnit(unit.id);
+        });
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'ghost';
+        deleteBtn.textContent = 'Remove';
+        deleteBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          removeUnit(unit.id);
+        });
+        actions.append(selectBtn, deleteBtn);
+
+        li.append(marker, meta, actions);
+        li.addEventListener('click', () => selectUnit(unit.id));
+        encounterList.append(li);
+      });
+      renderEncounterSummary();
+    }
+
+    function selectUnit(id) {
+      state.selectedId = id;
+      renderEncounterList();
+      renderDetails();
+    }
+
+    function removeUnit(id) {
+      const index = state.units.findIndex(u => u.id === id);
+      if (index >= 0) {
+        state.units.splice(index, 1);
+      }
+      if (state.selectedId === id) {
+        state.selectedId = null;
+      }
+      renderEncounterList();
+      renderDetails();
+      updateExport();
+    }
+
+    function updateExport() {
+      if (!state.units.length) {
+        encounterJson.value = '';
+        return;
+      }
+      const exportData = {
+        createdAt: new Date().toISOString(),
+        unitCount: state.units.length,
+        units: state.units.map(unit => ({ ...unit }))
+      };
+      encounterJson.value = JSON.stringify(exportData, null, 2);
+    }
+
+    function renderDetails() {
+      if (!state.selectedId) {
+        detailsContent.className = 'empty-state';
+        detailsContent.textContent = 'Select a unit from the encounter list to review stats, adjust its entry, and view key class abilities.';
+        return;
+      }
+      const unit = state.units.find(u => u.id === state.selectedId);
+      if (!unit) {
+        state.selectedId = null;
+        renderDetails();
+        return;
+      }
+      const classInfo = CLASS_LOOKUP.get(unit.clazz);
+      if (!classInfo) {
+        detailsContent.className = 'empty-state';
+        detailsContent.textContent = 'Class data not found. Try re-adding this unit.';
+        return;
+      }
+
+      const container = document.createElement('div');
+      container.style.display = 'flex';
+      container.style.flexDirection = 'column';
+      container.style.gap = '16px';
+
+      const header = document.createElement('div');
+      header.style.display = 'flex';
+      header.style.flexDirection = 'column';
+      header.style.gap = '6px';
+      const title = document.createElement('h3');
+      title.textContent = unit.name || unit.clazz;
+      const subtitle = document.createElement('div');
+      subtitle.className = 'small';
+      subtitle.textContent = `${unit.clazz} • ${typeLabel(unit.typeId)} • Level ${unit.level} • ${teamLabel(unit.team)}`;
+      header.append(title, subtitle);
+
+      const editForm = document.createElement('form');
+      editForm.id = 'editForm';
+      editForm.style.display = 'flex';
+      editForm.style.flexDirection = 'column';
+      editForm.style.gap = '12px';
+
+      const editRow1 = document.createElement('div');
+      editRow1.className = 'form-row';
+
+      const nameField = document.createElement('label');
+      nameField.textContent = 'Display Name';
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.value = unit.name;
+      nameInput.placeholder = unit.clazz;
+      nameField.append(nameInput);
+
+      const teamField = document.createElement('label');
+      teamField.textContent = 'Team';
+      const teamSelect = document.createElement('select');
+      teamSelect.innerHTML = '<option value="ally">Allies</option><option value="enemy">Enemies</option>';
+      teamSelect.value = unit.team;
+      teamField.append(teamSelect);
+
+      const classField = document.createElement('label');
+      classField.textContent = 'Class';
+      const classSelect = document.createElement('select');
+      CLASS_DATA.forEach(entry => {
+        const opt = document.createElement('option');
+        opt.value = entry.name;
+        opt.textContent = entry.name;
+        classSelect.append(opt);
+      });
+      classSelect.value = unit.clazz;
+      classField.append(classSelect);
+
+      const typeField = document.createElement('label');
+      typeField.textContent = 'Unit Type';
+      const typeSelect = document.createElement('select');
+      UNIT_TYPES.forEach(type => {
+        const opt = document.createElement('option');
+        opt.value = type.id;
+        opt.textContent = type.name;
+        typeSelect.append(opt);
+      });
+      typeSelect.value = unit.typeId;
+      typeField.append(typeSelect);
+
+      const levelField = document.createElement('label');
+      levelField.textContent = 'Level';
+      const levelInput = document.createElement('input');
+      levelInput.type = 'number';
+      levelInput.min = '1';
+      levelInput.max = '20';
+      levelInput.value = unit.level;
+      levelField.append(levelInput);
+
+      editRow1.append(nameField, teamField, classField, typeField, levelField);
+
+      const notesField = document.createElement('label');
+      notesField.textContent = 'Encounter Notes';
+      const notesArea = document.createElement('textarea');
+      notesArea.value = unit.notes;
+      notesArea.placeholder = 'Special tactics, morale triggers, loot, conditions...';
+      notesField.append(notesArea);
+
+      const buttonRow = document.createElement('div');
+      buttonRow.style.display = 'flex';
+      buttonRow.style.gap = '12px';
+      buttonRow.style.flexWrap = 'wrap';
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'submit';
+      saveBtn.className = 'primary';
+      saveBtn.textContent = 'Save Changes';
+      const duplicateBtn = document.createElement('button');
+      duplicateBtn.type = 'button';
+      duplicateBtn.textContent = 'Duplicate';
+      duplicateBtn.addEventListener('click', () => duplicateUnit(unit.id));
+      buttonRow.append(saveBtn, duplicateBtn);
+
+      editForm.append(editRow1, notesField, buttonRow);
+
+      editForm.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        unit.name = nameInput.value.trim();
+        unit.team = teamSelect.value;
+        unit.clazz = classSelect.value;
+        unit.typeId = typeSelect.value;
+        unit.level = Number(levelInput.value) || 1;
+        unit.notes = notesArea.value.trim();
+        state.selectedId = unit.id;
+        renderEncounterList();
+        updateExport();
+        renderDetails();
+      });
+
+      container.append(header, editForm);
+
+      const statBlock = document.createElement('div');
+      statBlock.innerHTML = '<div class="small">Class Overview</div>';
+
+      const statsGrid = document.createElement('div');
+      statsGrid.className = 'stat-grid';
+      Object.entries(classInfo.stats).forEach(([key, val]) => {
+        const card = document.createElement('div');
+        card.className = 'stat-card';
+        card.innerHTML = `<strong>${key}</strong><span class="mono">${val}</span>`;
+        statsGrid.append(card);
+      });
+
+      const resourcesGrid = document.createElement('div');
+      resourcesGrid.className = 'stat-grid';
+      Object.entries(classInfo.resources).forEach(([key, val]) => {
+        const card = document.createElement('div');
+        card.className = 'stat-card';
+        card.innerHTML = `<strong>${key}</strong><span class="mono">${val}</span>`;
+        resourcesGrid.append(card);
+      });
+
+      const attuneGrid = document.createElement('div');
+      attuneGrid.className = 'stat-grid';
+      Object.entries(classInfo.attunement).forEach(([key, val]) => {
+        const card = document.createElement('div');
+        card.className = 'stat-card';
+        card.innerHTML = `<strong>${key}</strong><span class="mono">${val}</span>`;
+        attuneGrid.append(card);
+      });
+
+      const skillSection = document.createElement('div');
+      const skillTitle = document.createElement('div');
+      skillTitle.className = 'small';
+      skillTitle.textContent = 'Starting Skills';
+      const skillChips = document.createElement('div');
+      skillChips.className = 'chip-row';
+      classInfo.startingSkills.forEach(skill => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = skill;
+        skillChips.append(chip);
+      });
+      skillSection.append(skillTitle, skillChips);
+
+      const notesSection = document.createElement('div');
+      notesSection.className = 'small';
+      notesSection.innerHTML = `<strong>Notes:</strong> ${unit.notes ? unit.notes : 'No additional notes recorded.'}`;
+
+      container.append(statBlock, statsGrid);
+
+      const resourceLabel = document.createElement('div');
+      resourceLabel.className = 'small';
+      resourceLabel.textContent = 'Resources';
+      container.append(resourceLabel, resourcesGrid);
+
+      const attuneLabel = document.createElement('div');
+      attuneLabel.className = 'small';
+      attuneLabel.textContent = 'Attunement';
+      container.append(attuneLabel, attuneGrid);
+
+      container.append(skillSection, notesSection);
+
+      detailsContent.className = '';
+      detailsContent.innerHTML = '';
+      detailsContent.append(container);
+    }
+
+    function duplicateUnit(id) {
+      const unit = state.units.find(u => u.id === id);
+      if (!unit) return;
+      const clone = { ...unit, id: randomId(), name: unit.name ? unit.name + ' (Copy)' : unit.name };
+      state.units.push(clone);
+      state.selectedId = clone.id;
+      renderEncounterList();
+      updateExport();
+      renderDetails();
+    }
+
+    document.getElementById('newUnitForm').addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const newUnit = createUnitFromForm();
+      if (!newUnit.name) {
+        newUnit.name = newUnit.clazz;
+      }
+      state.units.push(newUnit);
+      state.selectedId = newUnit.id;
+      resetForm();
+      renderEncounterList();
+      renderDetails();
+      updateExport();
+    });
+
+    document.getElementById('clearFormBtn').addEventListener('click', () => {
+      resetForm();
+    });
+
+    document.getElementById('clearEncounterBtn').addEventListener('click', () => {
+      if (state.units.length && confirm('Remove all units from this encounter?')) {
+        state.units = [];
+        state.selectedId = null;
+        renderEncounterList();
+        renderDetails();
+        updateExport();
+      }
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      updateExport();
+      if (!encounterJson.value) {
+        alert('Add units to the encounter before exporting.');
+        return;
+      }
+      navigator.clipboard.writeText(encounterJson.value).then(() => {
+        alert('Encounter JSON copied to clipboard.');
+      }).catch(() => {
+        alert('Encounter JSON ready below. Copy it manually if clipboard write failed.');
+      });
+    });
+
+    function renderClassGrid() {
+      const grid = document.getElementById('classGrid');
+      const search = document.getElementById('classSearch').value.trim().toLowerCase();
+      const sortBy = document.getElementById('classSort').value;
+      let entries = CLASS_DATA.slice();
+
+      if (search) {
+        entries = entries.filter(entry => {
+          if (entry.name.toLowerCase().includes(search)) return true;
+          return entry.startingSkills.some(skill => skill.toLowerCase().includes(search));
+        });
+      }
+
+      entries.sort((a, b) => {
+        switch (sortBy) {
+          case 'hp':
+            return b.resources.HP - a.resources.HP;
+          case 'mov':
+            return b.resources.MOV - a.resources.MOV;
+          case 'str':
+            return b.stats.STR - a.stats.STR;
+          case 'int':
+            return b.stats.INT - a.stats.INT;
+          default:
+            return a.name.localeCompare(b.name);
+        }
+      });
+
+      grid.innerHTML = '';
+      entries.forEach(entry => {
+        const card = document.createElement('div');
+        card.className = 'class-card';
+        const title = document.createElement('strong');
+        title.textContent = entry.name;
+        const statline = document.createElement('div');
+        statline.className = 'statline';
+        statline.innerHTML = `
+          <span class="pill">HP ${entry.resources.HP}</span>
+          <span class="pill">MOV ${entry.resources.MOV}</span>
+          <span class="pill">STR ${entry.stats.STR}</span>
+          <span class="pill">INT ${entry.stats.INT}</span>
+        `;
+        const skills = document.createElement('div');
+        skills.className = 'chip-row';
+        entry.startingSkills.forEach(skill => {
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.textContent = skill;
+          skills.append(chip);
+        });
+        card.append(title, statline, skills);
+        card.addEventListener('click', () => {
+          const found = state.units.find(u => u.clazz === entry.name);
+          if (found) {
+            selectUnit(found.id);
+          } else {
+            document.getElementById('unitClass').value = entry.name;
+            document.getElementById('unitName').focus();
+          }
+        });
+        grid.append(card);
+      });
+
+      if (!entries.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = 'No classes match your filters. Clear the search to view all options again.';
+        grid.append(empty);
+      }
+    }
+
+    function renderUnitTypes() {
+      const grid = document.getElementById('unitTypeGrid');
+      grid.innerHTML = '';
+      UNIT_TYPES.forEach(type => {
+        const card = document.createElement('div');
+        card.className = 'type-card';
+        const title = document.createElement('h4');
+        title.innerHTML = `${type.icon} ${type.name}`;
+        const desc = document.createElement('div');
+        desc.textContent = type.description;
+        const highlights = document.createElement('div');
+        highlights.className = 'small';
+        highlights.innerHTML = '<strong>Highlights</strong>';
+        const highlightList = document.createElement('ul');
+        highlightList.style.paddingLeft = '18px';
+        highlightList.style.margin = '4px 0 0';
+        type.highlights.forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = item;
+          highlightList.append(li);
+        });
+        const suggested = document.createElement('div');
+        suggested.className = 'small';
+        suggested.innerHTML = `<strong>Suggested Classes:</strong> ${type.suggested.join(', ')}`;
+        card.append(title, desc, highlights, highlightList, suggested);
+        grid.append(card);
+      });
+    }
+
+    document.getElementById('classSearch').addEventListener('input', () => {
+      renderClassGrid();
+    });
+    document.getElementById('classSort').addEventListener('change', () => {
+      renderClassGrid();
+    });
+
+    populateSelectors();
+    renderEncounterList();
+    renderClassGrid();
+    renderUnitTypes();
+  </script>
+</body>
+</html>
