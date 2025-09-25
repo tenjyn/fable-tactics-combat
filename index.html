@@ -248,7 +248,28 @@
 
   .legend { display:flex; gap:10px; flex-wrap:wrap; margin:8px 0; }
   .legend .lg { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); background:rgba(17,23,37,.8); padding:4px 8px; border-radius:8px; border:1px solid rgba(43,52,82,.75); }
-  .dot { width:16px; height:16px; border-radius:6px; border:1px solid rgba(42,47,65,.9); box-shadow:0 2px 4px rgba(0,0,0,.2); }
+  .dot {
+    width:16px;
+    height:16px;
+    border-radius:6px;
+    border:1px solid rgba(42,47,65,.9);
+    box-shadow:0 2px 4px rgba(0,0,0,.2);
+    position:relative;
+    overflow:hidden;
+    --terrain-size:160% 160%;
+  }
+  .dot::after {
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    background-image:var(--terrain-art);
+    background-size:var(--terrain-size);
+    background-position:center;
+    background-repeat:no-repeat;
+    opacity:var(--terrain-opacity);
+    pointer-events:none;
+  }
 
   .grid {
     --cell: 64px;
@@ -274,6 +295,11 @@
     border:1px solid rgba(127,230,162,.08);
     pointer-events:none;
   }
+  :where(.cell,.dot){
+    --terrain-art:none;
+    --terrain-size:130% 130%;
+    --terrain-opacity:0;
+  }
   .cell {
     position:relative;
     border:1px solid rgba(40,46,72,.9);
@@ -284,6 +310,7 @@
     justify-content:center;
     overflow:hidden;
     transition:transform .12s ease, border-color .18s ease;
+    --terrain-size:140% 140%;
   }
   .cell::before {
     content:"";
@@ -292,18 +319,114 @@
     background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.08), transparent 60%);
     opacity:.4;
     pointer-events:none;
+    z-index:0;
   }
-  .cell .coord { font-size:10px; color:rgba(112,120,170,.6); position:absolute; left:6px; top:5px; font-weight:500; }
-  .cell.obstacle { background:linear-gradient(145deg, rgba(66,27,27,.85), rgba(34,16,16,.92)); border-color:rgba(122,54,54,.75); box-shadow: inset 0 0 0 2px rgba(120,40,40,.25); }
-  .cell.obstacle::after { content:""; position:absolute; width:60%; height:60%; border-radius:10px; background:rgba(160,70,70,.2); box-shadow:0 0 18px rgba(122,54,54,.45); }
+  .cell::after {
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    background-image:var(--terrain-art);
+    background-size:var(--terrain-size);
+    background-position:center;
+    background-repeat:no-repeat;
+    opacity:var(--terrain-opacity);
+    transition:opacity .25s ease;
+    pointer-events:none;
+    z-index:0;
+  }
+  .cell:hover::after {
+    opacity:min(1, calc(var(--terrain-opacity) + 0.12));
+  }
+  .cell .coord { font-size:10px; color:rgba(112,120,170,.7); position:absolute; left:6px; top:5px; font-weight:500; z-index:2; }
+  .cell .token { position:relative; z-index:1; }
+  .cell.obstacle {
+    background:linear-gradient(150deg, rgba(66,27,27,.9), rgba(32,14,16,.92));
+    border-color:rgba(122,54,54,.75);
+    box-shadow: inset 0 0 0 2px rgba(120,40,40,.22), 0 10px 18px rgba(0,0,0,.22);
+    --terrain-opacity:0;
+  }
+  .cell.obstacle::after {
+    content:"";
+    position:absolute;
+    inset:16%;
+    border-radius:8px;
+    background:
+      radial-gradient(circle at 32% 34%, rgba(210,120,120,.6) 0 52%, transparent 64%),
+      radial-gradient(circle at 68% 70%, rgba(130,48,48,.68) 0 46%, transparent 60%),
+      linear-gradient(135deg, rgba(120,48,48,.55), rgba(52,18,22,.65));
+    box-shadow:0 0 18px rgba(122,54,54,.45);
+    pointer-events:none;
+    background-size:100% 100%;
+    opacity:1;
+    z-index:1;
+  }
 
   /* Terrain tints */
-  .t-plain { background:linear-gradient(160deg, rgba(16,21,33,.95), rgba(10,14,24,.9)); }
-  .t-forest { background:linear-gradient(150deg, rgba(18,35,24,.95), rgba(15,28,20,.85)); box-shadow: inset 0 0 0 2px rgba(60,140,80,.24); }
-  .t-hill   { background:linear-gradient(150deg, rgba(42,34,18,.92), rgba(26,20,12,.9)); box-shadow: inset 0 0 0 2px rgba(200,170,80,.28); }
-  .t-road   { background:linear-gradient(150deg, rgba(26,28,36,.92), rgba(18,19,28,.88)); box-shadow: inset 0 0 0 2px rgba(120,120,140,.18); }
-  .t-swamp  { background:linear-gradient(150deg, rgba(28,34,22,.92), rgba(20,24,16,.9)); box-shadow: inset 0 0 0 2px rgba(110,140,80,.18); }
-  .t-water  { background:linear-gradient(160deg, rgba(13,27,39,.95), rgba(10,20,30,.92)); box-shadow: inset 0 0 0 2px rgba(80,130,170,.28); }
+  :where(.cell,.dot).t-plain {
+    background:linear-gradient(160deg, rgba(16,21,33,.96), rgba(10,14,24,.9));
+    --terrain-art:
+      radial-gradient(circle at 30% 36%, rgba(122,192,150,.25) 0 32%, transparent 40%),
+      radial-gradient(circle at 70% 64%, rgba(94,158,124,.18) 0 24%, transparent 36%),
+      linear-gradient(150deg, rgba(170,230,190,.12), rgba(16,21,33,0) 65%);
+    --terrain-size:140% 140%, 120% 120%, 100% 100%;
+    --terrain-opacity:.45;
+  }
+  :where(.cell,.dot).t-forest {
+    background:linear-gradient(155deg, rgba(16,30,22,.95), rgba(12,24,18,.9));
+    --terrain-art:
+      radial-gradient(circle at 28% 34%, rgba(72,158,106,.88) 0 36%, transparent 46%),
+      radial-gradient(circle at 70% 32%, rgba(46,112,72,.8) 0 32%, transparent 44%),
+      radial-gradient(circle at 50% 74%, rgba(26,64,44,.75) 0 30%, transparent 42%);
+    --terrain-size:140% 140%, 120% 120%, 120% 120%;
+    --terrain-opacity:.92;
+  }
+  .cell.t-forest { box-shadow: inset 0 0 0 2px rgba(60,140,80,.24); }
+  .dot.t-forest { box-shadow: inset 0 0 0 1px rgba(60,140,80,.24); }
+  :where(.cell,.dot).t-hill {
+    background:linear-gradient(150deg, rgba(42,34,18,.94), rgba(26,20,12,.9));
+    --terrain-art:
+      radial-gradient(circle at 50% 68%, rgba(204,162,86,.88) 0 42%, transparent 52%),
+      radial-gradient(circle at 50% 78%, rgba(124,86,42,.7) 0 60%, transparent 70%),
+      linear-gradient(160deg, rgba(255,225,150,.35), rgba(90,60,30,0) 70%);
+    --terrain-size:130% 130%, 160% 160%, 100% 100%;
+    --terrain-opacity:.88;
+  }
+  .cell.t-hill { box-shadow: inset 0 0 0 2px rgba(200,170,80,.26); }
+  .dot.t-hill { box-shadow: inset 0 0 0 1px rgba(200,170,80,.26); }
+  :where(.cell,.dot).t-road {
+    background:linear-gradient(155deg, rgba(26,28,36,.94), rgba(18,19,28,.9));
+    --terrain-art:
+      linear-gradient(0deg, rgba(220,220,220,.7) 48%, rgba(220,220,220,0) 50%, rgba(220,220,220,.7) 52%),
+      linear-gradient(90deg, rgba(90,102,124,.75) 0 14%, transparent 14% 86%, rgba(90,102,124,.75) 86% 100%),
+      repeating-linear-gradient(0deg, rgba(35,40,58,.45) 0 8px, rgba(15,18,30,0) 8px 16px);
+    --terrain-size:100% 100%, 100% 100%, 200% 200%;
+    --terrain-opacity:.82;
+  }
+  .cell.t-road { box-shadow: inset 0 0 0 2px rgba(120,120,140,.2); }
+  .dot.t-road { box-shadow: inset 0 0 0 1px rgba(120,120,140,.2); }
+  :where(.cell,.dot).t-swamp {
+    background:linear-gradient(150deg, rgba(28,34,22,.94), rgba(20,24,16,.9));
+    --terrain-art:
+      radial-gradient(circle at 38% 36%, rgba(102,140,82,.6) 0 38%, transparent 50%),
+      radial-gradient(circle at 68% 68%, rgba(64,96,56,.68) 0 32%, transparent 46%),
+      radial-gradient(circle at 50% 56%, rgba(160,220,120,.2) 0 72%, transparent 82%);
+    --terrain-size:140% 140%, 130% 130%, 150% 150%;
+    --terrain-opacity:.86;
+  }
+  .cell.t-swamp { box-shadow: inset 0 0 0 2px rgba(110,140,80,.2); }
+  .dot.t-swamp { box-shadow: inset 0 0 0 1px rgba(110,140,80,.2); }
+  :where(.cell,.dot).t-water {
+    background:linear-gradient(160deg, rgba(13,27,39,.96), rgba(10,20,30,.92));
+    --terrain-art:
+      radial-gradient(circle at 32% 32%, rgba(56,148,212,.68) 0 36%, transparent 52%),
+      radial-gradient(circle at 68% 66%, rgba(24,112,192,.72) 0 42%, transparent 58%),
+      repeating-radial-gradient(circle at 50% 50%, rgba(168,220,255,.35) 0 6%, rgba(168,220,255,0) 6% 14%);
+    --terrain-size:130% 130%, 150% 150%, 220% 220%;
+    --terrain-opacity:.9;
+  }
+  .cell.t-water { box-shadow: inset 0 0 0 2px rgba(80,130,170,.28); }
+  .dot.t-water { box-shadow: inset 0 0 0 1px rgba(80,130,170,.28); }
 
   .cell.move-ok { outline:2px dashed var(--accent); outline-offset:-4px; box-shadow:0 0 14px rgba(127,230,162,.25); }
   .cell.place { outline:2px dashed #3a7; outline-offset:-4px; cursor:pointer; transform:translateY(-2px); box-shadow:0 12px 22px rgba(22,46,54,.35); }
