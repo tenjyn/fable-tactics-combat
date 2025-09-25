@@ -135,6 +135,63 @@
       pointer-events:none;
     }
     .panel:hover::after { opacity:1; }
+    .panel-lead {
+      display:flex;
+      flex-wrap:wrap;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+    }
+    .panel-copy {
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      max-width:520px;
+    }
+    .metric-group {
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:stretch;
+      min-width:240px;
+    }
+    .metric-card {
+      flex:1 1 120px;
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid rgba(80,96,142,.7);
+      background:rgba(14,20,34,.88);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      box-shadow:0 12px 26px rgba(5,8,16,.38);
+    }
+    .metric-card.muted {
+      border-style:dashed;
+      border-color:rgba(76,86,120,.6);
+      color:var(--muted);
+      background:rgba(13,18,30,.72);
+      box-shadow:none;
+    }
+    .metric-card.ally {
+      border-color:rgba(127,230,162,.55);
+      background:rgba(28,42,40,.78);
+    }
+    .metric-card.enemy {
+      border-color:rgba(255,155,155,.55);
+      background:rgba(44,26,32,.72);
+    }
+    .metric-label {
+      font-size:11px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    .metric-value {
+      font-size:24px;
+      font-weight:600;
+      font-family:'Unbounded','Outfit',system-ui;
+    }
     #builderPanel { grid-area:builder; }
     #detailsPanel { grid-area:details; }
     #libraryPanel { grid-area:library; }
@@ -196,6 +253,55 @@
       border-color:rgba(60,74,118,.8);
       color:var(--muted);
     }
+    .list-controls {
+      margin:18px 0 12px;
+      padding:14px 16px;
+      border-radius:12px;
+      border:1px solid rgba(52,62,98,.55);
+      background:rgba(13,19,33,.78);
+      display:flex;
+      flex-wrap:wrap;
+      gap:16px;
+      align-items:flex-end;
+      justify-content:space-between;
+    }
+    .list-search {
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:220px;
+      flex:1 1 280px;
+    }
+    .list-search span {
+      font-size:11px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    .filter-chip-row {
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .filter-chip {
+      padding:7px 14px;
+      border-radius:999px;
+      border:1px solid rgba(60,74,118,.7);
+      background:rgba(11,17,30,.85);
+      color:var(--muted);
+      font-size:12px;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      cursor:pointer;
+      transition:all .2s ease;
+    }
+    .filter-chip:hover { border-color:rgba(114,153,255,.85); color:#fff; }
+    .filter-chip.active {
+      border-color:rgba(127,230,162,.75);
+      background:rgba(24,42,36,.88);
+      color:var(--ally);
+      box-shadow:0 10px 18px rgba(14,26,24,.38);
+    }
     label { font-size:12px; color:var(--muted); display:flex; flex-direction:column; gap:6px; }
     input[type="text"], input[type="number"], select, textarea {
       padding:9px 11px;
@@ -214,6 +320,11 @@
       flex-wrap:wrap;
       align-items:flex-end;
     }
+    #newUnitForm {
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
     .form-row > label { min-width:160px; flex:1; }
     #encounterList {
       margin:0;
@@ -222,6 +333,7 @@
       display:flex;
       flex-direction:column;
       gap:10px;
+      margin-top:14px;
     }
     .unit-item {
       display:flex;
@@ -418,6 +530,37 @@
       min-height:120px;
       font-size:12px;
     }
+    #encounterJson {
+      margin-top:12px;
+      background:rgba(9,14,24,.85);
+      border:1px solid rgba(52,62,98,.6);
+      border-radius:12px;
+      padding:14px;
+      line-height:1.5;
+    }
+    @media (max-width: 1180px) {
+      main {
+        grid-template-columns:1fr;
+        grid-template-areas:
+          "builder"
+          "details"
+          "library";
+      }
+    }
+    @media (max-width: 720px) {
+      header {
+        flex-direction:column;
+        align-items:flex-start;
+        gap:12px;
+      }
+      nav { flex-wrap:wrap; }
+      .panel-lead { flex-direction:column; }
+      .metric-group { width:100%; }
+      .list-controls { flex-direction:column; align-items:stretch; }
+      .filter-chip-row { justify-content:space-between; }
+      .unit-actions { flex-direction:row; }
+      .unit-actions button { flex:1; }
+    }
   </style>
 </head>
 <body>
@@ -431,8 +574,19 @@
   </header>
   <main>
     <section class="panel" id="builderPanel">
-      <h2>Encounter Builder</h2>
-      <div class="small">Assemble allied and enemy squads, assign their battlefield roles, and capture notes for your session. Select a unit to see full class details and customize their entry.</div>
+      <div class="panel-lead">
+        <div class="panel-copy">
+          <h2>Encounter Builder</h2>
+          <div class="small">Assemble allied and enemy squads, assign their battlefield roles, and capture notes for your session. Select a unit to see full class details and customize their entry.</div>
+        </div>
+        <div class="metric-group" id="encounterSnapshot">
+          <div class="metric-card muted">
+            <span class="metric-label">Encounter Snapshot</span>
+            <span class="metric-value">Add units</span>
+            <div class="small">Track allies, enemies, and overall squad balance as you plan.</div>
+          </div>
+        </div>
+      </div>
       <div class="divider"></div>
       <form id="newUnitForm">
         <div class="form-row">
@@ -465,6 +619,17 @@
           </div>
         </div>
       </form>
+      <div class="list-controls">
+        <label class="list-search">
+          <span>Search Units</span>
+          <input type="search" id="unitSearch" placeholder="Search by name, class, or role..." />
+        </label>
+        <div class="filter-chip-row" role="group" aria-label="Filter units by team">
+          <button type="button" class="filter-chip active" data-team-filter="all">All Units</button>
+          <button type="button" class="filter-chip" data-team-filter="ally">Allies</button>
+          <button type="button" class="filter-chip" data-team-filter="enemy">Enemies</button>
+        </div>
+      </div>
       <div class="summary-grid" id="encounterSummary"></div>
       <ul id="encounterList"></ul>
       <div class="encounter-export">
@@ -525,15 +690,22 @@
 
     const state = {
       units: [],
-      selectedId: null
+      selectedId: null,
+      filters: {
+        team: 'all',
+        query: ''
+      }
     };
 
     const unitClassSelect = document.getElementById('unitClass');
     const unitTypeSelect = document.getElementById('unitType');
     const encounterList = document.getElementById('encounterList');
     const encounterSummary = document.getElementById('encounterSummary');
+    const encounterSnapshot = document.getElementById('encounterSnapshot');
     const encounterJson = document.getElementById('encounterJson');
     const detailsContent = document.getElementById('detailsContent');
+    const unitSearchInput = document.getElementById('unitSearch');
+    const teamFilterButtons = document.querySelectorAll('[data-team-filter]');
 
     function populateSelectors() {
       CLASS_DATA.sort((a, b) => a.name.localeCompare(b.name));
@@ -587,6 +759,15 @@
     function renderEncounterSummary() {
       if (!state.units.length) {
         encounterSummary.innerHTML = '';
+        if (encounterSnapshot) {
+          encounterSnapshot.innerHTML = `
+            <div class="metric-card muted">
+              <span class="metric-label">Encounter Snapshot</span>
+              <span class="metric-value">Add units</span>
+              <div class="small">Track allies, enemies, and overall squad balance as you plan.</div>
+            </div>
+          `;
+        }
         return;
       }
       const totals = state.units.reduce((acc, unit) => {
@@ -595,6 +776,26 @@
         acc.types[unit.typeId] = (acc.types[unit.typeId] || 0) + 1;
         return acc;
       }, { total: 0, ally: 0, enemy: 0, types: {} });
+
+      if (encounterSnapshot) {
+        encounterSnapshot.innerHTML = `
+          <div class="metric-card">
+            <span class="metric-label">Total Units</span>
+            <span class="metric-value">${totals.total}</span>
+            <div class="small">Currently in this encounter</div>
+          </div>
+          <div class="metric-card ally">
+            <span class="metric-label">Allies</span>
+            <span class="metric-value">${totals.ally}</span>
+            <div class="small">Friendly combatants ready</div>
+          </div>
+          <div class="metric-card enemy">
+            <span class="metric-label">Enemies</span>
+            <span class="metric-value">${totals.enemy}</span>
+            <div class="small">Opposition forces prepared</div>
+          </div>
+        `;
+      }
 
       const fragments = [
         `<div class="summary-card"><strong>Total Units</strong><span class="mono">${totals.total}</span></div>`,
@@ -609,19 +810,49 @@
       encounterSummary.innerHTML = fragments.concat(typeCards).join('');
     }
 
+    function updateFilterControls() {
+      teamFilterButtons.forEach(button => {
+        if (button.dataset.teamFilter === state.filters.team) {
+          button.classList.add('active');
+        } else {
+          button.classList.remove('active');
+        }
+      });
+    }
+
     function renderEncounterList() {
       encounterList.innerHTML = '';
-      if (!state.units.length) {
+      updateFilterControls();
+
+      const hasUnits = state.units.length > 0;
+      const query = state.filters.query.toLowerCase();
+      const filteredUnits = state.units.filter(unit => {
+        if (state.filters.team !== 'all' && unit.team !== state.filters.team) {
+          return false;
+        }
+        if (query) {
+          const haystack = [unit.name, unit.clazz, typeLabel(unit.typeId)].join(' ').toLowerCase();
+          return haystack.includes(query);
+        }
+        return true;
+      });
+
+      if (!filteredUnits.length) {
         const empty = document.createElement('div');
         empty.className = 'empty-state';
-        empty.textContent = 'No units added yet. Use the form above to add allies and enemies to this encounter.';
+        empty.textContent = hasUnits
+          ? 'No units match your current search or team filter. Clear the filters to review every squad member again.'
+          : 'No units added yet. Use the form above to add allies and enemies to this encounter.';
         encounterList.append(empty);
         renderEncounterSummary();
-        detailsContent.className = 'empty-state';
-        detailsContent.textContent = 'Select a unit from the encounter list to review stats, adjust its entry, and view key class abilities.';
+        if (!hasUnits) {
+          detailsContent.className = 'empty-state';
+          detailsContent.textContent = 'Select a unit from the encounter list to review stats, adjust its entry, and view key class abilities.';
+        }
         return;
       }
-      state.units.forEach(unit => {
+
+      filteredUnits.forEach(unit => {
         const li = document.createElement('li');
         li.className = 'unit-item' + (state.selectedId === unit.id ? ' active' : '');
         li.dataset.id = unit.id;
@@ -655,6 +886,14 @@
           ev.stopPropagation();
           selectUnit(unit.id);
         });
+        const duplicateBtn = document.createElement('button');
+        duplicateBtn.type = 'button';
+        duplicateBtn.textContent = 'Clone';
+        duplicateBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          duplicateUnit(unit.id);
+        });
+
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
         deleteBtn.className = 'ghost';
@@ -663,7 +902,7 @@
           ev.stopPropagation();
           removeUnit(unit.id);
         });
-        actions.append(selectBtn, deleteBtn);
+        actions.append(selectBtn, duplicateBtn, deleteBtn);
 
         li.append(marker, meta, actions);
         li.addEventListener('click', () => selectUnit(unit.id));
@@ -1073,6 +1312,20 @@
         grid.append(card);
       });
     }
+
+    unitSearchInput.addEventListener('input', (event) => {
+      state.filters.query = event.target.value.trim();
+      renderEncounterList();
+    });
+
+    teamFilterButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const next = button.dataset.teamFilter;
+        if (next === state.filters.team) return;
+        state.filters.team = next;
+        renderEncounterList();
+      });
+    });
 
     document.getElementById('classSearch').addEventListener('input', () => {
       renderClassGrid();
