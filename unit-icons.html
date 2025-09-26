@@ -54,6 +54,23 @@
       top:0;
       z-index:4;
       box-shadow:0 10px 24px rgba(76,54,26,.22);
+      transition:padding .22s ease, gap .22s ease, background .22s ease, border-color .22s ease, box-shadow .22s ease;
+    }
+    header.header--compact {
+      padding:16px 20px;
+      gap:16px;
+      border-bottom-color:rgba(60,39,20,.24);
+      background:linear-gradient(180deg, rgba(238,223,194,.94), rgba(225,203,164,.9));
+      box-shadow:0 12px 26px rgba(76,54,26,.28);
+    }
+    header.header--compact h1 {
+      font-size:20px;
+      letter-spacing:.26em;
+    }
+    header.header--compact nav { gap:10px; }
+    header.header--compact nav a {
+      padding:7px 10px;
+      letter-spacing:.15em;
     }
     header h1 {
       margin:0;
@@ -209,6 +226,59 @@
       color:rgba(74,56,34,.65);
     }
     svg .stroke { stroke:#2d1f0f; stroke-linecap:round; stroke-linejoin:round; }
+    @media (max-width: 960px) {
+      header {
+        flex-wrap:wrap;
+        align-items:flex-start;
+        gap:14px;
+      }
+      header h1 {
+        flex:1 0 100%;
+        font-size:20px;
+      }
+      header nav {
+        width:100%;
+        justify-content:flex-start;
+        flex-wrap:wrap;
+        gap:8px;
+      }
+      header nav a {
+        padding:8px 12px;
+        letter-spacing:.16em;
+      }
+      header.header--compact {
+        padding:12px 16px;
+        gap:10px;
+      }
+      header.header--compact nav { gap:6px; }
+      header.header--compact nav a {
+        flex:1 1 calc(50% - 6px);
+        justify-content:center;
+        padding:6px 10px;
+        font-size:11px;
+        letter-spacing:.12em;
+      }
+      main { padding:32px 22px 60px; }
+    }
+    @media (max-width: 680px) {
+      header { padding:18px 20px; }
+      header.header--compact { padding:10px 14px; }
+      header.header--compact nav a { flex:1 1 calc(50% - 6px); }
+      main { padding:24px 18px 52px; }
+      .intro { font-size:15px; }
+      .icon-grid { gap:18px; }
+      header nav a {
+        flex:1 1 calc(50% - 8px);
+        text-align:center;
+      }
+    }
+    @media (max-width: 500px) {
+      header nav a,
+      header.header--compact nav a { flex:1 1 100%; }
+      .icon-grid { grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); }
+      .unit-card { padding:18px; }
+      .icon-wrap { width:128px; height:128px; padding:16px; }
+    }
   </style>
 </head>
 <body>
@@ -442,5 +512,21 @@
       </article>
     </section>
   </main>
+  <script>
+    (function setupResponsiveHeader(){
+      const header = document.querySelector('header');
+      if(!header) return;
+      let compact = header.classList.contains('header--compact');
+      const threshold = 48;
+      const update = ()=>{
+        const shouldCondense = window.scrollY > threshold;
+        if(shouldCondense === compact) return;
+        compact = shouldCondense;
+        header.classList.toggle('header--compact', compact);
+      };
+      window.addEventListener('scroll', update, { passive:true });
+      update();
+    })();
+  </script>
 </body>
 </html>

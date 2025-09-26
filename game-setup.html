@@ -56,6 +56,23 @@
       align-items:center;
       gap:24px;
       backdrop-filter:blur(12px);
+      transition:padding .22s ease, gap .22s ease, background .22s ease, border-color .22s ease, box-shadow .22s ease;
+    }
+    header.header--compact {
+      padding:12px 20px;
+      gap:18px;
+      border-bottom-color:rgba(94,129,244,.3);
+      background:linear-gradient(135deg, rgba(15,20,36,.95), rgba(10,13,24,.94));
+      box-shadow:0 10px 28px rgba(5,8,18,.42);
+    }
+    header.header--compact h1 {
+      font-size:16px;
+      letter-spacing:.44px;
+    }
+    header.header--compact nav { gap:12px; }
+    header.header--compact nav a {
+      padding:7px 10px;
+      letter-spacing:.12em;
     }
     header h1 {
       margin:0;
@@ -587,21 +604,54 @@
           "builder"
           "details"
           "library";
+        padding:24px 20px 52px;
+        gap:20px;
       }
+      .panel { padding:16px; }
+      .panel-lead { flex-direction:column; align-items:flex-start; }
+    }
+    @media (max-width: 900px) {
+      header {
+        flex-wrap:wrap;
+        align-items:flex-start;
+        gap:16px;
+        padding:16px 20px;
+      }
+      header h1 { flex:1 0 100%; }
+      nav {
+        width:100%;
+        flex-wrap:wrap;
+        gap:8px;
+        justify-content:flex-start;
+      }
+      nav a {
+        padding:7px 12px;
+        letter-spacing:.12em;
+      }
+      header.header--compact {
+        padding:10px 16px;
+        gap:10px;
+      }
+      header.header--compact nav { gap:6px; }
+      header.header--compact nav a {
+        flex:1 1 calc(50% - 6px);
+        justify-content:center;
+        padding:6px 10px;
+        font-size:11px;
+        letter-spacing:.1em;
+      }
+      .metric-group { width:100%; }
     }
     @media (max-width: 720px) {
-      header {
-        flex-direction:column;
-        align-items:flex-start;
-        gap:12px;
-      }
-      nav { flex-wrap:wrap; }
-      .panel-lead { flex-direction:column; }
-      .metric-group { width:100%; }
-      .list-controls { flex-direction:column; align-items:stretch; }
+      main { padding:20px 16px 44px; gap:18px; }
+      .panel { padding:15px; }
+      .panel-copy { max-width:none; }
+      .metric-group { flex-direction:column; }
+      .list-controls { flex-direction:column; align-items:stretch; gap:10px; }
       .filter-chip-row { justify-content:space-between; }
       .unit-actions { flex-direction:row; }
       .unit-actions button { flex:1; }
+      .type-grid { grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); }
     }
   </style>
 </head>
@@ -719,6 +769,21 @@
   </main>
   <script src="class-data.js"></script>
   <script>
+    (function setupResponsiveHeader(){
+      const header = document.querySelector('header');
+      if(!header) return;
+      let compact = header.classList.contains('header--compact');
+      const threshold = 48;
+      const applyState = ()=>{
+        const shouldCondense = window.scrollY > threshold;
+        if(shouldCondense === compact) return;
+        compact = shouldCondense;
+        header.classList.toggle('header--compact', compact);
+      };
+      window.addEventListener('scroll', applyState, { passive:true });
+      applyState();
+    })();
+
     const CLASS_DATA = window.FABLE_DATA.CLASS_DATABASE.slice();
     const CLASS_LOOKUP = new Map(CLASS_DATA.map(entry => [entry.name, entry]));
     const UNIT_TYPES = [
