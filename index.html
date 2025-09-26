@@ -1708,7 +1708,13 @@ resetBtn.onclick=()=>{
 };
 
 /* ========= Rendering ========= */
-function log(msg){ const el=document.createElement('div'); el.className='toast'; el.innerHTML=msg; LOG.appendChild(el); LOG.scrollTop=LOG.scrollHeight; }
+function log(msg){
+  const el=document.createElement('div');
+  el.className='toast';
+  el.innerHTML=msg;
+  LOG.prepend(el);
+  LOG.scrollTop=0;
+}
 
 function render(){
   PHASE.textContent = G.phase==="setup" ? "Setup: Place Units & Terrain" : "Battle";
