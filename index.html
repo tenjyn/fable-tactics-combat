@@ -395,7 +395,9 @@
     box-shadow:0 2px 4px rgba(0,0,0,.2);
     position:relative;
     overflow:hidden;
+    --tile-fill: linear-gradient(160deg, rgba(16,21,33,.96), rgba(10,14,24,.9));
     --terrain-size:160% 160%;
+    background:var(--tile-fill);
   }
   .dot::after {
     content:"";
@@ -412,17 +414,34 @@
 
   .grid {
     --cell: 72px;
-    display:grid;
-    grid-template-columns: repeat(var(--w), var(--cell));
-    grid-template-rows: repeat(var(--h), var(--cell));
-    gap:10px;
+    --hex-h: calc(var(--cell) * 0.8660254);
+    --hex-gap: 0px;
+    position:relative;
+    display:block;
     padding:18px;
     border-radius:18px;
-    background:radial-gradient(circle at 20% 20%, rgba(94,129,244,.18), transparent 55%),
-               rgba(11,16,26,.9);
+    background:
+      radial-gradient(circle at 18% 18%, rgba(108,150,244,.18), transparent 58%),
+      radial-gradient(circle at 82% 12%, rgba(118,230,190,.12), transparent 62%),
+      repeating-linear-gradient(120deg, rgba(20,28,46,.82) 0 2px, rgba(10,14,22,.82) 2px 46px),
+      repeating-linear-gradient(60deg, rgba(16,22,36,.8) 0 2px, rgba(8,12,20,.82) 2px 46px),
+      linear-gradient(180deg, rgba(8,12,18,.92), rgba(10,14,22,.94));
     border:1px solid rgba(44,56,88,.82);
-    box-shadow:inset 0 0 24px rgba(0,0,0,.42);
-    position:relative;
+    box-shadow:inset 0 0 28px rgba(0,0,0,.45);
+    min-height:var(--hex-h);
+    overflow:visible;
+  }
+  .grid::before {
+    content:"";
+    position:absolute;
+    inset:12px;
+    border-radius:14px;
+    background:
+      radial-gradient(circle at 18% 20%, rgba(127,230,162,.18), transparent 55%),
+      linear-gradient(140deg, rgba(74,108,182,.18), rgba(12,16,28,0) 65%);
+    opacity:.55;
+    pointer-events:none;
+    z-index:0;
   }
   .grid::after {
     content:"";
@@ -431,6 +450,7 @@
     border-radius:12px;
     border:1px solid rgba(127,230,162,.08);
     pointer-events:none;
+    z-index:0;
   }
   :where(.cell,.dot){
     --terrain-art:none;
@@ -438,70 +458,104 @@
     --terrain-opacity:0;
   }
   .cell {
-    position:relative;
-    border:1px solid rgba(40,46,72,.9);
-    background:linear-gradient(160deg, rgba(16,21,33,.95), rgba(10,14,24,.9));
-    border-radius:10px;
+    position:absolute;
+    left:0;
+    top:0;
+    width:var(--cell);
+    height:var(--hex-h);
+    --tile-fill: linear-gradient(160deg, rgba(16,21,33,.98), rgba(10,14,24,.94));
+    background:linear-gradient(155deg, #2a3454, #080c14);
+    clip-path:polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
     display:flex;
     align-items:center;
     justify-content:center;
-    overflow:hidden;
-    transition:transform .12s ease, border-color .18s ease;
+    padding:calc(var(--hex-gap) * 0.35);
+    transition:transform .14s ease, filter .18s ease;
+    filter:drop-shadow(0 16px 26px rgba(0,0,0,.42));
+    isolation:isolate;
     --terrain-size:140% 140%;
+    z-index:1;
   }
-  .cell::before {
-    content:"";
-    position:absolute;
-    inset:0;
-    background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.08), transparent 60%);
-    opacity:.4;
-    pointer-events:none;
-    z-index:0;
-  }
+  .cell::before,
   .cell::after {
     content:"";
     position:absolute;
-    inset:0;
-    border-radius:inherit;
+    inset:calc(var(--hex-gap) * 0.5);
+    clip-path:inherit;
+    pointer-events:none;
+    transition:opacity .25s ease;
+  }
+  .cell::before {
+    background:
+      linear-gradient(135deg, rgba(127,230,162,.14), rgba(12,18,28,0) 60%),
+      radial-gradient(circle at 28% 28%, rgba(255,255,255,.16), transparent 58%),
+      var(--tile-fill);
+    box-shadow:
+      inset 0 0 0 1px rgba(86,102,162,.36),
+      inset 0 -18px 30px rgba(6,8,16,.62);
+    opacity:.98;
+    z-index:0;
+  }
+  .cell::after {
     background-image:var(--terrain-art);
     background-size:var(--terrain-size);
     background-position:center;
     background-repeat:no-repeat;
     opacity:var(--terrain-opacity);
-    transition:opacity .25s ease;
-    pointer-events:none;
-    z-index:0;
+    mix-blend-mode:screen;
+    z-index:1;
+  }
+  .cell:hover {
+    transform:translateY(-2px);
+    filter:drop-shadow(0 20px 32px rgba(0,0,0,.5));
   }
   .cell:hover::after {
     opacity:min(1, calc(var(--terrain-opacity) + 0.12));
   }
-  .cell .coord { font-size:10px; color:rgba(112,120,170,.7); position:absolute; left:6px; top:5px; font-weight:500; z-index:2; }
-  .cell .token { position:relative; z-index:1; }
+  .cell .coord {
+    font-size:10px;
+    color:#c8d0f6;
+    position:absolute;
+    top:6px;
+    left:50%;
+    transform:translateX(-50%);
+    font-weight:600;
+    z-index:3;
+    padding:2px 6px;
+    border-radius:999px;
+    background:rgba(10,14,24,.78);
+    border:1px solid rgba(78,96,156,.4);
+    box-shadow:0 4px 10px rgba(0,0,0,.35);
+  }
+  .cell .token { position:relative; z-index:4; }
   .cell.obstacle {
-    background:linear-gradient(150deg, rgba(66,27,27,.9), rgba(32,14,16,.92));
-    border-color:rgba(122,54,54,.75);
-    box-shadow: inset 0 0 0 2px rgba(120,40,40,.22), 0 10px 18px rgba(0,0,0,.22);
+    background:linear-gradient(150deg, rgba(66,27,27,.9), rgba(32,14,16,.94));
+    filter:drop-shadow(0 16px 32px rgba(54,12,18,.48));
     --terrain-opacity:0;
   }
+  .cell.obstacle::before {
+    background:
+      linear-gradient(135deg, rgba(210,120,120,.18), rgba(44,14,18,0) 65%),
+      linear-gradient(150deg, rgba(92,32,38,.96), rgba(42,16,20,.94));
+    box-shadow:
+      inset 0 0 0 1px rgba(160,68,68,.42),
+      inset 0 -20px 32px rgba(20,6,8,.62);
+  }
   .cell.obstacle::after {
-    content:"";
-    position:absolute;
-    inset:16%;
+    inset:calc(var(--hex-gap) * 0.85);
     border-radius:8px;
     background:
-      radial-gradient(circle at 32% 34%, rgba(210,120,120,.6) 0 52%, transparent 64%),
-      radial-gradient(circle at 68% 70%, rgba(130,48,48,.68) 0 46%, transparent 60%),
-      linear-gradient(135deg, rgba(120,48,48,.55), rgba(52,18,22,.65));
+      radial-gradient(circle at 32% 34%, rgba(210,120,120,.65) 0 52%, transparent 64%),
+      radial-gradient(circle at 68% 70%, rgba(130,48,48,.7) 0 46%, transparent 60%),
+      linear-gradient(135deg, rgba(140,58,58,.6), rgba(52,18,22,.7));
     box-shadow:0 0 18px rgba(122,54,54,.45);
-    pointer-events:none;
-    background-size:100% 100%;
     opacity:1;
-    z-index:1;
+    mix-blend-mode:normal;
   }
 
   /* Terrain tints */
   :where(.cell,.dot).t-plain {
-    background:linear-gradient(160deg, rgba(16,21,33,.96), rgba(10,14,24,.9));
+    --tile-fill:linear-gradient(160deg, rgba(16,21,33,.96), rgba(10,14,24,.9));
     --terrain-art:
       radial-gradient(circle at 30% 36%, rgba(122,192,150,.25) 0 32%, transparent 40%),
       radial-gradient(circle at 70% 64%, rgba(94,158,124,.18) 0 24%, transparent 36%),
@@ -510,7 +564,7 @@
     --terrain-opacity:.45;
   }
   :where(.cell,.dot).t-forest {
-    background:linear-gradient(155deg, rgba(16,30,22,.95), rgba(12,24,18,.9));
+    --tile-fill:linear-gradient(155deg, rgba(16,30,22,.95), rgba(12,24,18,.9));
     --terrain-art:
       radial-gradient(circle at 28% 34%, rgba(72,158,106,.88) 0 36%, transparent 46%),
       radial-gradient(circle at 70% 32%, rgba(46,112,72,.8) 0 32%, transparent 44%),
@@ -518,10 +572,10 @@
     --terrain-size:140% 140%, 120% 120%, 120% 120%;
     --terrain-opacity:.92;
   }
-  .cell.t-forest { box-shadow: inset 0 0 0 2px rgba(60,140,80,.24); }
+  .cell.t-forest::before { box-shadow: inset 0 0 0 1px rgba(60,140,80,.28), inset 0 -18px 30px rgba(10,30,20,.55); }
   .dot.t-forest { box-shadow: inset 0 0 0 1px rgba(60,140,80,.24); }
   :where(.cell,.dot).t-hill {
-    background:linear-gradient(150deg, rgba(42,34,18,.94), rgba(26,20,12,.9));
+    --tile-fill:linear-gradient(150deg, rgba(42,34,18,.94), rgba(26,20,12,.9));
     --terrain-art:
       radial-gradient(circle at 50% 68%, rgba(204,162,86,.88) 0 42%, transparent 52%),
       radial-gradient(circle at 50% 78%, rgba(124,86,42,.7) 0 60%, transparent 70%),
@@ -529,10 +583,10 @@
     --terrain-size:130% 130%, 160% 160%, 100% 100%;
     --terrain-opacity:.88;
   }
-  .cell.t-hill { box-shadow: inset 0 0 0 2px rgba(200,170,80,.26); }
+  .cell.t-hill::before { box-shadow: inset 0 0 0 1px rgba(200,170,80,.32), inset 0 -18px 28px rgba(48,32,16,.58); }
   .dot.t-hill { box-shadow: inset 0 0 0 1px rgba(200,170,80,.26); }
   :where(.cell,.dot).t-road {
-    background:linear-gradient(155deg, rgba(26,28,36,.94), rgba(18,19,28,.9));
+    --tile-fill:linear-gradient(155deg, rgba(26,28,36,.94), rgba(18,19,28,.9));
     --terrain-art:
       linear-gradient(0deg, rgba(220,220,220,.7) 48%, rgba(220,220,220,0) 50%, rgba(220,220,220,.7) 52%),
       linear-gradient(90deg, rgba(90,102,124,.75) 0 14%, transparent 14% 86%, rgba(90,102,124,.75) 86% 100%),
@@ -540,10 +594,10 @@
     --terrain-size:100% 100%, 100% 100%, 200% 200%;
     --terrain-opacity:.82;
   }
-  .cell.t-road { box-shadow: inset 0 0 0 2px rgba(120,120,140,.2); }
+  .cell.t-road::before { box-shadow: inset 0 0 0 1px rgba(120,120,140,.32), inset 0 -18px 30px rgba(8,10,18,.58); }
   .dot.t-road { box-shadow: inset 0 0 0 1px rgba(120,120,140,.2); }
   :where(.cell,.dot).t-swamp {
-    background:linear-gradient(150deg, rgba(28,34,22,.94), rgba(20,24,16,.9));
+    --tile-fill:linear-gradient(150deg, rgba(28,34,22,.94), rgba(20,24,16,.9));
     --terrain-art:
       radial-gradient(circle at 38% 36%, rgba(102,140,82,.6) 0 38%, transparent 50%),
       radial-gradient(circle at 68% 68%, rgba(64,96,56,.68) 0 32%, transparent 46%),
@@ -551,10 +605,10 @@
     --terrain-size:140% 140%, 130% 130%, 150% 150%;
     --terrain-opacity:.86;
   }
-  .cell.t-swamp { box-shadow: inset 0 0 0 2px rgba(110,140,80,.2); }
+  .cell.t-swamp::before { box-shadow: inset 0 0 0 1px rgba(110,140,80,.26), inset 0 -18px 30px rgba(12,22,14,.58); }
   .dot.t-swamp { box-shadow: inset 0 0 0 1px rgba(110,140,80,.2); }
   :where(.cell,.dot).t-water {
-    background:linear-gradient(160deg, rgba(13,27,39,.96), rgba(10,20,30,.92));
+    --tile-fill:linear-gradient(160deg, rgba(13,27,39,.96), rgba(10,20,30,.92));
     --terrain-art:
       radial-gradient(circle at 32% 32%, rgba(56,148,212,.68) 0 36%, transparent 52%),
       radial-gradient(circle at 68% 66%, rgba(24,112,192,.72) 0 42%, transparent 58%),
@@ -562,11 +616,33 @@
     --terrain-size:130% 130%, 150% 150%, 220% 220%;
     --terrain-opacity:.9;
   }
-  .cell.t-water { box-shadow: inset 0 0 0 2px rgba(80,130,170,.28); }
+  .cell.t-water::before { box-shadow: inset 0 0 0 1px rgba(80,130,170,.34), inset 0 -18px 32px rgba(12,20,30,.6); }
   .dot.t-water { box-shadow: inset 0 0 0 1px rgba(80,130,170,.28); }
 
-  .cell.move-ok { outline:2px dashed var(--accent); outline-offset:-4px; box-shadow:0 0 14px rgba(127,230,162,.25); }
-  .cell.place { outline:2px dashed #3a7; outline-offset:-4px; cursor:pointer; transform:translateY(-2px); box-shadow:0 12px 22px rgba(22,46,54,.35); }
+  .cell.move-ok {
+    outline:2px dashed rgba(127,230,162,.8);
+    outline-offset:-6px;
+    filter:drop-shadow(0 20px 36px rgba(22,46,54,.4));
+  }
+  .cell.move-ok::before {
+    box-shadow:
+      inset 0 0 0 1px rgba(127,230,162,.45),
+      inset 0 -16px 28px rgba(12,26,20,.52),
+      0 0 18px rgba(127,230,162,.28);
+  }
+  .cell.place {
+    outline:2px dashed rgba(78,210,170,.85);
+    outline-offset:-6px;
+    cursor:pointer;
+    transform:translateY(-3px);
+    filter:drop-shadow(0 24px 40px rgba(24,52,62,.5));
+  }
+  .cell.place::before {
+    box-shadow:
+      inset 0 0 0 1px rgba(94,226,190,.6),
+      inset 0 -16px 28px rgba(16,36,32,.58),
+      0 0 22px rgba(94,226,190,.38);
+  }
 
   /* === TOKEN (sprite + double bars) === */
   @keyframes float {
@@ -580,9 +656,9 @@
   }
   .token{
     position:relative;
-    width: var(--cell);
-    height: var(--cell);
-    border-radius:12px;
+    width: calc(var(--cell) * 0.72);
+    height: calc(var(--cell) * 0.72);
+    border-radius:calc(var(--cell) * 0.18);
     border:1px solid rgba(54,64,110,.85);
     background:radial-gradient(circle at 30% 20%, rgba(255,255,255,.08), transparent 65%), #0f1420;
     overflow:hidden;
@@ -604,8 +680,8 @@
   .token::before {
     content:"";
     position:absolute;
-    inset:3px;
-    border-radius:10px;
+    inset:calc(var(--cell) * 0.04);
+    border-radius:calc(var(--cell) * 0.16);
     border:1px solid rgba(96,114,182,.25);
     pointer-events:none;
   }
@@ -628,11 +704,11 @@
   }
   .token:hover .sprite { transform:translateY(-4px) scale(1.02); }
   .token .initial{
-    position:absolute; bottom:28px; left:10px;
-    font-weight:800; font-size:15px; color:#e8f1ff;
+    position:absolute; bottom:calc(var(--cell) * 0.32); left:calc(var(--cell) * 0.16);
+    font-weight:800; font-size:calc(var(--cell) * 0.22); color:#e8f1ff;
     text-shadow:0 2px 0 rgba(0,0,0,.6);
   }
-  .token .bars{ position:absolute; left:8px; right:8px; bottom:8px; display:flex; flex-direction:column; gap:5px; }
+  .token .bars{ position:absolute; left:calc(var(--cell) * 0.12); right:calc(var(--cell) * 0.12); bottom:calc(var(--cell) * 0.12); display:flex; flex-direction:column; gap:5px; }
   .miniBar{ height:7px; border-radius:6px; border:1px solid rgba(40,47,68,.9); background:rgba(18,24,40,.9); overflow:hidden; position:relative; }
   .miniBar::after{ content:""; position:absolute; inset:0; background:linear-gradient(90deg, rgba(255,255,255,.1), rgba(255,255,255,0)); pointer-events:none; }
   .miniBar .hpFill{ height:100%; background:linear-gradient(90deg,#4ade80,#22c55e); width:0%; box-shadow:0 0 10px rgba(127,230,162,.45); }
@@ -1195,9 +1271,84 @@ const choice=(arr)=>arr[Math.floor(Math.random()*arr.length)];
 const GRID = { w: 8, h: 6, cell: 72, desiredCell: 72, obstacles: new Set(), terrain: new Map() };
 const key=(x,y)=>`${x},${y}`;
 const hasObs=(x,y)=>GRID.obstacles.has(key(x,y));
-const dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
-const inRange=(u,t,r)=>dist(u.pos,t.pos)<=r;
-const isAdjacent=(a,b)=>dist(a,b)===1;
+const SQRT3 = Math.sqrt(3);
+const HEX_AXIAL_DIRS = [
+  {q:+1,r:0},
+  {q:+1,r:-1},
+  {q:0,r:-1},
+  {q:-1,r:0},
+  {q:-1,r:+1},
+  {q:0,r:+1},
+];
+function offsetToAxial(x,y){
+  const q = x;
+  const r = y - (x - (x & 1)) / 2;
+  return {q,r};
+}
+function axialToOffset(q,r){
+  const x = q;
+  const y = r + (q - (q & 1)) / 2;
+  return {x,y};
+}
+function offsetToCube(x,y){
+  const axial = offsetToAxial(x,y);
+  const q = axial.q;
+  const r = axial.r;
+  return {x:q, y:-q - r, z:r};
+}
+function cubeToOffset(cube){
+  return axialToOffset(cube.x, cube.z);
+}
+function hexDistance(a,b){
+  const ac = offsetToCube(a.x,a.y);
+  const bc = offsetToCube(b.x,b.y);
+  return Math.max(
+    Math.abs(ac.x - bc.x),
+    Math.abs(ac.y - bc.y),
+    Math.abs(ac.z - bc.z)
+  );
+}
+const dist=(a,b)=>hexDistance(a,b);
+const inRange=(u,t,r)=>hexDistance(u.pos,t.pos)<=r;
+const isAdjacent=(a,b)=>hexDistance(a,b)===1;
+function hexNeighbors(x,y){
+  const axial = offsetToAxial(x,y);
+  return HEX_AXIAL_DIRS.map(dir=>axialToOffset(axial.q + dir.q, axial.r + dir.r));
+}
+function computeHexGeometry(cellSize){
+  const cellHeight = cellSize * SQRT3 / 2;
+  const hasCells = GRID.w > 0 && GRID.h > 0;
+  if(!hasCells){
+    return { positions:[], width:0, height:0, offsetX:0, offsetY:0, cellHeight };
+  }
+  const positions=[];
+  let minLeft=Infinity, minTop=Infinity, maxRight=-Infinity, maxBottom=-Infinity;
+  for(let y=0;y<GRID.h;y++){
+    positions[y]=[];
+    for(let x=0;x<GRID.w;x++){
+      const axial = offsetToAxial(x,y);
+      const centerX = (cellSize * 0.75) * axial.q;
+      const centerY = cellHeight * (axial.r + axial.q/2);
+      const left = centerX - cellSize/2;
+      const top = centerY - cellHeight/2;
+      const right = left + cellSize;
+      const bottom = top + cellHeight;
+      positions[y][x]={left, top};
+      if(left<minLeft) minLeft=left;
+      if(top<minTop) minTop=top;
+      if(right>maxRight) maxRight=right;
+      if(bottom>maxBottom) maxBottom=bottom;
+    }
+  }
+  return {
+    positions,
+    width: maxRight - minLeft,
+    height: maxBottom - minTop,
+    offsetX: -minLeft,
+    offsetY: -minTop,
+    cellHeight
+  };
+}
 const TERRAIN = {
   plain:{cost:1, atk:0, def:0, pass:true},
   forest:{cost:2, atk:0, def:+2, pass:true},
@@ -1213,18 +1364,38 @@ function getUnitAt(x,y){ return G.units.find(u=>!u.dead && u.pos && u.pos.x===x 
 function isOccupied(x,y){ return !!getUnitAt(x,y); }
 
 /* ========= LOS ========= */
+const lerp=(a,b,t)=>a + (b - a) * t;
+function cubeLerp(a,b,t){
+  return {
+    x: lerp(a.x,b.x,t),
+    y: lerp(a.y,b.y,t),
+    z: lerp(a.z,b.z,t)
+  };
+}
+function cubeRound(c){
+  let rx=Math.round(c.x), ry=Math.round(c.y), rz=Math.round(c.z);
+  const xDiff=Math.abs(rx-c.x), yDiff=Math.abs(ry-c.y), zDiff=Math.abs(rz-c.z);
+  if(xDiff>yDiff && xDiff>zDiff){
+    rx = -ry - rz;
+  }else if(yDiff>zDiff){
+    ry = -rx - rz;
+  }else{
+    rz = -rx - ry;
+  }
+  return {x:rx,y:ry,z:rz};
+}
 function lineCells(a,b){
-  let x0=a.x, y0=a.y, x1=b.x, y1=b.y;
+  const start=offsetToCube(a.x,a.y);
+  const end=offsetToCube(b.x,b.y);
+  const N=hexDistance(a,b);
   const cells=[];
-  const dx=Math.abs(x1-x0), dy=Math.abs(y1-y0);
-  const sx = x0 < x1 ? 1 : -1;
-  const sy = y0 < y1 ? 1 : -1;
-  let err = dx - dy;
-  while(!(x0===x1 && y0===y1)){
-    const e2 = 2*err;
-    if(e2> -dy){ err -= dy; x0 += sx; }
-    if(e2<  dx){ err += dx; y0 += sy; }
-    if(!(x0===x1 && y0===y1)) cells.push({x:x0,y:y0});
+  if(N<=1) return cells;
+  for(let i=1;i<N;i++){
+    const t=i/N;
+    const cube=cubeLerp(start,end,t);
+    const rounded=cubeRound(cube);
+    const pos=cubeToOffset(rounded);
+    cells.push(pos);
   }
   return cells;
 }
@@ -1636,20 +1807,27 @@ function fitBoardCellToPanel(updateControls = true){
     const boardStyles = getComputedStyle(BOARD);
     const availableWidth = panel.clientWidth - parsePx(panelStyles.paddingLeft) - parsePx(panelStyles.paddingRight);
     const paddingX = parsePx(boardStyles.paddingLeft) + parsePx(boardStyles.paddingRight);
-    const gap = parsePx(boardStyles.columnGap || boardStyles.gap);
-    const totalGap = gap * Math.max(0, GRID.w - 1);
-    const maxCell = (availableWidth - paddingX - totalGap) / GRID.w;
-    if(Number.isFinite(maxCell) && maxCell > 0){
-      const step = parseFloat(zoomRange.step) || 1;
-      const safeMax = Math.floor((maxCell - 0.5) / step) * step;
-      if(safeMax > 0){
-        applied = Math.min(desired, safeMax);
+    const geometry = computeHexGeometry(desired);
+    const factor = desired > 0 ? geometry.width / desired : 0;
+    const usableWidth = availableWidth - paddingX;
+    if(Number.isFinite(factor) && factor > 0 && Number.isFinite(usableWidth) && usableWidth > 0){
+      const maxCell = usableWidth / factor;
+      if(Number.isFinite(maxCell) && maxCell > 0){
+        const step = parseFloat(zoomRange.step) || 1;
+        const safeMax = Math.floor((maxCell - 0.5) / step) * step;
+        if(safeMax > 0){
+          applied = Math.min(desired, safeMax);
+        } else {
+          const fallback = Math.max(1, maxCell);
+          applied = Math.min(desired, fallback);
+        }
       }
     }
   }
 
   GRID.cell = applied;
   BOARD.style.setProperty('--cell', applied + 'px');
+  BOARD.style.setProperty('--hex-h', (applied * SQRT3 / 2) + 'px');
   if(updateControls){
     zoomRange.value = applied;
     zoomVal.textContent = applied + 'px';
@@ -2023,10 +2201,26 @@ function renderBoard(){
     }
   }
 
+  const geometry = computeHexGeometry(GRID.cell);
+  const width = Math.max(0, Math.ceil(geometry.width));
+  const height = Math.max(0, Math.ceil(geometry.height));
+  BOARD.style.width = width + 'px';
+  BOARD.style.height = height + 'px';
+  BOARD.style.setProperty('--hex-h', geometry.cellHeight + 'px');
+
   for(let y=0;y<GRID.h;y++){
     for(let x=0;x<GRID.w;x++){
       const tClass = 't-' + (GRID.terrain.get(key(x,y))||'plain');
       const cell=document.createElement('div'); cell.className=`cell ${tClass}`+(hasObs(x,y)?' obstacle':'');
+      const pos=geometry.positions[y]?.[x];
+      if(pos){
+        const left = pos.left + geometry.offsetX;
+        const top = pos.top + geometry.offsetY;
+        cell.style.left = `${left.toFixed(2)}px`;
+        cell.style.top = `${top.toFixed(2)}px`;
+      }
+      cell.style.width = GRID.cell + 'px';
+      cell.style.height = (geometry.cellHeight || GRID.cell) + 'px';
       const label=document.createElement('div'); label.className='coord'; label.textContent=`${x},${y}`; cell.appendChild(label);
       const u=getUnitAt(x,y);
 
@@ -2348,10 +2542,9 @@ function adjacentEnemies(u){
 
 /* ========= A* (occupancy-aware) ========= */
 function neighbors(p, goal){
-  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
   const out=[];
-  for(const [dx,dy] of dirs){
-    const x=p.x+dx, y=p.y+dy;
+  for(const nb of hexNeighbors(p.x,p.y)){
+    const {x,y}=nb;
     if(x<0||x>=GRID.w||y<0||y>=GRID.h) continue;
     if(hasObs(x,y)) continue;
     const terr=tAt(x,y);
