@@ -512,21 +512,6 @@
   .cell:hover::after {
     opacity:min(1, calc(var(--terrain-opacity) + 0.12));
   }
-  .cell .coord {
-    font-size:10px;
-    color:#c8d0f6;
-    position:absolute;
-    top:6px;
-    left:50%;
-    transform:translateX(-50%);
-    font-weight:600;
-    z-index:3;
-    padding:2px 6px;
-    border-radius:999px;
-    background:rgba(10,14,24,.78);
-    border:1px solid rgba(78,96,156,.4);
-    box-shadow:0 4px 10px rgba(0,0,0,.35);
-  }
   .cell .token { position:relative; z-index:4; }
   .cell.obstacle {
     background:linear-gradient(150deg, rgba(66,27,27,.9), rgba(32,14,16,.94));
@@ -2366,7 +2351,6 @@ function renderBoard(){
       }
       cell.style.width = GRID.cell + 'px';
       cell.style.height = (geometry.cellHeight || GRID.cell) + 'px';
-      const label=document.createElement('div'); label.className='coord'; label.textContent=`${x},${y}`; cell.appendChild(label);
       const u=getUnitAt(x,y);
 
       if(placing){
