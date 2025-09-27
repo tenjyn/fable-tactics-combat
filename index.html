@@ -1697,7 +1697,7 @@ function makeUnit(tplKey, team, pos){
 }
 
 /* ========= Global State ========= */
-const G={ phase:"setup", units:[], acting:null, round:1, moveMode:false, auto:false, obstacleMode:false, terrainMode:false };
+const G={ phase:"setup", units:[], acting:null, round:1, moveMode:false, moveTargets:null, auto:false, obstacleMode:false, terrainMode:false };
 
 /* ========= Damage / Effective Stats ========= */
 function effAtk(u){ const t=u.pos? tAt(u.pos.x,u.pos.y) : TERRAIN.plain; return u.stats.atk + (u.temp.atkBuff||0) + (t.atk||0); }
@@ -2061,6 +2061,7 @@ function resetBoardState(){
   G.acting=null;
   G.round=1;
   G.moveMode=false;
+  G.moveTargets=null;
   G.auto=false;
   G.obstacleMode=false;
   G.terrainMode=false;
@@ -2201,6 +2202,14 @@ function renderBoard(){
     }
   }
 
+  let moveTargets=null;
+  if(G.moveMode && G.acting){
+    moveTargets = G.moveTargets || computeReachableHexes(G.acting);
+    G.moveTargets = moveTargets;
+  } else if(!G.moveMode) {
+    G.moveTargets = null;
+  }
+
   const geometry = computeHexGeometry(GRID.cell);
   const width = Math.max(0, Math.ceil(geometry.width));
   const height = Math.max(0, Math.ceil(geometry.height));
@@ -2254,13 +2263,15 @@ function renderBoard(){
         }
       } else {
         if(u){ cell.appendChild(renderToken(u, inRangeIds)); }
-        if(G.moveMode && G.acting && !u && !hasObs(x,y) && tAt(x,y).pass && isAdjacent(G.acting.pos,{x,y})){
+        const mk = key(x,y);
+        const moveCost = moveTargets?.get(mk);
+        if(G.moveMode && moveTargets && moveCost && moveCost>0 && !u){
           cell.classList.add('move-ok');
           cell.style.cursor='pointer';
-          cell.onclick=()=>{ 
+          cell.onclick=()=>{
             if(G.acting.statuses.some(s=>s.key==='Root')){ log(`${G.acting.name} is rooted and cannot move.`); return; }
+            if(!moveTargets.has(mk)){ return; }
             const beforeAdj = adjacentEnemies(G.acting).filter(e=>e.ep>0);
-            const prevPos = {...G.acting.pos};
             G.acting.pos={x,y};
             const afterAdj = adjacentEnemies(G.acting);
             const provoking = beforeAdj.filter(e => !afterAdj.some(a=>a.id===e.id));
@@ -2271,10 +2282,10 @@ function renderBoard(){
               const def = effDef(G.acting);
               const dmg = computeDamage(atk,def);
               applyDamage(G.acting, dmg, log, `${e.name} makes an <b>engagement strike</b> on ${G.acting.name} for <span class="dmg">-${dmg}</span>.`);
-              if(G.acting.dead){ G.moveMode=false; render(); return endTurn(); }
+              if(G.acting.dead){ G.moveMode=false; G.moveTargets=null; render(); return endTurn(); }
             }
             log(`${G.acting.name} moves to (${x},${y}).`);
-            G.moveMode=false; render(); endTurn();
+            G.moveMode=false; G.moveTargets=null; render(); endTurn();
           };
         }
       }
@@ -2410,7 +2421,7 @@ function autoPlace(u){
 /* ========= Battle controls ========= */
 ATTACK.onclick=()=>{
   if(!(G.acting && G.acting.team==='ally')) return;
-  TARGETS.innerHTML=''; ABILROW.innerHTML=''; G.moveMode=false;
+  TARGETS.innerHTML=''; ABILROW.innerHTML=''; G.moveMode=false; G.moveTargets=null;
   const foes=living('enemy').filter(t=>inRange(G.acting,t,G.acting.range) && (G.acting.range===1 || clearLine(G.acting.pos,t.pos)));
   if(!foes.length){ log(`No targets in range/LOS (R${G.acting.range}).`); return; }
   foes.forEach(t=>{
@@ -2432,7 +2443,7 @@ ATTACK.onclick=()=>{
 
 ABILITY.onclick=()=>{
   if(!(G.acting && G.acting.team==='ally')) return;
-  TARGETS.innerHTML=''; ABILROW.innerHTML=''; G.moveMode=false;
+  TARGETS.innerHTML=''; ABILROW.innerHTML=''; G.moveMode=false; G.moveTargets=null;
   for(const a of G.acting.abilities){
     const tpl=AbilityLib[a.key];
     const b=document.createElement('button');
@@ -2462,6 +2473,7 @@ ABILITY.onclick=()=>{
 DEFEND.onclick=()=>{
   if(!(G.acting && G.acting.team==='ally')) return;
   G.moveMode=false;
+  G.moveTargets=null;
   G.acting.temp.defend=true;
   log(`${G.acting.name} takes a defensive stance (+2 DEF this turn).`);
   render(); endTurn();
@@ -2469,6 +2481,8 @@ DEFEND.onclick=()=>{
 
 DISENGAGE.onclick=()=>{
   if(!(G.acting && G.acting.team==='ally')) return;
+  G.moveMode=false;
+  G.moveTargets=null;
   G.acting.temp.disengaged=true;
   log(`${G.acting.name} prepares to <b>disengage</b> (no engagement strikes this turn).`);
   render(); endTurn();
@@ -2477,14 +2491,31 @@ DISENGAGE.onclick=()=>{
 MOVE.onclick=()=>{
   if(!(G.acting && G.acting.team==='ally')) return;
   if(G.acting.statuses.some(s=>s.key==='Root')){ log(`${G.acting.name} is rooted and cannot move.`); return; }
-  G.moveMode=!G.moveMode;
-  if(G.moveMode) log(`Select an adjacent, empty, passable tile for ${G.acting.name} to move.`);
+  if(G.moveMode){
+    G.moveMode=false;
+    G.moveTargets=null;
+    render();
+    return;
+  }
+  const targets = computeReachableHexes(G.acting);
+  const available = targets ? [...targets.entries()].filter(([,cost])=>cost>0) : [];
+  if(!available.length){
+    G.moveMode=false;
+    G.moveTargets=null;
+    log(`${G.acting.name} has no reachable hexes.`);
+    render();
+    return;
+  }
+  G.moveMode=true;
+  G.moveTargets=targets;
+  const mov=G.acting.mov ?? 0;
+  log(`Select a hex within MOV ${mov} for ${G.acting.name} to move.`);
   render();
 };
 
 END.onclick=()=>{
   if(!(G.acting && G.acting.team==='ally')) return;
-  G.moveMode=false; log(`${G.acting.name} ends their turn.`); endTurn();
+  G.moveMode=false; G.moveTargets=null; log(`${G.acting.name} ends their turn.`); endTurn();
 };
 
 function toggleAutoPlay(){
@@ -2513,6 +2544,8 @@ function nextTurn_advance(){
   render(); startTurn();
 }
 function startTurn(){
+  G.moveMode=false;
+  G.moveTargets=null;
   if(G.acting.dead) { return nextTurn_advance(); }
   log(`<span class="small">— Round ${G.round} • ${G.acting.name}'s turn —</span>`);
   tickStatusesStart(G.acting, log);
@@ -2522,7 +2555,7 @@ function startTurn(){
   render();
   if(G.acting.team==='enemy' || G.auto) aiAct();
 }
-function endTurn(){ cleanupStatusesEnd(G.acting, log); render(); nextTurn_advance(); }
+function endTurn(){ G.moveMode=false; G.moveTargets=null; cleanupStatusesEnd(G.acting, log); render(); nextTurn_advance(); }
 
 function endBattle(){
   const win=anyLiving('ally') && !anyLiving('enemy');
@@ -2553,6 +2586,37 @@ function neighbors(p, goal){
     out.push({x,y, cost: terr.cost});
   }
   return out;
+}
+
+function computeReachableHexes(unit){
+  if(!unit || !unit.pos) return null;
+  const maxMove = unit.mov ?? 0;
+  const startKey = key(unit.pos.x, unit.pos.y);
+  const costs = new Map([[startKey, 0]]);
+  if(maxMove<=0) return costs;
+  const frontier=[{x:unit.pos.x,y:unit.pos.y,cost:0}];
+  while(frontier.length){
+    frontier.sort((a,b)=>a.cost-b.cost);
+    const current=frontier.shift();
+    for(const nb of hexNeighbors(current.x,current.y)){
+      const {x:nx,y:ny}=nb;
+      if(nx<0||nx>=GRID.w||ny<0||ny>=GRID.h) continue;
+      if(hasObs(nx,ny)) continue;
+      const terr=tAt(nx,ny);
+      if(!terr.pass) continue;
+      const occupant=getUnitAt(nx,ny);
+      if(occupant && occupant.id!==unit.id) continue;
+      const stepCost = terr.cost ?? 1;
+      const newCost = current.cost + stepCost;
+      if(newCost>maxMove) continue;
+      const nk=key(nx,ny);
+      if(newCost < (costs.get(nk) ?? Infinity)){
+        costs.set(nk,newCost);
+        frontier.push({x:nx,y:ny,cost:newCost});
+      }
+    }
+  }
+  return costs;
 }
 function aStar(start,goal){
   const gScore=new Map(), fScore=new Map(), came=new Map();
@@ -2636,24 +2700,72 @@ function aiAct(){
       render(); return endTurn();
     }
 
-    // Move via A*
+    // Move via A* on the hex grid
     const target=foes.slice().sort((a,b)=>dist(u.pos,a.pos)-dist(u.pos,b.pos))[0];
     if(target){
-      const path = aStar(u.pos, target.pos);
-      if(path && path.length>=2){
-        const step = path[1];
-        if(!getUnitAt(step.x,step.y)){ 
-          u.pos=step; 
-          log(`${u.name} advances via terrain to (${step.x},${step.y}).`); 
-          render(); return endTurn(); 
+      const maxMove=u.mov ?? 0;
+      if(maxMove>0){
+        const path = aStar(u.pos, target.pos);
+        if(path && path.length>=2){
+          let remaining=maxMove;
+          let dest=null;
+          for(let i=1;i<path.length;i++){
+            const step=path[i];
+            const occ=getUnitAt(step.x,step.y);
+            if(occ && occ.id!==u.id) break;
+            const stepCost=tAt(step.x,step.y).cost ?? 1;
+            if(stepCost>remaining) break;
+            remaining-=stepCost;
+            dest={x:step.x,y:step.y};
+          }
+          if(dest){
+            const beforeAdj=adjacentEnemies(u).filter(e=>e.ep>0);
+            u.pos=dest;
+            const afterAdj=adjacentEnemies(u);
+            const provoking=beforeAdj.filter(e=>!afterAdj.some(a=>a.id===e.id));
+            if(provoking.length && !u.temp.disengaged){
+              const e=provoking[0];
+              e.ep=Math.max(0,e.ep-1);
+              const atk=effAtk(e);
+              const def=effDef(u);
+              const dmg=computeDamage(atk,def);
+              applyDamage(u,dmg,log,`${e.name} makes an <b>engagement strike</b> on ${u.name} for <span class="dmg">-${dmg}</span>.`);
+              if(u.dead){ render(); return endTurn(); }
+            }
+            log(`${u.name} advances via terrain to (${dest.x},${dest.y}).`);
+            render(); return endTurn();
+          }
         }
-      }
-      // fallback greedy
-      const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-      for(const [dx,dy] of dirs){
-        const nx=u.pos.x+dx, ny=u.pos.y+dy;
-        if(nx<0||ny<0||nx>=GRID.w||ny>=GRID.h) continue;
-        if(!getUnitAt(nx,ny) && !hasObs(nx,ny) && tAt(nx,ny).pass){ u.pos={x:nx,y:ny}; log(`${u.name} inches forward.`); render(); return endTurn(); }
+        let best=null;
+        let bestDist=Infinity;
+        for(const nb of hexNeighbors(u.pos.x,u.pos.y)){
+          const {x:nx,y:ny}=nb;
+          if(nx<0||ny<0||nx>=GRID.w||ny>=GRID.h) continue;
+          if(hasObs(nx,ny)) continue;
+          const terr=tAt(nx,ny);
+          if(!terr.pass) continue;
+          if((terr.cost ?? 1)>maxMove) continue;
+          if(getUnitAt(nx,ny)) continue;
+          const d=dist({x:nx,y:ny}, target.pos);
+          if(d<bestDist){ bestDist=d; best={x:nx,y:ny}; }
+        }
+        if(best){
+          const beforeAdj=adjacentEnemies(u).filter(e=>e.ep>0);
+          u.pos=best;
+          const afterAdj=adjacentEnemies(u);
+          const provoking=beforeAdj.filter(e=>!afterAdj.some(a=>a.id===e.id));
+          if(provoking.length && !u.temp.disengaged){
+            const e=provoking[0];
+            e.ep=Math.max(0,e.ep-1);
+            const atk=effAtk(e);
+            const def=effDef(u);
+            const dmg=computeDamage(atk,def);
+            applyDamage(u,dmg,log,`${e.name} makes an <b>engagement strike</b> on ${u.name} for <span class="dmg">-${dmg}</span>.`);
+            if(u.dead){ render(); return endTurn(); }
+          }
+          log(`${u.name} inches forward across the hexes.`);
+          render(); return endTurn();
+        }
       }
     }
     u.temp.defend=true; log(`${u.name} defends.`); render(); endTurn();
