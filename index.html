@@ -1418,6 +1418,9 @@ const StatusLib={
   Shield:{name:"Shield",desc:"Absorb 15 damage for 2 turns.",duration:2,
     apply(u){u.temp.shield=(u.temp.shield||0)+15;},
     remove(u){u.temp.shield=0;},tick(){}},
+  Quickdraw:{name:"Quickdraw",desc:"Leap to the front of initiative this round.",duration:1,
+    apply(u){u.temp.quickdraw=true;},
+    remove(u){u.temp.quickdraw=false;},tick(){}},
 };
 
 const AbilityLib={
@@ -1472,6 +1475,31 @@ function skillDesc(name, fallback, meta){
   return `${name}: ${effectText}${costText}${tags}${typeText}`.trim();
 }
 
+function gatherFreeCells(center, maxRange){
+  if(!center || typeof maxRange !== 'number') return [];
+  const cells=[];
+  for(let y=0;y<GRID.h;y++){
+    for(let x=0;x<GRID.w;x++){
+      if(x===center.x && y===center.y) continue;
+      if(hasObs(x,y)) continue;
+      const terrain = tAt(x,y);
+      if(!terrain.pass) continue;
+      const occupant = getUnitAt(x,y);
+      if(occupant) continue;
+      if(dist(center,{x,y})>maxRange) continue;
+      cells.push({x,y});
+    }
+  }
+  cells.sort((a,b)=>{
+    const da=dist(center,a);
+    const db=dist(center,b);
+    if(da!==db) return da-db;
+    if(a.y!==b.y) return a.y-b.y;
+    return a.x-b.x;
+  });
+  return cells;
+}
+
 function ensureAbilityForSkill(name){
   const key = skillKey(name);
   if(AbilityLib[key]) return key;
@@ -1482,6 +1510,103 @@ function ensureAbilityForSkill(name){
 
 function makeAbilityFromBehavior(name, behavior){
   switch(behavior){
+    case 'moveSlipstream': {
+      const meta = skillMeta(name);
+      const cooldown = skillCooldown(meta, 1);
+      return {
+        name,
+        desc: skillDesc(name, `${name}: Reposition ignoring engagement.`, meta),
+        cooldown,
+        range: meta?.rangeValue,
+        target:'self',
+        requiresCell:true,
+        validCells(user){
+          if(!user?.pos) return [];
+          const maxRange = (typeof meta?.rangeValue==='number' && meta.rangeValue>0)
+            ? meta.rangeValue
+            : Math.max(1, user.mov ?? 0);
+          return gatherFreeCells(user.pos, maxRange);
+        },
+        useCell(user,_target,pos,log){
+          if(!user?.pos){ log(`${name} fizzles; ${user?.name||'Unit'} has no position.`); return false; }
+          if(user.statuses.some(s=>s.key==='Root')){ log(`${user.name} cannot use ${name} while rooted.`); return false; }
+          user.pos={x:pos.x,y:pos.y};
+          log(`${user.name} slips through the fray to (${pos.x},${pos.y}) with ${name}.`);
+          return true;
+        }
+      };
+    }
+    case 'moveBlink': {
+      const meta = skillMeta(name);
+      const range = Math.max(1, skillRange(meta, 3));
+      const cooldown = skillCooldown(meta, 2);
+      return {
+        name,
+        desc: skillDesc(name, `${name}: Blink to a nearby hex.`, meta),
+        cooldown,
+        range,
+        target:'self',
+        requiresCell:true,
+        validCells(user){
+          if(!user?.pos) return [];
+          return gatherFreeCells(user.pos, range);
+        },
+        useCell(user,_target,pos,log){
+          if(!user?.pos){ log(`${name} fizzles; ${user?.name||'Unit'} has no position.`); return false; }
+          user.pos={x:pos.x,y:pos.y};
+          log(`${user.name} blinks to (${pos.x},${pos.y}) using ${name}.`);
+          return true;
+        }
+      };
+    }
+    case 'teleportAlly': {
+      const meta = skillMeta(name);
+      const range = Math.max(1, skillRange(meta, 4));
+      const cooldown = skillCooldown(meta, 3);
+      return {
+        name,
+        desc: skillDesc(name, `${name}: Teleport an ally within range.`, meta),
+        cooldown,
+        range,
+        target:'ally',
+        requiresCell:true,
+        validCells(user,target){
+          if(!user?.pos) return [];
+          const cells = gatherFreeCells(user.pos, range);
+          if(target?.pos){
+            return cells.filter(c=>!(c.x===target.pos.x && c.y===target.pos.y));
+          }
+          return cells;
+        },
+        useCell(user,target,pos,log){
+          const mover = target || user;
+          if(!mover?.pos){ log(`${name} has no effect; target is not placed.`); return false; }
+          mover.pos={x:pos.x,y:pos.y};
+          if(user.id===mover.id){
+            log(`${user.name} warps to (${pos.x},${pos.y}) with ${name}.`);
+          } else {
+            log(`${user.name} warps ${mover.name} to (${pos.x},${pos.y}) with ${name}.`);
+          }
+          return true;
+        }
+      };
+    }
+    case 'quickdraw': {
+      const meta = skillMeta(name);
+      const cooldown = skillCooldown(meta, 0);
+      return {
+        name,
+        desc: skillDesc(name, `${name}: Gain the Quickdraw edge for this round.`, meta),
+        cooldown,
+        range:0,
+        target:'self',
+        use(user,_target,log){
+          addStatus(user,'Quickdraw',log);
+          log(`${user.name} readies ${name}, preparing to act first.`);
+          return true;
+        }
+      };
+    }
     case 'attackRanged': {
       const meta = skillMeta(name);
       const range = skillRange(meta, 3);
@@ -1686,7 +1811,7 @@ function makeUnit(tplKey, team, pos){
     id: crypto.randomUUID(),
     name: T.name, team, tplKey,
     stats: {...T.stats}, hp:T.stats.maxHp, dead:false,
-    temp:{defBonus:0,defend:false,atkBuff:0,spdBuff:0,shield:0}, statuses:[],
+    temp:{defBonus:0,defend:false,atkBuff:0,spdBuff:0,shield:0,quickdraw:false}, statuses:[],
     abilities: (T.abilities||[]).map(k=>({key:k,cd:0})),
     range: T.range ?? 1,
     pos: pos? {...pos} : null,
@@ -1748,7 +1873,18 @@ function cleanupStatusesEnd(u,log){
 /* ========= Turn & Teams ========= */
 function living(team){ return G.units.filter(u=>u.team===team && !u.dead); }
 function anyLiving(team){ return living(team).length>0; }
-function initiativeOrder(){ return G.units.filter(u=>!u.dead).slice().sort((a,b)=> (b.stats.spd + (b.temp.spdBuff||0)) - (a.stats.spd + (a.temp.spdBuff||0)) || (a.id > b.id ? 1 : -1)); }
+function initiativeScore(u){
+  const base = u.stats.spd + (u.temp.spdBuff||0);
+  return (u.temp.quickdraw ? 1000 : 0) + base;
+}
+function initiativeOrder(){
+  return G.units.filter(u=>!u.dead).slice().sort((a,b)=>{
+    const sb=initiativeScore(b);
+    const sa=initiativeScore(a);
+    if(sb!==sa) return sb-sa;
+    return (a.id > b.id ? 1 : -1);
+  });
+}
 
 /* ========= DOM ========= */
 const BOARD=document.getElementById('board');
@@ -2388,7 +2524,7 @@ function startBattle(){
   const a=living('ally').length, e=living('enemy').length;
   if(a===0 || e===0){ alert("Place at least one Ally and one Enemy."); return; }
   G.phase="battle";
-  for(const u of G.units){ u.dead=false; u.hp=u.stats.maxHp; u.statuses=[]; u.temp={defBonus:0,defend:false,atkBuff:0,spdBuff:0,shield:0}; for(const a of u.abilities) a.cd=0; if(!u.pos){ autoPlace(u); } }
+  for(const u of G.units){ u.dead=false; u.hp=u.stats.maxHp; u.statuses=[]; u.temp={defBonus:0,defend:false,atkBuff:0,spdBuff:0,shield:0,quickdraw:false}; for(const a of u.abilities) a.cd=0; if(!u.pos){ autoPlace(u); } }
   log("<i>The battle begins.</i>");
   nextTurn_init();
 }
@@ -2451,7 +2587,37 @@ ABILITY.onclick=()=>{
     b.textContent=`${tpl.name}${a.cd ? ` (${a.cd})` : ''}`;
     b.disabled=a.cd>0;
     b.onclick=()=>{
-      if(tpl.target==='self'){ tpl.use(G.acting, G.acting, log); a.cd=tpl.cooldown||0; render(); return endTurn(); }
+      const promptCells=(targetUnit)=>{
+        if(typeof tpl.validCells!=='function'){ log(`${tpl.name} has no valid cell selector.`); return; }
+        const cells = tpl.validCells(G.acting, targetUnit);
+        if(!cells.length){ log(`No valid destinations for ${tpl.name}.`); return; }
+        TARGETS.innerHTML='';
+        cells.forEach(pos=>{
+          const cb=document.createElement('button'); cb.className='targetBtn';
+          cb.textContent=`(${pos.x},${pos.y}) d=${dist((targetUnit?.pos)||G.acting.pos,pos)}`;
+          cb.onclick=()=>{
+            const result = tpl.useCell ? tpl.useCell(G.acting, targetUnit, pos, log) : tpl.use(G.acting, pos, log);
+            if(result===false) return;
+            a.cd=tpl.cooldown||0;
+            render();
+            endTurn();
+          };
+          TARGETS.appendChild(cb);
+        });
+      };
+
+      if(tpl.target==='self'){
+        if(tpl.requiresCell){
+          promptCells(G.acting);
+          return;
+        }
+        const result = tpl.use(G.acting, G.acting, log);
+        if(result===false) return;
+        a.cd=tpl.cooldown||0;
+        render();
+        return endTurn();
+      }
+
       const rng=tpl.range||1;
       const isAlly = tpl.target==='ally';
       const pool = isAlly ? living('ally') : living('enemy');
@@ -2461,8 +2627,28 @@ ABILITY.onclick=()=>{
       cands.forEach(t=>{
         const tb=document.createElement('button'); tb.className='targetBtn';
         tb.textContent=`${shortName(t.name)} (d=${dist(G.acting.pos,t.pos)})`;
-        tb.onclick=()=>{ if((tpl.range||1)>1 && !G.acting.temp.disengaged){ const adj=adjacentEnemies(G.acting).filter(e=>e.ep>0); if(adj.length){ const e=adj[0]; e.ep=Math.max(0,e.ep-1); const atkP=effAtk(e), defP=effDef(G.acting); const dmgP=computeDamage(atkP,defP); applyDamage(G.acting,dmgP,log,`${e.name} interrupts with an <b>engagement strike</b> for <span class='dmg'>-${dmgP}</span>.`); if(G.acting.dead){ render(); return endTurn(); } } }
-        tpl.use(G.acting, t, log); a.cd=tpl.cooldown||0; render(); endTurn(); };
+        tb.onclick=()=>{
+          if(tpl.requiresCell){
+            promptCells(t);
+            return;
+          }
+          if((tpl.range||1)>1 && !G.acting.temp.disengaged){
+            const adj=adjacentEnemies(G.acting).filter(e=>e.ep>0);
+            if(adj.length){
+              const e=adj[0];
+              e.ep=Math.max(0,e.ep-1);
+              const atkP=effAtk(e), defP=effDef(G.acting);
+              const dmgP=computeDamage(atkP,defP);
+              applyDamage(G.acting,dmgP,log,`${e.name} interrupts with an <b>engagement strike</b> for <span class='dmg'>-${dmgP}</span>.`);
+              if(G.acting.dead){ render(); return endTurn(); }
+            }
+          }
+          const result = tpl.use(G.acting, t, log);
+          if(result===false) return;
+          a.cd=tpl.cooldown||0;
+          render();
+          endTurn();
+        };
         TARGETS.appendChild(tb);
       });
     };
