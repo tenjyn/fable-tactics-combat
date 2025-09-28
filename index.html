@@ -371,6 +371,11 @@
   button.nav-btn:hover { transform:none; }
   button.nav-btn:disabled { color:rgba(154,163,178,.6); }
   .btn-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .preset-row { align-items:center; }
+  .preset-picker { flex:1 1 220px; min-width:200px; }
+  .preset-picker select { width:100%; }
+  #loadPresetBtn { flex:0 0 auto; }
+  .preset-description { margin:6px 0 0; min-height:18px; }
   .controls .btn-row { flex-direction:column; align-items:stretch; }
   .controls .btn-row button { width:100%; text-align:center; }
   .targetRow { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
@@ -1181,12 +1186,17 @@
       </div>
 
       <div class="divider"></div>
-      <div class="btn-row">
-        <button id="presetBtn" class="ghost">Preset: Bridge Clash</button>
+      <div class="btn-row preset-row">
+        <div class="preset-picker">
+          <label for="presetSelect" class="sr-only">Choose a quick scenario</label>
+          <select id="presetSelect" aria-describedby="presetDescription"></select>
+        </div>
+        <button id="loadPresetBtn" class="ghost">Load Scenario</button>
         <button id="fromSelectorBtn" class="ghost">Preset: From Selector</button>
         <button id="clearBtn" class="ghost">Clear Units</button>
         <button id="startBtn" class="primary">Start Battle</button>
       </div>
+      <div id="presetDescription" class="small preset-description"></div>
     </section>
 
     <section class="panel board">
@@ -2046,7 +2056,9 @@ const buildRow=document.getElementById('buildRow');
 const buildSearchInput = document.getElementById('buildSearch');
 const roleFilterButtons = [...document.querySelectorAll('[data-role-filter]')];
 const rangeFilterButtons = [...document.querySelectorAll('[data-range-filter]')];
-const presetBtn=document.getElementById('presetBtn');
+const presetSelect=document.getElementById('presetSelect');
+const loadPresetBtn=document.getElementById('loadPresetBtn');
+const presetDescription=document.getElementById('presetDescription');
 const fromSelectorBtn=document.getElementById('fromSelectorBtn');
 const clearBtn=document.getElementById('clearBtn');
 const startBtn=document.getElementById('startBtn');
@@ -2602,72 +2614,258 @@ function renderToken(unit, inRangeIds){
 }
 
 /* ========= Setup controls ========= */
-presetBtn.onclick=()=>{
-  G.units=[];
-  GRID.obstacles.clear();
-  GRID.terrain.clear();
-  const center=centerHex();
+const QUICK_SCENARIOS=[
+  {
+    key:'bridge-clash',
+    name:'Bridge Clash',
+    description:'River bisects the battlefield with parties meeting at a narrow crossing.',
+    setup(ctx){
+      const {playableCells, midX, midY, setTerrain, nearest, placeUnit}=ctx;
+      if(!playableCells.length) return;
+      for(const cell of playableCells){
+        if(cell.x===midX){ setTerrain(cell,'water'); }
+      }
+      const roadMid=isPlayableHex(midX,midY) ? {x:midX,y:midY} : nearest(0,0);
+      if(roadMid) setTerrain(roadMid,'road');
+      const roadNorth=nearest(0,-1);
+      if(roadNorth) setTerrain(roadNorth,'road');
+
+      const forestTargets=[nearest(-3,-2), nearest(-2,2)];
+      forestTargets.forEach(pos=>setTerrain(pos,'forest'));
+
+      const hillTargets=[nearest(3,2), nearest(2,-2)];
+      hillTargets.forEach(pos=>setTerrain(pos,'hill'));
+
+      const minX=Math.min(...playableCells.map(c=>c.x));
+      const maxX=Math.max(...playableCells.map(c=>c.x));
+      const leftColumn=playableCells.filter(c=>c.x===minX).sort((a,b)=>a.y-b.y);
+      const rightColumn=playableCells.filter(c=>c.x===maxX).sort((a,b)=>a.y-b.y);
+      const desiredYs=[midY, midY+1, midY-1];
+      function pickColumnSlots(column){
+        const used=new Set();
+        return desiredYs.map(target=>{
+          let best=null, bestDist=Infinity;
+          for(const cell of column){
+            const cellKey=key(cell.x,cell.y);
+            if(used.has(cellKey)) continue;
+            const d=Math.abs(cell.y-target);
+            if(d<bestDist){ bestDist=d; best=cell; }
+          }
+          if(best){ used.add(key(best.x,best.y)); return best; }
+          return null;
+        });
+      }
+      const allySlots=pickColumnSlots(leftColumn);
+      const enemySlots=pickColumnSlots(rightColumn);
+
+      ['Knight','Archer','Cleric'].forEach((name, idx)=>{
+        if(allySlots[idx]) placeUnit(name,'ally', allySlots[idx]);
+      });
+      ['Warlock','Reaper','Shaman'].forEach((name, idx)=>{
+        if(enemySlots[idx]) placeUnit(name,'enemy', enemySlots[idx]);
+      });
+    }
+  },
+  {
+    key:'forest-ambush',
+    name:'Forest Ambush',
+    description:'Strike from dense woodland while foes slog through boggy ground.',
+    setup(ctx){
+      const {setTerrainRelative, placeUnitRelative}=ctx;
+      const forestOffsets=[
+        [-1,-3],[0,-3],[1,-3],
+        [-2,-2],[-1,-2],[0,-2],[1,-2],[2,-2],
+        [-1,-1],[0,-1],[1,-1]
+      ];
+      forestOffsets.forEach(([dx,dy])=>setTerrainRelative(dx,dy,'forest'));
+      [[-1,2],[0,3],[1,2],[0,2]].forEach(([dx,dy])=>setTerrainRelative(dx,dy,'swamp'));
+      [[-2,0],[2,0]].forEach(([dx,dy])=>setTerrainRelative(dx,dy,'hill'));
+      [[0,0],[0,1]].forEach(([dx,dy])=>setTerrainRelative(dx,dy,'road'));
+
+      placeUnitRelative('Scout','ally', -1, -2);
+      placeUnitRelative('Archer','ally', 0, -1);
+      placeUnitRelative('Druid','ally', 1, -2);
+      placeUnitRelative('Rogue','ally', -2, -1);
+
+      placeUnitRelative('Fighter','enemy', -1, 2);
+      placeUnitRelative('Warlock','enemy', 0, 3);
+      placeUnitRelative('Shaman','enemy', 1, 2);
+      placeUnitRelative('Reaper','enemy', 2, 1);
+    }
+  },
+  {
+    key:'encircled-outpost',
+    name:'Encircled Outpost',
+    description:'Defend a barricaded center while attackers close in from every side.',
+    radius:5,
+    setup(ctx){
+      const {center, setTerrain, addObstacle, placeUnit, placeUnitRelative, setTerrainRelative, nearest}=ctx;
+      const stronghold=center || nearest(0,0);
+      if(stronghold){
+        setTerrain(stronghold,'road');
+        const neighbors=hexNeighbors(stronghold.x,stronghold.y).filter(pos=>isPlayableHex(pos.x,pos.y));
+        const openNeighbors=[];
+        neighbors.forEach((pos, idx)=>{
+          if(idx===0 || idx===2 || idx===4){
+            addObstacle(pos);
+          } else {
+            setTerrain(pos, idx===1 ? 'road' : 'hill');
+            openNeighbors.push(pos);
+          }
+        });
+        placeUnit('Warden','ally', stronghold);
+        if(openNeighbors[0]) placeUnit('Cleric','ally', openNeighbors[0]);
+        if(openNeighbors[1]) placeUnit('Archer','ally', openNeighbors[1]);
+        if(openNeighbors[2]) placeUnit('Magician','ally', openNeighbors[2]);
+      }
+
+      setTerrainRelative(0,-2,'hill');
+      setTerrainRelative(0,2,'road');
+      setTerrainRelative(2,-1,'road');
+      setTerrainRelative(-2,1,'road');
+
+      const attackers=[
+        {name:'Gunslinger', dx:3, dy:-1},
+        {name:'Warlock', dx:-3, dy:1},
+        {name:'Reaper', dx:0, dy:3},
+        {name:'Fighter', dx:2, dy:2},
+        {name:'Necromancer', dx:-1, dy:3},
+      ];
+      attackers.forEach(({name,dx,dy})=>placeUnitRelative(name,'enemy',dx,dy));
+    }
+  }
+];
+
+let activeScenarioKey=QUICK_SCENARIOS[0]?.key ?? null;
+
+function findScenario(key){
+  return QUICK_SCENARIOS.find(s=>s.key===key) || null;
+}
+
+function createScenarioContext(){
   const playableCells=[...GRID.playable].map(k=>{
     const [x,y]=k.split(',').map(Number);
     return {x,y};
   });
-  if(!playableCells.length){ render(); return; }
+  const center=centerHex();
   const midX=center?.x ?? Math.floor(GRID.w/2);
   const midY=center?.y ?? Math.floor(GRID.h/2);
-  for(const cell of playableCells){
-    if(cell.x===midX){ GRID.terrain.set(key(cell.x,cell.y),'water'); }
+  const used=new Set();
+  return {
+    center,
+    playableCells,
+    midX,
+    midY,
+    nearest(dx,dy){
+      return nearestPlayable(midX+dx, midY+dy);
+    },
+    setTerrain(cell,type){
+      if(!cell) return;
+      GRID.terrain.set(key(cell.x,cell.y), type);
+    },
+    setTerrainRelative(dx,dy,type){
+      const pos=nearestPlayable(midX+dx, midY+dy);
+      if(pos) this.setTerrain(pos,type);
+    },
+    addObstacle(cell){
+      if(!cell) return;
+      GRID.obstacles.add(key(cell.x,cell.y));
+    },
+    addObstacleRelative(dx,dy){
+      const pos=nearestPlayable(midX+dx, midY+dy);
+      if(pos) this.addObstacle(pos);
+    },
+    placeUnit(name,team,cell){
+      if(!cell) return;
+      const cellKey=key(cell.x,cell.y);
+      if(GRID.obstacles.has(cellKey) || used.has(cellKey)) return;
+      used.add(cellKey);
+      G.units.push(makeUnit(name, team, {x:cell.x, y:cell.y}));
+    },
+    placeUnitRelative(name,team,dx,dy){
+      const pos=nearestPlayable(midX+dx, midY+dy);
+      if(pos) this.placeUnit(name,team,pos);
+    }
+  };
+}
+
+function updatePresetDescription(){
+  if(!presetDescription) return;
+  const selected=presetSelect?.value || activeScenarioKey;
+  const scenario=selected ? findScenario(selected) : null;
+  if(scenario){
+    presetDescription.textContent=`${scenario.name}: ${scenario.description}`;
+    if(loadPresetBtn){ loadPresetBtn.textContent=`Load ${scenario.name}`; }
+  } else {
+    presetDescription.textContent='';
+    if(loadPresetBtn){ loadPresetBtn.textContent='Load Scenario'; }
   }
-  const roadMid=isPlayableHex(midX,midY) ? {x:midX,y:midY} : nearestPlayable(midX,midY);
-  if(roadMid) GRID.terrain.set(key(roadMid.x,roadMid.y),'road');
-  const roadNorth=nearestPlayable(midX,midY-1);
-  if(roadNorth) GRID.terrain.set(key(roadNorth.x,roadNorth.y),'road');
+}
 
-  const forestTargets=[
-    nearestPlayable(midX-3, midY-2),
-    nearestPlayable(midX-2, midY+2),
-  ];
-  for(const pos of forestTargets){ if(pos) GRID.terrain.set(key(pos.x,pos.y),'forest'); }
-
-  const hillTargets=[
-    nearestPlayable(midX+3, midY+2),
-    nearestPlayable(midX+2, midY-2),
-  ];
-  for(const pos of hillTargets){ if(pos) GRID.terrain.set(key(pos.x,pos.y),'hill'); }
-
-  const minX=Math.min(...playableCells.map(c=>c.x));
-  const maxX=Math.max(...playableCells.map(c=>c.x));
-  const leftColumn=playableCells.filter(c=>c.x===minX).sort((a,b)=>a.y-b.y);
-  const rightColumn=playableCells.filter(c=>c.x===maxX).sort((a,b)=>a.y-b.y);
-  const desiredYs=[midY, midY+1, midY-1];
-  function pickColumnSlots(column, desired){
-    const used=new Set();
-    return desired.map(target=>{
-      let best=null, bestDist=Infinity;
-      for(const cell of column){
-        const cellKey=key(cell.x,cell.y);
-        if(used.has(cellKey)) continue;
-        const d=Math.abs(cell.y - target);
-        if(d<bestDist){ bestDist=d; best=cell; }
-      }
-      if(best){ used.add(key(best.x,best.y)); return {x:best.x,y:best.y}; }
-      return null;
-    });
+function populateScenarioOptions(){
+  if(!presetSelect) return;
+  const desired=activeScenarioKey;
+  presetSelect.innerHTML='';
+  QUICK_SCENARIOS.forEach((scenario, idx)=>{
+    const option=document.createElement('option');
+    option.value=scenario.key;
+    option.textContent=scenario.name;
+    if(desired){
+      option.selected=scenario.key===desired;
+    } else if(idx===0){
+      option.selected=true;
+      activeScenarioKey=scenario.key;
+    }
+    presetSelect.appendChild(option);
+  });
+  if(!presetSelect.value && activeScenarioKey){
+    presetSelect.value=activeScenarioKey;
   }
-  const allySlots=pickColumnSlots(leftColumn, desiredYs);
-  const enemySlots=pickColumnSlots(rightColumn, desiredYs);
+  updatePresetDescription();
+}
 
-  const allyNames=["Knight","Archer","Cleric"];
-  allySlots.forEach((slot, idx)=>{
-    if(!slot) return;
-    G.units.push(makeUnit(allyNames[idx], 'ally', {x:slot.x, y:slot.y}));
-  });
-  const enemyNames=["Warlock","Reaper","Shaman"];
-  enemySlots.forEach((slot, idx)=>{
-    if(!slot) return;
-    G.units.push(makeUnit(enemyNames[idx], 'enemy', {x:slot.x, y:slot.y}));
-  });
+function applyScenario(key){
+  const scenario=findScenario(key);
+  if(!scenario) return;
+  const inBattle=G.phase==='battle' && anyLiving('ally') && anyLiving('enemy');
+  if(inBattle && !confirm('A battle is currently in progress. Load a new scenario?')) return;
+
+  activeScenarioKey=scenario.key;
+  resetBoardState();
+
+  if(typeof scenario.radius==='number'){
+    const safeRadius=Math.max(2, Math.min(5, Math.floor(scenario.radius)));
+    setGridRadius(safeRadius);
+  }
+
+  GRID.obstacles.clear();
+  GRID.terrain.clear();
+  G.units=[];
+
+  const ctx=createScenarioContext();
+  scenario.setup?.(ctx);
+
+  clampGridState();
+  syncGridControls();
   render();
-};
+  setSetupOpen(true);
+
+  if(presetSelect){ presetSelect.value=scenario.key; }
+  updatePresetDescription();
+}
+
+populateScenarioOptions();
+
+presetSelect?.addEventListener('change', ()=>{
+  activeScenarioKey=presetSelect.value;
+  updatePresetDescription();
+});
+
+loadPresetBtn?.addEventListener('click', ()=>{
+  const key=presetSelect?.value || activeScenarioKey;
+  if(key) applyScenario(key);
+});
+
 clearBtn.onclick=()=>{ G.units=[]; render(); };
 
 fromSelectorBtn.onclick = () => {
