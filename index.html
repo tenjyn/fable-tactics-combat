@@ -2751,7 +2751,7 @@ function createScenarioContext(){
   const midX=center?.x ?? Math.floor(GRID.w/2);
   const midY=center?.y ?? Math.floor(GRID.h/2);
   const used=new Set();
-  return {
+  const ctx={
     center,
     playableCells,
     midX,
@@ -2763,17 +2763,9 @@ function createScenarioContext(){
       if(!cell) return;
       GRID.terrain.set(key(cell.x,cell.y), type);
     },
-    setTerrainRelative(dx,dy,type){
-      const pos=nearestPlayable(midX+dx, midY+dy);
-      if(pos) this.setTerrain(pos,type);
-    },
     addObstacle(cell){
       if(!cell) return;
       GRID.obstacles.add(key(cell.x,cell.y));
-    },
-    addObstacleRelative(dx,dy){
-      const pos=nearestPlayable(midX+dx, midY+dy);
-      if(pos) this.addObstacle(pos);
     },
     placeUnit(name,team,cell){
       if(!cell) return;
@@ -2782,11 +2774,20 @@ function createScenarioContext(){
       used.add(cellKey);
       G.units.push(makeUnit(name, team, {x:cell.x, y:cell.y}));
     },
-    placeUnitRelative(name,team,dx,dy){
-      const pos=nearestPlayable(midX+dx, midY+dy);
-      if(pos) this.placeUnit(name,team,pos);
-    }
   };
+  ctx.setTerrainRelative=(dx,dy,type)=>{
+    const pos=nearestPlayable(midX+dx, midY+dy);
+    if(pos) ctx.setTerrain(pos,type);
+  };
+  ctx.addObstacleRelative=(dx,dy)=>{
+    const pos=nearestPlayable(midX+dx, midY+dy);
+    if(pos) ctx.addObstacle(pos);
+  };
+  ctx.placeUnitRelative=(name,team,dx,dy)=>{
+    const pos=nearestPlayable(midX+dx, midY+dy);
+    if(pos) ctx.placeUnit(name,team,pos);
+  };
+  return ctx;
 }
 
 function updatePresetDescription(){
