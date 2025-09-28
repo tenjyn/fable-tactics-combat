@@ -885,11 +885,49 @@
     flex-direction:column;
     gap:12px;
   }
-  .build-section-title {
+  .build-section summary {
+    list-style:none;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:8px 12px;
+    border-radius:10px;
+    background:rgba(18,24,42,.78);
+    border:1px solid rgba(54,68,110,.7);
+    cursor:pointer;
+    transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
     font-size:12px;
     letter-spacing:.22em;
     text-transform:uppercase;
     color:rgba(255,255,255,.75);
+  }
+  .build-section summary::-webkit-details-marker { display:none; }
+  .build-section summary:hover {
+    border-color:rgba(114,153,255,.75);
+    box-shadow:0 0 0 1px rgba(114,153,255,.25);
+  }
+  .build-section summary:focus-visible {
+    outline:none;
+    border-color:rgba(127,230,162,.75);
+    box-shadow:0 0 0 1px rgba(127,230,162,.3);
+  }
+  .build-section summary::after {
+    content:"";
+    width:10px;
+    height:10px;
+    border-right:2px solid currentColor;
+    border-bottom:2px solid currentColor;
+    transform:rotate(-45deg);
+    transition:transform .18s ease;
+  }
+  .build-section[open] summary::after {
+    transform:rotate(45deg);
+  }
+  .build-section-count {
+    font-size:10px;
+    letter-spacing:.1em;
+    color:var(--muted);
   }
   .build-grid {
     display:grid;
@@ -2050,17 +2088,18 @@ function renderBuildButtons(){
     return;
   }
 
-  const showSectionTitles = activeRoleFilter==='all' || sortedGroups.length>1;
-
   sortedGroups.forEach(([role, list])=>{
-    const section=document.createElement('div');
+    const section=document.createElement('details');
     section.className='build-section';
-    if(showSectionTitles){
-      const title=document.createElement('h3');
-      title.className='build-section-title';
-      title.textContent=role;
-      section.appendChild(title);
-    }
+    const summary=document.createElement('summary');
+    summary.className='build-section-summary';
+    const label=document.createElement('span');
+    label.textContent=role;
+    const count=document.createElement('span');
+    count.className='build-section-count';
+    count.textContent = list.length === 1 ? '1 class' : `${list.length} classes`;
+    summary.append(label,count);
+    section.appendChild(summary);
     const grid=document.createElement('div');
     grid.className='build-grid';
     list.forEach(({key, template})=>{
@@ -2090,6 +2129,10 @@ function renderBuildButtons(){
       grid.appendChild(b);
     });
     section.appendChild(grid);
+    const shouldOpen = list.some(({key})=>key===activeBuild) || activeRoleFilter!=='all' || sortedGroups.length===1;
+    if(shouldOpen){
+      section.setAttribute('open','');
+    }
     buildRow.appendChild(section);
   });
 }
