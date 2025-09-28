@@ -477,7 +477,7 @@
     ,Runesmith:"🪨"
     ,Tailor:"🧵"
     ,Navigator:"🧭"
-    ,FolkCompanion:"🐕"
+    ,'Folk Companion':"🐕"
     ,Artificer:"🛠"
     ,Chronicler:"📝"
     ,Trapper:"🪤"
