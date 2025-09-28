@@ -1146,8 +1146,8 @@
       <!-- Grid size + zoom -->
       <div class="btn-row" style="flex-wrap:wrap; align-items:center">
         <div class="small">Grid:</div>
-        <label class="small">W <input id="gridW" type="number" min="4" max="16" value="8"></label>
-        <label class="small">H <input id="gridH" type="number" min="3" max="12" value="6"></label>
+        <label class="small">W <input id="gridW" type="number" min="5" max="11" value="9"></label>
+        <label class="small">H <input id="gridH" type="number" min="5" max="11" value="9"></label>
         <button id="applyGridBtn" class="ghost">Apply</button>
 
         <div class="small" style="margin-left:16px">Zoom:</div>
@@ -1291,9 +1291,19 @@ const SPRITES = (()=>{
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const choice=(arr)=>arr[Math.floor(Math.random()*arr.length)];
-const GRID = { w: 8, h: 6, cell: 72, desiredCell: 72, obstacles: new Set(), terrain: new Map() };
+const GRID = {
+  radius: 4,
+  w: 0,
+  h: 0,
+  cell: 72,
+  desiredCell: 72,
+  originX: 0,
+  originY: 0,
+  playable: new Set(),
+  obstacles: new Set(),
+  terrain: new Map(),
+};
 const key=(x,y)=>`${x},${y}`;
-const hasObs=(x,y)=>GRID.obstacles.has(key(x,y));
 const SQRT3 = Math.sqrt(3);
 const HEX_AXIAL_DIRS = [
   {q:+1,r:0},
@@ -1303,14 +1313,70 @@ const HEX_AXIAL_DIRS = [
   {q:-1,r:+1},
   {q:0,r:+1},
 ];
+function axialToOffsetRaw(q,r){
+  const x = q;
+  const y = r + (q - (q & 1)) / 2;
+  return {x,y};
+}
+function computeHexMask(radius){
+  const playable=new Set();
+  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+  for(let q=-radius; q<=radius; q++){
+    const rMin=Math.max(-radius, -q-radius);
+    const rMax=Math.min(radius, -q+radius);
+    for(let r=rMin; r<=rMax; r++){
+      const raw=axialToOffsetRaw(q,r);
+      if(raw.x<minX) minX=raw.x;
+      if(raw.x>maxX) maxX=raw.x;
+      if(raw.y<minY) minY=raw.y;
+      if(raw.y>maxY) maxY=raw.y;
+    }
+  }
+  if(!Number.isFinite(minX) || !Number.isFinite(minY)){
+    return {originX:0, originY:0, width:0, height:0, playable};
+  }
+  const originX = -minX;
+  const originY = -minY;
+  for(let q=-radius; q<=radius; q++){
+    const rMin=Math.max(-radius, -q-radius);
+    const rMax=Math.min(radius, -q+radius);
+    for(let r=rMin; r<=rMax; r++){
+      const raw=axialToOffsetRaw(q,r);
+      const x=raw.x + originX;
+      const y=raw.y + originY;
+      playable.add(key(x,y));
+    }
+  }
+  return {
+    originX,
+    originY,
+    width: (maxX - minX + 1),
+    height: (maxY - minY + 1),
+    playable,
+  };
+}
+function setGridRadius(radius){
+  const mask=computeHexMask(radius);
+  GRID.radius = radius;
+  GRID.originX = mask.originX;
+  GRID.originY = mask.originY;
+  GRID.w = mask.width;
+  GRID.h = mask.height;
+  GRID.playable = mask.playable;
+}
+setGridRadius(GRID.radius);
+const isPlayableHex=(x,y)=>GRID.playable.has(key(x,y));
+const hasObs=(x,y)=>isPlayableHex(x,y) && GRID.obstacles.has(key(x,y));
 function offsetToAxial(x,y){
-  const q = x;
-  const r = y - (x - (x & 1)) / 2;
+  const adjX = x - GRID.originX;
+  const adjY = y - GRID.originY;
+  const q = adjX;
+  const r = adjY - (adjX - (adjX & 1)) / 2;
   return {q,r};
 }
 function axialToOffset(q,r){
-  const x = q;
-  const y = r + (q - (q & 1)) / 2;
+  const x = q + GRID.originX;
+  const y = r + (q - (q & 1)) / 2 + GRID.originY;
   return {x,y};
 }
 function offsetToCube(x,y){
@@ -1321,6 +1387,28 @@ function offsetToCube(x,y){
 }
 function cubeToOffset(cube){
   return axialToOffset(cube.x, cube.z);
+}
+function centerHex(){
+  return axialToOffset(0,0);
+}
+function inBounds(x,y){
+  return isPlayableHex(x,y);
+}
+function clampGridState(){
+  const isPlayableKey=(k)=>{
+    const [x,y]=k.split(',').map(Number);
+    return isPlayableHex(x,y);
+  };
+  GRID.obstacles = new Set([...GRID.obstacles].filter(isPlayableKey));
+  GRID.terrain = new Map([...GRID.terrain.entries()].filter(([k])=>isPlayableKey(k)));
+  const fallback=centerHex();
+  for(const u of G.units){
+    if(!u.pos) continue;
+    if(!isPlayableHex(u.pos.x,u.pos.y)){
+      const replacement=nearestPlayable(u.pos.x,u.pos.y) || fallback;
+      u.pos = replacement ? {x:replacement.x, y:replacement.y} : null;
+    }
+  }
 }
 function hexDistance(a,b){
   const ac = offsetToCube(a.x,a.y);
@@ -1338,9 +1426,23 @@ function hexNeighbors(x,y){
   const axial = offsetToAxial(x,y);
   return HEX_AXIAL_DIRS.map(dir=>axialToOffset(axial.q + dir.q, axial.r + dir.r));
 }
+function nearestPlayable(x,y){
+  if(isPlayableHex(x,y)) return {x,y};
+  let best=null, bestDist=Infinity;
+  for(const k of GRID.playable){
+    const [px,py]=k.split(',').map(Number);
+    const cand={x:px,y:py};
+    const d=dist({x, y}, cand);
+    if(d<bestDist){
+      bestDist=d;
+      best=cand;
+    }
+  }
+  return best;
+}
 function computeHexGeometry(cellSize){
   const cellHeight = cellSize * SQRT3 / 2;
-  const hasCells = GRID.w > 0 && GRID.h > 0;
+  const hasCells = GRID.playable.size > 0;
   if(!hasCells){
     return { positions:[], width:0, height:0, offsetX:0, offsetY:0, cellHeight };
   }
@@ -1349,6 +1451,10 @@ function computeHexGeometry(cellSize){
   for(let y=0;y<GRID.h;y++){
     positions[y]=[];
     for(let x=0;x<GRID.w;x++){
+      if(!isPlayableHex(x,y)){
+        positions[y][x]=null;
+        continue;
+      }
       const axial = offsetToAxial(x,y);
       const centerX = (cellSize * 0.75) * axial.q;
       const centerY = cellHeight * (axial.r + axial.q/2);
@@ -1503,6 +1609,7 @@ function gatherFreeCells(center, maxRange){
   const cells=[];
   for(let y=0;y<GRID.h;y++){
     for(let x=0;x<GRID.w;x++){
+      if(!isPlayableHex(x,y)) continue;
       if(x===center.x && y===center.y) continue;
       if(hasObs(x,y)) continue;
       const terrain = tAt(x,y);
@@ -2178,22 +2285,24 @@ function syncGridControls(){
   terrainBtn.textContent = `Terrain Mode: ${G.terrainMode?'ON':'OFF'}`;
 }
 
+function clampRadiusValue(r){
+  return Math.max(2, Math.min(5, r));
+}
+function radiusFromInput(v){
+  const num=parseInt(v,10);
+  if(!Number.isFinite(num)) return null;
+  return Math.max(1, Math.floor((num - 1) / 2));
+}
 function applyGridSize(w,h){
-  GRID.w = Math.max(4, Math.min(16, parseInt(w)||GRID.w));
-  GRID.h = Math.max(3, Math.min(12, parseInt(h)||GRID.h));
-  GRID.obstacles = new Set([...GRID.obstacles].filter(k=>{
-    const [x,y]=k.split(',').map(Number);
-    return x>=0 && x<GRID.w && y>=0 && y<GRID.h;
-  }));
-  GRID.terrain = new Map([...GRID.terrain.entries()].filter(([k,v])=>{
-    const [x,y]=k.split(',').map(Number);
-    return x>=0 && x<GRID.w && y>=0 && y<GRID.h;
-  }));
-  for(const u of G.units){
-    if(!u.pos) continue;
-    u.pos.x = Math.max(0, Math.min(GRID.w-1, u.pos.x));
-    u.pos.y = Math.max(0, Math.min(GRID.h-1, u.pos.y));
-  }
+  const rW=radiusFromInput(w);
+  const rH=radiusFromInput(h);
+  let radius = GRID.radius;
+  if(rW!=null && rH!=null) radius = Math.min(rW, rH);
+  else if(rW!=null) radius = rW;
+  else if(rH!=null) radius = rH;
+  radius = clampRadiusValue(radius);
+  setGridRadius(radius);
+  clampGridState();
   syncGridControls();
   render();
 }
@@ -2383,6 +2492,7 @@ function renderBoard(){
 
   for(let y=0;y<GRID.h;y++){
     for(let x=0;x<GRID.w;x++){
+      if(!isPlayableHex(x,y)) continue;
       const tClass = 't-' + (GRID.terrain.get(key(x,y))||'plain');
       const cell=document.createElement('div'); cell.className=`cell ${tClass}`+(hasObs(x,y)?' obstacle':'');
       const pos=geometry.positions[y]?.[x];
@@ -2500,23 +2610,66 @@ presetBtn.onclick=()=>{
   G.units=[];
   GRID.obstacles.clear();
   GRID.terrain.clear();
-  const midX=Math.floor(GRID.w/2);
-  for(let y=0;y<GRID.h;y++){ GRID.terrain.set(key(midX,y),'water'); }
-  const midY=Math.floor(GRID.h/2);
-  GRID.terrain.set(key(midX,midY),'road');
-  GRID.terrain.set(key(midX,midY-1),'road');
-  GRID.terrain.set(key(1,1),'forest');
-  GRID.terrain.set(key(2,2),'forest');
-  GRID.terrain.set(key(GRID.w-2,GRID.h-2),'hill');
-  GRID.terrain.set(key(GRID.w-3,GRID.h-3),'hill');
+  const center=centerHex();
+  const playableCells=[...GRID.playable].map(k=>{
+    const [x,y]=k.split(',').map(Number);
+    return {x,y};
+  });
+  if(!playableCells.length){ render(); return; }
+  const midX=center?.x ?? Math.floor(GRID.w/2);
+  const midY=center?.y ?? Math.floor(GRID.h/2);
+  for(const cell of playableCells){
+    if(cell.x===midX){ GRID.terrain.set(key(cell.x,cell.y),'water'); }
+  }
+  const roadMid=isPlayableHex(midX,midY) ? {x:midX,y:midY} : nearestPlayable(midX,midY);
+  if(roadMid) GRID.terrain.set(key(roadMid.x,roadMid.y),'road');
+  const roadNorth=nearestPlayable(midX,midY-1);
+  if(roadNorth) GRID.terrain.set(key(roadNorth.x,roadNorth.y),'road');
 
-  G.units.push(makeUnit("Knight","ally",{x:0,y:midY}));
-  G.units.push(makeUnit("Archer","ally",{x:0,y:Math.min(GRID.h-1,midY+1)}));
-  G.units.push(makeUnit("Cleric","ally",{x:0,y:Math.max(0,midY-1)}));
+  const forestTargets=[
+    nearestPlayable(midX-3, midY-2),
+    nearestPlayable(midX-2, midY+2),
+  ];
+  for(const pos of forestTargets){ if(pos) GRID.terrain.set(key(pos.x,pos.y),'forest'); }
 
-  G.units.push(makeUnit("Warlock","enemy",{x:GRID.w-1,y:midY}));
-  G.units.push(makeUnit("Reaper","enemy",{x:GRID.w-1,y:Math.min(GRID.h-1,midY+1)}));
-  G.units.push(makeUnit("Shaman","enemy",{x:GRID.w-1,y:Math.max(0,midY-1)}));
+  const hillTargets=[
+    nearestPlayable(midX+3, midY+2),
+    nearestPlayable(midX+2, midY-2),
+  ];
+  for(const pos of hillTargets){ if(pos) GRID.terrain.set(key(pos.x,pos.y),'hill'); }
+
+  const minX=Math.min(...playableCells.map(c=>c.x));
+  const maxX=Math.max(...playableCells.map(c=>c.x));
+  const leftColumn=playableCells.filter(c=>c.x===minX).sort((a,b)=>a.y-b.y);
+  const rightColumn=playableCells.filter(c=>c.x===maxX).sort((a,b)=>a.y-b.y);
+  const desiredYs=[midY, midY+1, midY-1];
+  function pickColumnSlots(column, desired){
+    const used=new Set();
+    return desired.map(target=>{
+      let best=null, bestDist=Infinity;
+      for(const cell of column){
+        const cellKey=key(cell.x,cell.y);
+        if(used.has(cellKey)) continue;
+        const d=Math.abs(cell.y - target);
+        if(d<bestDist){ bestDist=d; best=cell; }
+      }
+      if(best){ used.add(key(best.x,best.y)); return {x:best.x,y:best.y}; }
+      return null;
+    });
+  }
+  const allySlots=pickColumnSlots(leftColumn, desiredYs);
+  const enemySlots=pickColumnSlots(rightColumn, desiredYs);
+
+  const allyNames=["Knight","Archer","Cleric"];
+  allySlots.forEach((slot, idx)=>{
+    if(!slot) return;
+    G.units.push(makeUnit(allyNames[idx], 'ally', {x:slot.x, y:slot.y}));
+  });
+  const enemyNames=["Warlock","Reaper","Shaman"];
+  enemySlots.forEach((slot, idx)=>{
+    if(!slot) return;
+    G.units.push(makeUnit(enemyNames[idx], 'enemy', {x:slot.x, y:slot.y}));
+  });
   render();
 };
 clearBtn.onclick=()=>{ G.units=[]; render(); };
@@ -2533,7 +2686,8 @@ fromSelectorBtn.onclick = () => {
     function placeList(list, team){
       for(const u of list){
         const guess = title(u.tpl);
-        const pos = u.pos && typeof u.pos.x==='number' ? {x:Math.max(0,Math.min(GRID.w-1,u.pos.x)),y:Math.max(0,Math.min(GRID.h-1,u.pos.y))} : null;
+        const desired = u.pos && typeof u.pos.x==='number' && typeof u.pos.y==='number' ? {x:u.pos.x, y:u.pos.y} : null;
+        const pos = desired ? nearestPlayable(desired.x, desired.y) : null;
         const made = makeUnit(guess in UnitTemplates ? guess : "Knight", team, pos);
         if(u.name) made.name = u.name;
         G.units.push(made);
@@ -2564,18 +2718,21 @@ function autoPlace(u){
   if(u.team==='ally'){
     for(let y=0;y<GRID.h;y++){
       for(let x=0;x<Math.min(leftCols, GRID.w); x++){
+        if(!isPlayableHex(x,y)) continue;
         if(!getUnitAt(x,y) && !hasObs(x,y) && tAt(x,y).pass){ u.pos={x,y}; return; }
       }
     }
   } else {
     for(let y=0;y<GRID.h;y++){
       for(let x=GRID.w-1; x>=Math.max(0, GRID.w - rightCols); x--){
+        if(!isPlayableHex(x,y)) continue;
         if(!getUnitAt(x,y) && !hasObs(x,y) && tAt(x,y).pass){ u.pos={x,y}; return; }
       }
     }
   }
   for(let y=0;y<GRID.h;y++){
     for(let x=0;x<GRID.w;x++){
+      if(!isPlayableHex(x,y)) continue;
       if(!getUnitAt(x,y) && !hasObs(x,y) && tAt(x,y).pass){ u.pos={x,y}; return; }
     }
   }
@@ -2791,7 +2948,7 @@ function neighbors(p, goal){
   const out=[];
   for(const nb of hexNeighbors(p.x,p.y)){
     const {x,y}=nb;
-    if(x<0||x>=GRID.w||y<0||y>=GRID.h) continue;
+    if(!inBounds(x,y)) continue;
     if(hasObs(x,y)) continue;
     const terr=tAt(x,y);
     if(!terr.pass) continue;
@@ -2813,7 +2970,7 @@ function computeReachableHexes(unit){
     const current=frontier.shift();
     for(const nb of hexNeighbors(current.x,current.y)){
       const {x:nx,y:ny}=nb;
-      if(nx<0||nx>=GRID.w||ny<0||ny>=GRID.h) continue;
+      if(!inBounds(nx,ny)) continue;
       if(hasObs(nx,ny)) continue;
       const terr=tAt(nx,ny);
       if(!terr.pass) continue;
@@ -2953,7 +3110,7 @@ function aiAct(){
         let bestDist=Infinity;
         for(const nb of hexNeighbors(u.pos.x,u.pos.y)){
           const {x:nx,y:ny}=nb;
-          if(nx<0||ny<0||nx>=GRID.w||ny>=GRID.h) continue;
+          if(!inBounds(nx,ny)) continue;
           if(hasObs(nx,ny)) continue;
           const terr=tAt(nx,ny);
           if(!terr.pass) continue;
