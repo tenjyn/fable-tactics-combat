@@ -95,10 +95,11 @@
     padding:26px 26px 60px;
     display:grid;
     gap:22px;
-    grid-template-columns:minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 0.9fr);
+    grid-template-columns:minmax(0, 1.15fr) minmax(0, 1.8fr) minmax(0, 1fr);
     grid-template-areas:
-      "board controls side"
-      "board log side";
+      "quick board controls"
+      "quick board log"
+      "quick board side";
     align-items:start;
     position:relative;
   }
@@ -149,10 +150,15 @@
     main {
       grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);
       grid-template-areas:
-        "board side"
+        "quick board"
+        "quick board"
         "controls side"
-        "log side";
+        "log log";
       padding:24px 20px 52px;
+    }
+    .panel.quickstart {
+      position:static;
+      max-height:none;
     }
     .log { max-height:none; }
   }
@@ -177,6 +183,7 @@
     main {
       grid-template-columns:minmax(0, 1fr);
       grid-template-areas:
+        "quick"
         "board"
         "controls"
         "side"
@@ -776,6 +783,231 @@
 
   .btn-row + .divider { margin-top:16px; }
 
+  .quickstart-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin:4px 0 8px;
+    gap:12px;
+  }
+  .quickstart-title {
+    font-size:12px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:#fff;
+  }
+  .quickstart-hint {
+    color:var(--muted);
+  }
+  .quickstart-controls {
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin-bottom:14px;
+  }
+  .search-field {
+    position:relative;
+  }
+  .search-field input[type="search"] {
+    width:100%;
+    border-radius:12px;
+    border:1px solid rgba(60,74,118,.75);
+    background:rgba(12,16,28,.88);
+    color:#fff;
+    padding:10px 12px;
+    font-size:14px;
+    transition:border-color .18s ease, box-shadow .18s ease;
+  }
+  .search-field input[type="search"]:focus {
+    outline:none;
+    border-color:rgba(127,230,162,.85);
+    box-shadow:0 0 0 1px rgba(127,230,162,.28);
+  }
+  .sr-only {
+    position:absolute;
+    width:1px;
+    height:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    border:0;
+  }
+  .filter-stack {
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .filter-group {
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    padding:10px 12px;
+    border:1px solid rgba(54,68,110,.7);
+    border-radius:12px;
+    background:rgba(18,24,42,.78);
+    min-width:200px;
+  }
+  .filter-label {
+    text-transform:uppercase;
+    letter-spacing:.16em;
+    color:rgba(255,255,255,.7);
+    font-size:11px;
+  }
+  .chip-row {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .chip {
+    padding:6px 12px;
+    border-radius:999px;
+    border:1px solid rgba(60,74,118,.75);
+    background:rgba(16,22,38,.76);
+    color:var(--muted);
+    font-size:12px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:border-color .18s ease, color .18s ease, box-shadow .18s ease;
+  }
+  .chip:hover {
+    border-color:rgba(114,153,255,.8);
+    color:#fff;
+  }
+  .chip.active {
+    border-color:rgba(127,230,162,.8);
+    color:#fff;
+    box-shadow:0 0 0 1px rgba(127,230,162,.18);
+  }
+  #buildRow {
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+  }
+  .build-section {
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .build-section summary {
+    list-style:none;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:8px 12px;
+    border-radius:10px;
+    background:rgba(18,24,42,.78);
+    border:1px solid rgba(54,68,110,.7);
+    cursor:pointer;
+    transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    font-size:12px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:rgba(255,255,255,.75);
+  }
+  .build-section summary::-webkit-details-marker { display:none; }
+  .build-section summary:hover {
+    border-color:rgba(114,153,255,.75);
+    box-shadow:0 0 0 1px rgba(114,153,255,.25);
+  }
+  .build-section summary:focus-visible {
+    outline:none;
+    border-color:rgba(127,230,162,.75);
+    box-shadow:0 0 0 1px rgba(127,230,162,.3);
+  }
+  .build-section summary::after {
+    content:"";
+    width:10px;
+    height:10px;
+    border-right:2px solid currentColor;
+    border-bottom:2px solid currentColor;
+    transform:rotate(-45deg);
+    transition:transform .18s ease;
+  }
+  .build-section[open] summary::after {
+    transform:rotate(45deg);
+  }
+  .build-section-count {
+    font-size:10px;
+    letter-spacing:.1em;
+    color:var(--muted);
+  }
+  .build-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+    gap:14px;
+  }
+  .build-empty {
+    padding:20px;
+    border-radius:12px;
+    background:rgba(12,16,28,.72);
+    border:1px solid rgba(54,68,110,.6);
+    color:var(--muted);
+    text-align:center;
+    font-size:13px;
+  }
+  .build-grid .buildBtn {
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
+    padding:14px 16px;
+    border-radius:14px;
+    border:1px solid rgba(54,68,110,.85);
+    background:linear-gradient(160deg, rgba(18,24,42,.92), rgba(12,16,28,.94));
+    min-height:120px;
+    text-align:left;
+    position:relative;
+    overflow:hidden;
+    transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+  .build-grid .buildBtn::after {
+    content:"";
+    position:absolute;
+    inset:auto -40% -55% -40%;
+    height:70%;
+    background:radial-gradient(circle, rgba(127,230,162,.18) 0%, transparent 70%);
+    opacity:0;
+    transition:opacity .18s ease;
+    pointer-events:none;
+  }
+  .build-grid .buildBtn:hover {
+    border-color:rgba(127,230,162,.6);
+    transform:translateY(-2px);
+    box-shadow:0 14px 26px rgba(12,22,28,.45);
+  }
+  .build-grid .buildBtn:hover::after { opacity:1; }
+  .build-grid .buildBtn .buildSprite {
+    width:48px;
+    height:48px;
+    border-radius:12px;
+    border:1px solid rgba(80,104,158,.7);
+    background-size:cover;
+    background-position:center;
+    box-shadow:0 6px 16px rgba(0,0,0,.35);
+  }
+  .build-grid .buildBtn .buildLabel {
+    font-weight:600;
+    font-size:15px;
+    color:#fff;
+  }
+  .build-grid .buildBtn .buildMeta {
+    font-size:12px;
+    color:var(--muted);
+    letter-spacing:.05em;
+  }
+  .build-grid .buildBtn.primary {
+    border-color:rgba(127,230,162,.9);
+    box-shadow:0 18px 30px rgba(20,44,48,.5);
+    background:linear-gradient(135deg, rgba(26,40,60,.96), rgba(28,56,66,.94));
+  }
+  .build-grid .buildBtn.primary::after {
+    opacity:1;
+    background:radial-gradient(circle, rgba(127,230,162,.26) 0%, transparent 72%);
+  }
+
   .turnbar .pill { position:relative; padding-left:26px; }
   .turnbar .pill::before {
     content:"";
@@ -799,14 +1031,68 @@
   }
   .panel.board .legend { margin-top:6px; }
 
+  .panel.quickstart {
+    grid-area:quick;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    padding:22px 20px 26px;
+    position:sticky;
+    top:106px;
+    max-height:calc(100vh - 140px);
+    overflow:auto;
+  }
+  .panel.quickstart::-webkit-scrollbar { width:10px; }
+  .panel.quickstart::-webkit-scrollbar-thumb {
+    border-radius:999px;
+    background:rgba(60,74,118,.6);
+  }
+  .panel.quickstart::-webkit-scrollbar-thumb:hover { background:rgba(114,153,255,.7); }
+  .panel.quickstart.quickstart-highlight {
+    box-shadow:0 0 0 2px rgba(127,230,162,.45), 0 0 0 8px rgba(127,230,162,.12), 0 28px 40px rgba(8,24,24,.35);
+    transition:box-shadow .25s ease;
+  }
 
+  .quickstart-top {
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .quickstart-top h2 { margin:0; }
+  .quickstart-description { color:var(--muted); }
+
+  @media (max-width: 1100px) {
+    main {
+      grid-template-columns:1fr;
+      grid-template-areas:
+        "quick"
+        "board"
+        "controls"
+        "log"
+        "side";
+      padding:24px 18px 48px;
+      gap:18px;
+    }
+    .panel.quickstart {
+      position:static;
+      max-height:none;
+    }
+    .side { grid-template-columns:1fr; }
+    .panel.board { padding:20px 18px 24px; }
+    .controls .btn-row { flex-direction:row; }
+    .controls .btn-row button { width:auto; flex:1 1 140px; }
+    .controls .targetRow { flex-direction:row; }
+    .controls .targetRow > * { width:auto; flex:1 1 160px; }
+    .controls { gap:12px; }
+  }
 </style>
 </head>
 <body>
   <header>
     <h1>Fable Tactics • Sprites + Terrain + A*</h1>
     <nav>
-      <a href="quickstart.html" class="nav-btn">Quick Start</a>
+      <a href="index.html" class="nav-btn">Battle View</a>
+      <button id="quickSetupBtn" class="nav-btn active" type="button" aria-controls="setupPanel">Quick Start</button>
       <a href="game-setup.html">Game Setup</a>
       <a href="selector.html">Party Selector</a>
       <a href="unit-icons.html">Unit Icons</a>
@@ -816,6 +1102,104 @@
     <button id="resetBtn" class="warn" type="button">Reset Board</button>
   </header>
   <main>
+    <section class="panel quickstart" id="setupPanel">
+      <div class="quickstart-top">
+        <h2>Quick Start</h2>
+        <p class="quickstart-description small">Choose build/team. Toggle obstacle or terrain painting. Water is impassable. Obstacles block LOS.</p>
+      </div>
+      <div class="divider"></div>
+
+      <div class="btn-row" style="margin-bottom:8px">
+        <label><input type="radio" name="team" value="ally" checked> Allies</label>
+        <label><input type="radio" name="team" value="enemy"> Enemies</label>
+      </div>
+
+      <div class="quickstart-header">
+        <span class="quickstart-title">Quick Start Builds</span>
+        <span class="quickstart-hint small">Search or filter to find the right party template</span>
+      </div>
+
+      <div class="quickstart-controls">
+        <div class="search-field">
+          <label for="buildSearch" class="sr-only">Search builds</label>
+          <input id="buildSearch" type="search" placeholder="Search builds…" autocomplete="off">
+        </div>
+        <div class="filter-stack">
+          <div class="filter-group" role="group" aria-label="Filter by role">
+            <span class="filter-label small">Role</span>
+            <div class="chip-row">
+              <button type="button" class="chip active" data-role-filter="all">All</button>
+              <button type="button" class="chip" data-role-filter="Combat">Combat</button>
+              <button type="button" class="chip" data-role-filter="Support">Support</button>
+              <button type="button" class="chip" data-role-filter="Utility">Utility</button>
+            </div>
+          </div>
+          <div class="filter-group" role="group" aria-label="Filter by attack type">
+            <span class="filter-label small">Range</span>
+            <div class="chip-row">
+              <button type="button" class="chip active" data-range-filter="all">All</button>
+              <button type="button" class="chip" data-range-filter="melee">Melee</button>
+              <button type="button" class="chip" data-range-filter="ranged">Ranged</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="buildRow"></div>
+
+      <div class="divider"></div>
+
+      <!-- Grid size + zoom -->
+      <div class="btn-row" style="flex-wrap:wrap; align-items:center">
+        <div class="small">Grid:</div>
+        <label class="small">W <input id="gridW" type="number" min="5" max="11" value="9"></label>
+        <label class="small">H <input id="gridH" type="number" min="5" max="11" value="9"></label>
+        <button id="applyGridBtn" class="ghost">Apply</button>
+
+        <div class="small" style="margin-left:16px">Zoom:</div>
+        <input id="zoomRange" type="range" min="16" max="96" value="72" step="2">
+        <span id="zoomVal" class="small mono">72px</span>
+      </div>
+
+      <div class="btn-row">
+        <button id="obstacleBtn" class="ghost">Obstacle Mode: OFF</button>
+        <button id="clearObsBtn" class="ghost">Clear Obstacles</button>
+      </div>
+
+      <div class="btn-row" style="align-items:center">
+        <button id="terrainBtn" class="ghost">Terrain Mode: OFF</button>
+        <select id="terrainType">
+          <option value="plain">Plain</option>
+          <option value="forest">Forest (+2 DEF, cost 2)</option>
+          <option value="hill">Hill (+2 ATK, cost 2)</option>
+          <option value="road">Road (cost 1)</option>
+          <option value="swamp">Swamp (-2 ATK, cost 3)</option>
+          <option value="water">Water (impassable)</option>
+        </select>
+      </div>
+
+      <div class="legend">
+        <div class="lg"><span class="dot t-forest"></span>Forest</div>
+        <div class="lg"><span class="dot t-hill"></span>Hill</div>
+        <div class="lg"><span class="dot t-road"></span>Road</div>
+        <div class="lg"><span class="dot t-swamp"></span>Swamp</div>
+        <div class="lg"><span class="dot t-water"></span>Water</div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="btn-row preset-row">
+        <div class="preset-picker">
+          <label for="presetSelect" class="sr-only">Choose a quick scenario</label>
+          <select id="presetSelect" aria-describedby="presetDescription"></select>
+        </div>
+        <button id="loadPresetBtn" class="ghost">Load Scenario</button>
+        <button id="fromSelectorBtn" class="ghost">Preset: From Selector</button>
+        <button id="clearBtn" class="ghost">Clear Units</button>
+        <button id="startBtn" class="primary">Start Battle</button>
+      </div>
+      <div id="presetDescription" class="small preset-description"></div>
+    </section>
+
     <section class="panel board">
       <h2 id="phaseTitle">Setup: Place Units & Terrain</h2>
       <div id="board" class="grid"></div>
@@ -1652,7 +2036,6 @@ const ENEMY_PANEL=document.getElementById('enemyPanel');
 const resetBtn=document.getElementById('resetBtn');
 const quickSetupBtn=document.getElementById('quickSetupBtn');
 const quickstartPanel=document.getElementById('setupPanel');
-const HAS_SETUP_PANEL=!!quickstartPanel;
 
 const PARTY=document.getElementById('partyList');
 const ENEMIES=document.getElementById('enemyList');
@@ -1709,7 +2092,7 @@ function fitBoardCellToPanel(updateControls = true){
     if(Number.isFinite(factor) && factor > 0 && Number.isFinite(usableWidth) && usableWidth > 0){
       const maxCell = usableWidth / factor;
       if(Number.isFinite(maxCell) && maxCell > 0){
-        const step = zoomRange ? (parseFloat(zoomRange.step) || 1) : 1;
+        const step = parseFloat(zoomRange.step) || 1;
         const safeMax = Math.floor((maxCell - 0.5) / step) * step;
         if(safeMax > 0){
           applied = Math.min(desired, safeMax);
@@ -1725,8 +2108,8 @@ function fitBoardCellToPanel(updateControls = true){
   BOARD.style.setProperty('--cell', applied + 'px');
   BOARD.style.setProperty('--hex-h', (applied * SQRT3 / 2) + 'px');
   if(updateControls){
-    if(zoomRange) zoomRange.value = applied;
-    if(zoomVal) zoomVal.textContent = applied + 'px';
+    zoomRange.value = applied;
+    zoomVal.textContent = applied + 'px';
   }
 }
 
@@ -1778,7 +2161,6 @@ function updateActiveChip(buttons, activeValue, attr){
 }
 
 function renderBuildButtons(){
-  if(!buildRow) return;
   buildRow.innerHTML="";
   const searchTerm = buildSearchTerm.trim().toLowerCase();
   const entries = Object.entries(UnitTemplates)
@@ -1909,11 +2291,11 @@ function getSelectedTeam(){
 
 /* ========= Grid controls ========= */
 function syncGridControls(){
-  if(gridWInput) gridWInput.value = GRID.w;
-  if(gridHInput) gridHInput.value = GRID.h;
+  gridWInput.value = GRID.w;
+  gridHInput.value = GRID.h;
   fitBoardCellToPanel();
-  if(obstacleBtn) obstacleBtn.textContent = `Obstacle Mode: ${G.obstacleMode?'ON':'OFF'}`;
-  if(terrainBtn) terrainBtn.textContent = `Terrain Mode: ${G.terrainMode?'ON':'OFF'}`;
+  obstacleBtn.textContent = `Obstacle Mode: ${G.obstacleMode?'ON':'OFF'}`;
+  terrainBtn.textContent = `Terrain Mode: ${G.terrainMode?'ON':'OFF'}`;
 }
 
 function clampRadiusValue(r){
@@ -1937,29 +2319,27 @@ function applyGridSize(w,h){
   syncGridControls();
   render();
 }
-applyGridBtn?.addEventListener('click', ()=> applyGridSize(gridWInput?.value, gridHInput?.value));
-if(zoomRange){
-  zoomRange.addEventListener('input', ()=>{
-    GRID.desiredCell = parseInt(zoomRange.value,10) || GRID.desiredCell;
-    fitBoardCellToPanel();
-  });
-}
+applyGridBtn.onclick = ()=> applyGridSize(gridWInput.value, gridHInput.value);
+zoomRange.oninput = ()=>{
+  GRID.desiredCell = parseInt(zoomRange.value,10) || GRID.desiredCell;
+  fitBoardCellToPanel();
+};
 window.addEventListener('resize', ()=>fitBoardCellToPanel());
-obstacleBtn?.addEventListener('click', ()=>{
+obstacleBtn.onclick=()=>{
   G.obstacleMode=!G.obstacleMode;
   if(G.obstacleMode) G.terrainMode=false;
   obstacleBtn.textContent = `Obstacle Mode: ${G.obstacleMode?'ON':'OFF'}`;
   terrainBtn.textContent = `Terrain Mode: OFF`;
   render();
-});
-terrainBtn?.addEventListener('click', ()=>{
+};
+terrainBtn.onclick=()=>{
   G.terrainMode=!G.terrainMode;
   if(G.terrainMode) G.obstacleMode=false;
   terrainBtn.textContent = `Terrain Mode: ${G.terrainMode?'ON':'OFF'}`;
   obstacleBtn.textContent = `Obstacle Mode: OFF`;
   render();
-});
-clearObsBtn?.addEventListener('click', ()=>{ GRID.obstacles.clear(); render(); });
+};
+clearObsBtn.onclick=()=>{ GRID.obstacles.clear(); render(); };
 
 function resetBoardState(){
   G.phase="setup";
@@ -1974,7 +2354,7 @@ function resetBoardState(){
   GRID.obstacles.clear();
   GRID.terrain.clear();
   activeBuild="Knight";
-  if(terrainType) terrainType.value='plain';
+  terrainType.value='plain';
   TARGETS.innerHTML='';
   ABILROW.innerHTML='';
   LOG.innerHTML='';
@@ -1985,22 +2365,11 @@ function resetBoardState(){
   render();
 }
 
-resetBtn?.addEventListener('click', ()=>{
+resetBtn.onclick=()=>{
   const battleInProgress = G.phase==='battle' && anyLiving('ally') && anyLiving('enemy');
   if(battleInProgress && !confirm('A battle is currently in progress. Reset the board?')) return;
-  if(HAS_SETUP_PANEL){
-    resetBoardState();
-    return;
-  }
-  const defaultScenario = activeScenarioKey || QUICK_SCENARIOS[0]?.key || null;
-  if(defaultScenario){
-    if(G.phase==='battle') G.phase='setup';
-    applyScenario(defaultScenario);
-    startBattle();
-  } else {
-    resetBoardState();
-  }
-});
+  resetBoardState();
+};
 
 /* ========= Rendering ========= */
 function log(msg){
@@ -2024,7 +2393,7 @@ function render(){
     ATTACK.disabled=ABILITY.disabled=DEFEND.disabled=MOVE.disabled=END.disabled=true;
     AUTO.disabled=true;
     AUTO.textContent="Auto-Play";
-    if(startBtn) startBtn.disabled=false;
+    startBtn.disabled=false;
     if(navStartBtn){
       navStartBtn.disabled=false;
       navStartBtn.classList.add('primary');
@@ -2042,7 +2411,7 @@ function render(){
     // reflect Auto state
     AUTO.disabled=false;
     AUTO.textContent = G.auto ? "Auto-Play: ON" : "Auto-Play";
-    if(startBtn) startBtn.disabled=true;
+    startBtn.disabled=true;
     if(navStartBtn){
       navStartBtn.disabled=true;
       navStartBtn.classList.remove('primary');
@@ -2100,14 +2469,10 @@ function renderUnit(u){
 function renderBoard(){
   BOARD.innerHTML='';
   const placing = (G.phase==="setup");
-  const terrainLabel = (terrainType?.value ?? 'plain').toUpperCase();
-  const setupHint = HAS_SETUP_PANEL
-    ? `Placing: <b>${UnitTemplates[activeBuild].label}</b> for <b>${getSelectedTeam()==='ally'?'Allies':'Enemies'}</b>. Click a tile to place; click a token to remove. Toggle Obstacles/Terrain.`
-    : `Setup tools live on the Quick Start page. Configure parties and terrain there, then return to battle.`;
   BOARD_HINT.innerHTML = placing
     ? (G.obstacleMode ? `Obstacle Mode: click tiles to toggle walls. Obstacles block LOS.`
-       : G.terrainMode ? `Terrain Mode: painting <b>${terrainLabel}</b>. Water is impassable.`
-       : setupHint)
+       : G.terrainMode ? `Terrain Mode: painting <b>${terrainType.value.toUpperCase()}</b>. Water is impassable.`
+       : `Placing: <b>${UnitTemplates[activeBuild].label}</b> for <b>${getSelectedTeam()==='ally'?'Allies':'Enemies'}</b>. Click a tile to place; click a token to remove. Toggle Obstacles/Terrain.`)
     : `Terrain applies to ATK/DEF; obstacles block LOS. AI uses A* to path around terrain and walls.`;
 
   const inRangeIds=new Set();
@@ -2161,7 +2526,7 @@ function renderBoard(){
         } else if(G.terrainMode){
           cell.onclick=()=>{
             if(hasObs(x,y)) return;
-            const val = terrainType ? terrainType.value : 'plain';
+            const val = terrainType.value;
             if(val==='plain') GRID.terrain.delete(key(x,y));
             else GRID.terrain.set(key(x,y), val);
             render();
@@ -2493,14 +2858,6 @@ function applyScenario(key){
 
 populateScenarioOptions();
 
-if(!HAS_SETUP_PANEL){
-  const defaultScenario = activeScenarioKey || QUICK_SCENARIOS[0]?.key || null;
-  if(defaultScenario){
-    applyScenario(defaultScenario);
-    startBattle();
-  }
-}
-
 presetSelect?.addEventListener('change', ()=>{
   activeScenarioKey=presetSelect.value;
   updatePresetDescription();
@@ -2511,9 +2868,9 @@ loadPresetBtn?.addEventListener('click', ()=>{
   if(key) applyScenario(key);
 });
 
-clearBtn?.addEventListener('click', ()=>{ G.units=[]; render(); });
+clearBtn.onclick=()=>{ G.units=[]; render(); };
 
-fromSelectorBtn?.addEventListener('click', () => {
+fromSelectorBtn.onclick = () => {
   try{
     const data = JSON.parse(localStorage.getItem('ft_setup') || 'null');
     if(!data || !Array.isArray(data.allies) || !Array.isArray(data.enemies)){
@@ -2538,7 +2895,7 @@ fromSelectorBtn?.addEventListener('click', () => {
   }catch(e){
     alert('Could not load selector setup.');
   }
-});
+};
 
 function startBattle(){
   const a=living('ally').length, e=living('enemy').length;
@@ -2549,7 +2906,7 @@ function startBattle(){
   nextTurn_init();
 }
 
-startBtn?.addEventListener('click', startBattle);
+startBtn.onclick=startBattle;
 if(navStartBtn) navStartBtn.onclick=startBattle;
 
 function autoPlace(u){
