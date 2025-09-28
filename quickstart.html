@@ -1298,6 +1298,25 @@ const SPRITES = (()=>{
   }));
 })();
 
+const randomId = (()=>{
+  if(typeof crypto !== 'undefined'){
+    if(typeof crypto.randomUUID === 'function'){
+      return ()=>crypto.randomUUID();
+    }
+    if(typeof crypto.getRandomValues === 'function'){
+      return ()=>{
+        const bytes=new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        bytes[6]=(bytes[6]&0x0f)|0x40;
+        bytes[8]=(bytes[8]&0x3f)|0x80;
+        const hex=[...bytes].map(b=>b.toString(16).padStart(2,'0')).join('');
+        return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+      };
+    }
+  }
+  return ()=>`unit-${Math.random().toString(36).slice(2,10)}-${Date.now().toString(36)}`;
+})();
+
 /* ========= Core / Grid ========= */
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
@@ -1949,7 +1968,7 @@ const UnitTemplates = Object.fromEntries(CLASS_ENTRIES.map(entry=>{
 function makeUnit(tplKey, team, pos){
   const T = UnitTemplates[tplKey] || UnitTemplates.Knight;
   return {
-    id: crypto.randomUUID(),
+    id: randomId(),
     name: T.name, team, tplKey,
     stats: {...T.stats}, hp:T.stats.maxHp, dead:false,
     temp:{defBonus:0,defend:false,atkBuff:0,spdBuff:0,shield:0,quickdraw:false}, statuses:[],
