@@ -60,8 +60,10 @@
       display:flex;
       gap:12px;
       align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
     }
-    header nav a {
+    header nav .nav-btn {
       color:var(--muted);
       text-decoration:none;
       font-size:12px;
@@ -71,10 +73,18 @@
       border-radius:999px;
       border:1px solid rgba(60,74,118,.75);
       background:rgba(16,22,38,.76);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
     }
-    header nav a:hover {
+    header nav .nav-btn:hover {
       color:#fff;
       border-color:rgba(114,153,255,.9);
+    }
+    header nav .nav-btn.active {
+      color:#fff;
+      border-color:rgba(127,230,162,.8);
+      box-shadow:0 0 0 1px rgba(127,230,162,.22);
     }
     main {
       max-width:1100px;
@@ -356,7 +366,7 @@
         flex-wrap:wrap;
         gap:8px;
       }
-      header nav a {
+      header nav .nav-btn {
         padding:7px 12px;
         letter-spacing:.12em;
       }
@@ -396,9 +406,12 @@
   <header>
     <h1>Fable Tactics – Party Selector</h1>
     <nav>
-      <a href="index.html">Combat Board</a>
-      <a href="game-setup.html">Game Setup</a>
-      <a href="unit-icons.html">Unit Icons</a>
+      <a href="start.html" class="nav-btn">Start</a>
+      <a href="game-setup.html" class="nav-btn">Game Setup</a>
+      <a href="selector.html" class="nav-btn active">Party Builder</a>
+      <a href="index.html" class="nav-btn">Combat Sim</a>
+      <a href="quickstart.html" class="nav-btn">Quick Start</a>
+      <a href="unit-icons.html" class="nav-btn">Unit Icons</a>
     </nav>
   </header>
   <main>
