@@ -67,6 +67,8 @@
       display:flex;
       gap:12px;
       margin-left:auto;
+      flex-wrap:wrap;
+      justify-content:flex-end;
     }
     header nav a {
       text-decoration:none;
@@ -84,6 +86,11 @@
     header nav a:hover {
       transform:translateY(-2px);
       box-shadow:0 12px 24px rgba(76,54,26,.22);
+    }
+    header nav a.active {
+      border-color:rgba(156,107,45,.8);
+      box-shadow:0 8px 18px rgba(76,54,26,.24);
+      background:rgba(255,255,255,.78);
     }
     main {
       max-width:1100px;
@@ -253,10 +260,12 @@
   <header>
     <h1>Fable Tactics</h1>
     <nav>
-      <a href="index.html">Battle UI</a>
+      <a href="start.html">Start</a>
       <a href="game-setup.html">Game Setup</a>
-      <a href="selector.html">Party Selector</a>
-      <a href="unit-icons.html">Unit Icons</a>
+      <a href="selector.html">Party Builder</a>
+      <a href="index.html">Combat Sim</a>
+      <a href="quickstart.html">Quick Start</a>
+      <a href="unit-icons.html" class="active">Unit Icons</a>
     </nav>
   </header>
   <main>
