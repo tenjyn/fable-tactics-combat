@@ -1,2994 +1,572 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Fable Tactics – Sprites + HP/EP Bars</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Unbounded:wght@600&display=swap');
-  :root {
-    --bg:#080910;
-    --bg-accent:#101320;
-    --panel:#161927;
-    --panel-border:#24283a;
-    --panel-glow:rgba(87,192,185,.18);
-    --accent:#7fe6a2;
-    --accent-strong:#4ade80;
-    --accent-soft:rgba(127,230,162,.18);
-    --muted:#9aa3b2;
-    --ally:#7fe6a2;
-    --enemy:#ff9b9b;
-  }
-  * { box-sizing:border-box; font-family:'Outfit', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
-  body {
-    margin:0;
-    min-height:100vh;
-    color:white;
-    background:
-      radial-gradient(circle at 15% 20%, rgba(125,230,162,.08) 0%, transparent 45%),
-      radial-gradient(circle at 80% 0%, rgba(94,129,244,.12) 0%, transparent 38%),
-      linear-gradient(180deg, #0a0c15 0%, #0e101b 45%, #10111c 100%);
-    position:relative;
-    overflow-x:hidden;
-  }
-  body::before {
-    content:"";
-    position:fixed;
-    inset:-120px;
-    background-image:
-      radial-gradient(rgba(255,255,255,.12) 0 1px, transparent 1px),
-      linear-gradient(120deg, rgba(56,189,248,.08), rgba(255,255,255,0));
-    background-size:64px 64px, 100% 100%;
-    opacity:.45;
-    pointer-events:none;
-    mix-blend-mode:screen;
-    z-index:-2;
-  }
-  header {
-    padding:18px 24px;
-    border-bottom:1px solid rgba(94,129,244,.25);
-    background:linear-gradient(135deg, rgba(18,24,44,.94), rgba(12,15,26,.92));
-    position:sticky;
-    top:0;
-    z-index:5;
-    backdrop-filter:blur(12px);
-    display:flex;
-    align-items:center;
-    gap:18px;
-  }
-  header nav {
-    display:flex;
-    gap:12px;
-    align-items:center;
-    flex-wrap:wrap;
-    justify-content:flex-end;
-  }
-  header nav .nav-btn {
-    color:var(--muted);
-    text-decoration:none;
-    font-size:12px;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    padding:8px 12px;
-    border-radius:999px;
-    border:1px solid rgba(60,74,118,.75);
-    background:rgba(16,22,38,.76);
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-  }
-  header nav .nav-btn:hover {
-    color:#fff;
-    border-color:rgba(114,153,255,.9);
-  }
-  header h1 {
-    margin:0;
-    font-family:'Unbounded', 'Outfit', system-ui;
-    font-size:18px;
-    letter-spacing:.55px;
-    text-transform:uppercase;
-    flex:1;
-  }
-  main {
-    max-width:min(1600px, 96vw);
-    margin:0 auto;
-    padding:26px 26px 60px;
-    display:grid;
-    gap:22px;
-    grid-template-columns:minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 0.9fr);
-    grid-template-areas:
-      "board controls side"
-      "board log side";
-    align-items:start;
-    position:relative;
-  }
-  main::before {
-    content:"";
-    position:absolute;
-    inset:0;
-    border-radius:26px;
-    background:radial-gradient(circle at 10% 0%, rgba(94,129,244,.22), transparent 40%),
-               radial-gradient(circle at 85% 20%, rgba(126,230,162,.14), transparent 55%);
-    opacity:.65;
-    z-index:-1;
-  }
-  .panel {
-    background:linear-gradient(180deg, rgba(22,25,39,.92), rgba(12,14,24,.94));
-    border:1px solid var(--panel-border);
-    border-radius:14px;
-    padding:16px 16px 18px;
-    box-shadow:0 18px 36px rgba(0,0,0,.32);
-    position:relative;
-    overflow:hidden;
-  }
-  .panel::before {
-    content:"";
-    position:absolute;
-    inset:1px;
-    border-radius:12px;
-    background:linear-gradient(160deg, rgba(255,255,255,.045), rgba(15,18,32,.8));
-    z-index:-1;
-  }
-  .panel::after {
-    content:"";
-    position:absolute;
-    inset:-40% -30% auto;
-    height:70%;
-    background:radial-gradient(circle, rgba(94,129,244,.08) 0%, transparent 70%);
-    opacity:0;
-    transition:opacity .35s ease;
-    pointer-events:none;
-  }
-  .panel:hover::after { opacity:1; }
-  header nav .nav-btn.active {
-    color:#fff;
-    border-color:rgba(127,230,162,.8);
-    box-shadow:0 0 0 1px rgba(127,230,162,.22);
-  }
-  @media (max-width: 1280px) {
-    main {
-      grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);
-      grid-template-areas:
-        "board side"
-        "controls side"
-        "log side";
-      padding:24px 20px 52px;
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fable Tactics – Start Screen</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Unbounded:wght@600&display=swap');
+    :root {
+      --bg:#080910;
+      --bg-accent:#101320;
+      --panel:#161927;
+      --panel-border:#24283a;
+      --panel-glow:rgba(87,192,185,.18);
+      --accent:#7fe6a2;
+      --accent-strong:#4ade80;
+      --accent-soft:rgba(127,230,162,.18);
+      --muted:#9aa3b2;
+      --muted-strong:#cbd5f5;
     }
-    .log { max-height:none; }
-  }
-  @media (max-width: 960px) {
+    * {
+      box-sizing:border-box;
+      font-family:'Outfit', system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      margin:0;
+      min-height:100vh;
+      color:white;
+      background:
+        radial-gradient(circle at 15% 18%, rgba(125,230,162,.1) 0%, transparent 44%),
+        radial-gradient(circle at 85% 4%, rgba(94,129,244,.16) 0%, transparent 42%),
+        linear-gradient(185deg, #0a0c15 0%, #0d101c 50%, #0f111d 100%);
+      position:relative;
+      overflow-x:hidden;
+    }
+    body::before {
+      content:"";
+      position:fixed;
+      inset:-140px;
+      background-image:
+        radial-gradient(rgba(255,255,255,.12) 0 1px, transparent 1px),
+        linear-gradient(135deg, rgba(56,189,248,.08), rgba(255,255,255,0));
+      background-size:64px 64px, 100% 100%;
+      opacity:.5;
+      pointer-events:none;
+      mix-blend-mode:screen;
+      z-index:-2;
+    }
     header {
+      padding:18px 24px;
+      border-bottom:1px solid rgba(94,129,244,.24);
+      background:linear-gradient(135deg, rgba(18,24,44,.94), rgba(12,15,26,.92));
+      position:sticky;
+      top:0;
+      z-index:6;
+      display:flex;
+      align-items:center;
+      gap:18px;
+      backdrop-filter:blur(12px);
+    }
+    header h1 {
+      margin:0;
+      font-family:'Unbounded','Outfit',system-ui;
+      font-size:18px;
+      letter-spacing:.55px;
+      text-transform:uppercase;
+      flex:1;
+    }
+    nav {
+      display:flex;
+      gap:12px;
+      align-items:center;
       flex-wrap:wrap;
-      align-items:flex-start;
+      justify-content:flex-end;
+    }
+    .nav-btn {
+      color:var(--muted);
+      text-decoration:none;
+      font-size:12px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(60,74,118,.75);
+      background:rgba(16,22,38,.76);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      transition:border-color .18s ease, color .18s ease, box-shadow .18s ease;
+    }
+    .nav-btn:hover {
+      color:#fff;
+      border-color:rgba(114,153,255,.9);
+      box-shadow:0 0 0 1px rgba(114,153,255,.28);
+    }
+    .nav-btn.active {
+      color:#fff;
+      border-color:rgba(127,230,162,.8);
+      box-shadow:0 0 0 1px rgba(127,230,162,.22);
+    }
+    main {
+      max-width:1200px;
+      margin:0 auto;
+      padding:32px 26px 64px;
+      display:grid;
+      gap:22px;
+    }
+    .panel {
+      background:linear-gradient(180deg, rgba(22,25,39,.92), rgba(12,14,24,.94));
+      border:1px solid var(--panel-border);
+      border-radius:18px;
+      padding:28px;
+      position:relative;
+      overflow:hidden;
+      box-shadow:0 22px 42px rgba(0,0,0,.32);
+    }
+    .panel::before {
+      content:"";
+      position:absolute;
+      inset:1px;
+      border-radius:16px;
+      background:linear-gradient(160deg, rgba(255,255,255,.04), rgba(15,18,32,.86));
+      z-index:-1;
+    }
+    .panel::after {
+      content:"";
+      position:absolute;
+      inset:-40% -32% auto;
+      height:70%;
+      background:radial-gradient(circle, rgba(94,129,244,.16) 0%, transparent 70%);
+      opacity:0;
+      transition:opacity .35s ease;
+      pointer-events:none;
+    }
+    .panel:hover::after { opacity:.9; }
+    .hero {
+      display:grid;
+      grid-template-columns:minmax(0, 1.1fr) minmax(0, .9fr);
+      gap:32px;
+      align-items:center;
+      background:linear-gradient(160deg, rgba(16,22,38,.95), rgba(20,26,44,.9));
+    }
+    .hero-copy {
+      display:flex;
+      flex-direction:column;
       gap:14px;
     }
-    header h1 { flex:1 0 100%; }
-    header nav {
-      width:100%;
-      justify-content:flex-start;
+    .eyebrow {
+      font-size:12px;
+      letter-spacing:.28em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin:0;
+    }
+    .hero-copy h2 {
+      margin:0;
+      font-size:32px;
+      line-height:1.1;
+      letter-spacing:.02em;
+    }
+    .lead {
+      font-size:16px;
+      line-height:1.6;
+      color:var(--muted-strong);
+      margin:0;
+    }
+    .hero-actions {
+      display:flex;
       flex-wrap:wrap;
-      gap:8px;
+      gap:12px;
+      margin-top:6px;
     }
-    header nav .nav-btn {
-      padding:7px 12px;
-      letter-spacing:.12em;
-    }
-    main {
-      grid-template-columns:minmax(0, 1fr);
-      grid-template-areas:
-        "board"
-        "controls"
-        "side"
-        "log";
-      padding:22px 18px 46px;
-      gap:20px;
-    }
-    .side { gap:16px; }
-    .controls { gap:16px; }
-    .grid { --cell: 64px; gap:8px; padding:16px; }
-  }
-  @media (max-width: 720px) {
-    header { padding:16px 18px; }
-    main {
-      padding:20px 16px 42px;
-      gap:18px;
-    }
-    .panel { padding:14px; }
-    h2 { font-size:12px; }
-    h2::after { width:38px; }
-    .btn-row { flex-direction:column; width:100%; }
-    .btn-row button { width:100%; }
-    .targetRow { flex-direction:column; }
-    .targetRow > * { width:100%; }
-    .grid { --cell: 56px; gap:7px; padding:14px; }
-    .legend { gap:8px; }
-  }
-  @media (max-width: 520px) {
-    header nav .nav-btn {
-      flex:1 1 calc(50% - 6px);
+    .btn {
+      display:inline-flex;
+      align-items:center;
       justify-content:center;
-      text-align:center;
+      gap:8px;
+      padding:12px 18px;
+      border-radius:12px;
+      border:1px solid rgba(48,58,92,.9);
+      background:rgba(26,36,54,.92);
+      color:#fff;
+      font-weight:600;
+      letter-spacing:.02em;
+      text-decoration:none;
+      transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
     }
-    .grid { --cell: 48px; gap:6px; padding:12px; }
-    .unit { flex-wrap:wrap; }
-    .unit .row { flex-direction:column; align-items:flex-start; gap:6px; }
-    .controls .btn-row { gap:8px; }
-  }
-  .board { grid-area:board; }
-  .side { grid-area:side; display:grid; gap:18px; }
-  .controls { grid-area:controls; display:flex; flex-direction:column; gap:18px; align-items:stretch; }
-  .log { grid-area:log; max-height:340px; overflow:auto; background:rgba(10,13,22,.75); backdrop-filter:blur(8px); }
-  h2 {
-    margin:0 0 10px;
-    font-size:13px;
-    font-weight:600;
-    letter-spacing:.18em;
-    text-transform:uppercase;
-    color:var(--muted);
-  }
-  h2::after {
-    content:"";
-    display:block;
-    margin-top:8px;
-    width:48px;
-    height:2px;
-    border-radius:999px;
-    background:linear-gradient(90deg, rgba(94,129,244,.6), transparent);
-  }
-  .small { font-size:12px; color:var(--muted); }
-  .mono { font-family:'JetBrains Mono', 'Fira Mono', 'Outfit', monospace; letter-spacing:.04em; }
-  .divider { height:1px; background:rgba(52,58,86,.6); margin:12px 0; border-radius:999px; }
-
-  .unit {
-    position:relative;
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding:10px 12px;
-    margin:6px 0;
-    background:linear-gradient(120deg, rgba(15,18,32,.85), rgba(17,23,41,.92));
-    border:1px solid rgba(58,66,104,.7);
-    border-radius:12px;
-    box-shadow:0 8px 18px rgba(4,6,12,.45);
-  }
-  .unit::after {
-    content:"";
-    position:absolute;
-    inset:auto 18px -6px;
-    height:1px;
-    border-radius:999px;
-    background:linear-gradient(90deg, rgba(127,230,162,.4), transparent 70%);
-    opacity:.35;
-    pointer-events:none;
-  }
-  .unit.dead { opacity:.45; filter:grayscale(1); }
-  .badge { font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid rgba(76,86,120,.8); color:var(--muted); background:rgba(16,23,41,.6); }
-  .hpbar {
-    width:100%;
-    height:14px;
-    background:rgba(18,22,38,.9);
-    border-radius:7px;
-    overflow:hidden;
-    border:1px solid rgba(43,49,68,.9);
-    position:relative;
-  }
-  .hpbar::after {
-    content:"";
-    position:absolute;
-    inset:0;
-    background:linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,0));
-    mix-blend-mode:screen;
-    pointer-events:none;
-  }
-  .hp { height:100%; background:linear-gradient(90deg, var(--accent-strong), #22c55e); box-shadow:0 0 12px rgba(127,230,162,.35); }
-  .row { display:flex; gap:10px; align-items:center; width:100%; }
-  .col { flex:1; }
-  .stats { font-size:12px; color:var(--muted); }
-  .tag { font-size:11px; padding:1px 6px; border-radius:6px; background:rgba(34,41,64,.8); border:1px solid rgba(47,60,92,.9); margin-left:4px; }
-  .turnbar { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 0; }
-  .pill {
-    font-size:11px;
-    padding:4px 10px;
-    border-radius:999px;
-    border:1px solid rgba(57,66,110,.8);
-    background:rgba(13,19,33,.9);
-    opacity:.92;
-    box-shadow:0 2px 6px rgba(0,0,0,.3);
-  }
-  .pill.active {
-    border-color:rgba(127,230,162,.85);
-    color:var(--accent);
-    box-shadow:0 0 12px rgba(127,230,162,.35);
-  }
-
-  button {
-    background:rgba(26,36,54,.92);
-    color:white;
-    border:1px solid rgba(48,58,92,.9);
-    padding:10px 16px;
-    border-radius:11px;
-    cursor:pointer;
-    font-weight:600;
-    letter-spacing:.02em;
-    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
-    position:relative;
-    overflow:hidden;
-  }
-  button::after {
-    content:"";
-    position:absolute;
-    inset:0;
-    background:linear-gradient(135deg, rgba(94,129,244,.18), transparent 60%);
-    opacity:0;
-    transition:opacity .2s ease;
-    pointer-events:none;
-  }
-  button:hover {
-    border-color:rgba(114,153,255,.9);
-    transform:translateY(-1px);
-    box-shadow:0 10px 18px rgba(14,18,34,.35);
-  }
-  button:hover::after { opacity:.55; }
-  button.primary {
-    background:linear-gradient(135deg, rgba(33,58,84,.95), rgba(41,94,114,.92));
-    border-color:rgba(86,190,180,.85);
-    box-shadow:0 8px 18px rgba(12,34,42,.45);
-  }
-  button.primary::after { background:linear-gradient(135deg, rgba(127,230,162,.3), transparent 65%); }
-  button.ghost { background:rgba(18,24,37,.75); border-color:rgba(50,60,92,.65); }
-  button.warn { background:linear-gradient(135deg, rgba(90,33,33,.92), rgba(56,18,24,.92)); border-color:rgba(177,72,72,.8); }
-  button:disabled { opacity:.55; cursor:not-allowed; box-shadow:none; transform:none; }
-  button:disabled::after { display:none; }
-  button.nav-btn {
-    padding:8px 14px;
-    border-radius:999px;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    font-size:12px;
-    font-weight:600;
-    background:rgba(16,22,38,.76);
-    border:1px solid rgba(60,74,118,.75);
-    color:var(--muted);
-    box-shadow:none;
-    transform:none;
-    transition:border-color .18s ease, background .18s ease, color .18s ease;
-  }
-  button.nav-btn::after { display:none; }
-  button.nav-btn.primary {
-    color:#fff;
-    background:linear-gradient(135deg, rgba(33,58,84,.95), rgba(41,94,114,.92));
-    border-color:rgba(86,190,180,.85);
-  }
-  button.nav-btn:hover { transform:none; }
-  button.nav-btn:disabled { color:rgba(154,163,178,.6); }
-  .btn-row { display:flex; gap:10px; flex-wrap:wrap; }
-  .preset-row { align-items:center; }
-  .preset-picker { flex:1 1 220px; min-width:200px; }
-  .preset-picker select { width:100%; }
-  #loadPresetBtn { flex:0 0 auto; }
-  .preset-description { margin:6px 0 0; min-height:18px; }
-  .controls .btn-row { flex-direction:column; align-items:stretch; }
-  .controls .btn-row button { width:100%; text-align:center; }
-  .targetRow { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-  .controls .targetRow { flex-direction:column; }
-  .controls .targetRow > * { width:100%; }
-  .targetBtn {
-    padding:8px 12px;
-    font-size:12px;
-    border-radius:9px;
-    background:rgba(26,34,52,.85);
-    border:1px solid rgba(47,56,88,.9);
-    box-shadow:0 6px 12px rgba(0,0,0,.28);
-  }
-
-  .legend { display:flex; gap:10px; flex-wrap:wrap; margin:8px 0; }
-  .legend .lg { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); background:rgba(17,23,37,.8); padding:4px 8px; border-radius:8px; border:1px solid rgba(43,52,82,.75); }
-  .dot {
-    width:16px;
-    height:16px;
-    border-radius:6px;
-    border:1px solid rgba(42,47,65,.9);
-    box-shadow:0 2px 4px rgba(0,0,0,.2);
-    position:relative;
-    overflow:hidden;
-    --tile-fill: linear-gradient(160deg, rgba(16,21,33,.96), rgba(10,14,24,.9));
-    --terrain-size:160% 160%;
-    background:var(--tile-fill);
-  }
-  .dot::after {
-    content:"";
-    position:absolute;
-    inset:0;
-    border-radius:inherit;
-    background-image:var(--terrain-art);
-    background-size:var(--terrain-size);
-    background-position:center;
-    background-repeat:no-repeat;
-    opacity:var(--terrain-opacity);
-    pointer-events:none;
-  }
-
-  .grid {
-    --cell: 72px;
-    --hex-h: calc(var(--cell) * 0.8660254);
-    --hex-gap: 0px;
-    position:relative;
-    display:block;
-    padding:18px;
-    border-radius:18px;
-    background:
-      radial-gradient(circle at 18% 18%, rgba(108,150,244,.18), transparent 58%),
-      radial-gradient(circle at 82% 12%, rgba(118,230,190,.12), transparent 62%),
-      repeating-linear-gradient(120deg, rgba(20,28,46,.82) 0 2px, rgba(10,14,22,.82) 2px 46px),
-      repeating-linear-gradient(60deg, rgba(16,22,36,.8) 0 2px, rgba(8,12,20,.82) 2px 46px),
-      linear-gradient(180deg, rgba(8,12,18,.92), rgba(10,14,22,.94));
-    border:1px solid rgba(44,56,88,.82);
-    box-shadow:inset 0 0 28px rgba(0,0,0,.45);
-    min-height:var(--hex-h);
-    overflow:visible;
-  }
-  .grid::before {
-    content:"";
-    position:absolute;
-    inset:12px;
-    border-radius:14px;
-    background:
-      radial-gradient(circle at 18% 20%, rgba(127,230,162,.18), transparent 55%),
-      linear-gradient(140deg, rgba(74,108,182,.18), rgba(12,16,28,0) 65%);
-    opacity:.55;
-    pointer-events:none;
-    z-index:0;
-  }
-  .grid::after {
-    content:"";
-    position:absolute;
-    inset:8px;
-    border-radius:12px;
-    border:1px solid rgba(127,230,162,.08);
-    pointer-events:none;
-    z-index:0;
-  }
-  :where(.cell,.dot){
-    --terrain-art:none;
-    --terrain-size:130% 130%;
-    --terrain-opacity:0;
-  }
-  .cell {
-    position:absolute;
-    left:0;
-    top:0;
-    width:var(--cell);
-    height:var(--hex-h);
-    --tile-fill: linear-gradient(160deg, rgba(16,21,33,.95), rgba(10,14,24,.9));
-    background:linear-gradient(155deg, rgba(42,52,84,.72), rgba(8,12,20,.78));
-    clip-path:polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:0;
-    transition:transform .14s ease, filter .18s ease;
-    filter:drop-shadow(0 16px 26px rgba(0,0,0,.42));
-    isolation:isolate;
-    --terrain-size:140% 140%;
-    z-index:1;
-  }
-  .cell::before,
-  .cell::after {
-    content:"";
-    position:absolute;
-    inset:0;
-    clip-path:inherit;
-    pointer-events:none;
-    transition:opacity .25s ease;
-  }
-  .cell::before {
-    background:
-      linear-gradient(135deg, rgba(127,230,162,.14), rgba(12,18,28,0) 60%),
-      radial-gradient(circle at 28% 28%, rgba(255,255,255,.16), transparent 58%),
-      var(--tile-fill);
-    box-shadow:
-      inset 0 0 0 1px rgba(86,102,162,.36),
-      inset 0 -18px 30px rgba(6,8,16,.62);
-    opacity:.98;
-    z-index:0;
-  }
-  .cell::after {
-    background-image:var(--terrain-art);
-    background-size:var(--terrain-size);
-    background-position:center;
-    background-repeat:no-repeat;
-    opacity:var(--terrain-opacity);
-    mix-blend-mode:screen;
-    z-index:1;
-  }
-  .cell:hover {
-    transform:translateY(-2px);
-    filter:drop-shadow(0 20px 32px rgba(0,0,0,.5));
-  }
-  .cell:hover::after {
-    opacity:min(1, calc(var(--terrain-opacity) + 0.12));
-  }
-  .cell .token { position:relative; z-index:4; }
-  .cell.obstacle {
-    background:linear-gradient(150deg, rgba(66,27,27,.9), rgba(32,14,16,.94));
-    filter:drop-shadow(0 16px 32px rgba(54,12,18,.48));
-    --terrain-opacity:0;
-  }
-  .cell.obstacle::before {
-    background:
-      linear-gradient(135deg, rgba(210,120,120,.18), rgba(44,14,18,0) 65%),
-      linear-gradient(150deg, rgba(92,32,38,.96), rgba(42,16,20,.94));
-    box-shadow:
-      inset 0 0 0 1px rgba(160,68,68,.42),
-      inset 0 -20px 32px rgba(20,6,8,.62);
-  }
-  .cell.obstacle::after {
-    inset:0;
-    border-radius:8px;
-    background:
-      radial-gradient(circle at 32% 34%, rgba(210,120,120,.65) 0 52%, transparent 64%),
-      radial-gradient(circle at 68% 70%, rgba(130,48,48,.7) 0 46%, transparent 60%),
-      linear-gradient(135deg, rgba(140,58,58,.6), rgba(52,18,22,.7));
-    box-shadow:0 0 18px rgba(122,54,54,.45);
-    opacity:1;
-    mix-blend-mode:normal;
-  }
-
-  /* Terrain tints */
-  :where(.cell,.dot).t-plain {
-    --tile-fill:linear-gradient(160deg, rgba(16,21,33,.96), rgba(10,14,24,.9));
-    --terrain-art:
-      radial-gradient(circle at 30% 36%, rgba(122,192,150,.25) 0 32%, transparent 40%),
-      radial-gradient(circle at 70% 64%, rgba(94,158,124,.18) 0 24%, transparent 36%),
-      linear-gradient(150deg, rgba(170,230,190,.12), rgba(16,21,33,0) 65%);
-    --terrain-size:140% 140%, 120% 120%, 100% 100%;
-    --terrain-opacity:.45;
-  }
-  :where(.cell,.dot).t-forest {
-    --tile-fill:linear-gradient(155deg, rgba(16,30,22,.95), rgba(12,24,18,.9));
-    --terrain-art:
-      radial-gradient(circle at 28% 34%, rgba(72,158,106,.88) 0 36%, transparent 46%),
-      radial-gradient(circle at 70% 32%, rgba(46,112,72,.8) 0 32%, transparent 44%),
-      radial-gradient(circle at 50% 74%, rgba(26,64,44,.75) 0 30%, transparent 42%);
-    --terrain-size:140% 140%, 120% 120%, 120% 120%;
-    --terrain-opacity:.92;
-  }
-  .cell.t-forest::before { box-shadow: inset 0 0 0 1px rgba(60,140,80,.28), inset 0 -18px 30px rgba(10,30,20,.55); }
-  .dot.t-forest { box-shadow: inset 0 0 0 1px rgba(60,140,80,.24); }
-  :where(.cell,.dot).t-hill {
-    --tile-fill:linear-gradient(150deg, rgba(42,34,18,.94), rgba(26,20,12,.9));
-    --terrain-art:
-      radial-gradient(circle at 50% 68%, rgba(204,162,86,.88) 0 42%, transparent 52%),
-      radial-gradient(circle at 50% 78%, rgba(124,86,42,.7) 0 60%, transparent 70%),
-      linear-gradient(160deg, rgba(255,225,150,.35), rgba(90,60,30,0) 70%);
-    --terrain-size:130% 130%, 160% 160%, 100% 100%;
-    --terrain-opacity:.88;
-  }
-  .cell.t-hill::before { box-shadow: inset 0 0 0 1px rgba(200,170,80,.32), inset 0 -18px 28px rgba(48,32,16,.58); }
-  .dot.t-hill { box-shadow: inset 0 0 0 1px rgba(200,170,80,.26); }
-  :where(.cell,.dot).t-road {
-    --tile-fill:linear-gradient(155deg, rgba(26,28,36,.94), rgba(18,19,28,.9));
-    --terrain-art:
-      linear-gradient(0deg, rgba(220,220,220,.7) 48%, rgba(220,220,220,0) 50%, rgba(220,220,220,.7) 52%),
-      linear-gradient(90deg, rgba(90,102,124,.75) 0 14%, transparent 14% 86%, rgba(90,102,124,.75) 86% 100%),
-      repeating-linear-gradient(0deg, rgba(35,40,58,.45) 0 8px, rgba(15,18,30,0) 8px 16px);
-    --terrain-size:100% 100%, 100% 100%, 200% 200%;
-    --terrain-opacity:.82;
-  }
-  .cell.t-road::before { box-shadow: inset 0 0 0 1px rgba(120,120,140,.32), inset 0 -18px 30px rgba(8,10,18,.58); }
-  .dot.t-road { box-shadow: inset 0 0 0 1px rgba(120,120,140,.2); }
-  :where(.cell,.dot).t-swamp {
-    --tile-fill:linear-gradient(150deg, rgba(28,34,22,.94), rgba(20,24,16,.9));
-    --terrain-art:
-      radial-gradient(circle at 38% 36%, rgba(102,140,82,.6) 0 38%, transparent 50%),
-      radial-gradient(circle at 68% 68%, rgba(64,96,56,.68) 0 32%, transparent 46%),
-      radial-gradient(circle at 50% 56%, rgba(160,220,120,.2) 0 72%, transparent 82%);
-    --terrain-size:140% 140%, 130% 130%, 150% 150%;
-    --terrain-opacity:.86;
-  }
-  .cell.t-swamp::before { box-shadow: inset 0 0 0 1px rgba(110,140,80,.26), inset 0 -18px 30px rgba(12,22,14,.58); }
-  .dot.t-swamp { box-shadow: inset 0 0 0 1px rgba(110,140,80,.2); }
-  :where(.cell,.dot).t-water {
-    --tile-fill:linear-gradient(160deg, rgba(13,27,39,.96), rgba(10,20,30,.92));
-    --terrain-art:
-      radial-gradient(circle at 32% 32%, rgba(56,148,212,.68) 0 36%, transparent 52%),
-      radial-gradient(circle at 68% 66%, rgba(24,112,192,.72) 0 42%, transparent 58%),
-      repeating-radial-gradient(circle at 50% 50%, rgba(168,220,255,.35) 0 6%, rgba(168,220,255,0) 6% 14%);
-    --terrain-size:130% 130%, 150% 150%, 220% 220%;
-    --terrain-opacity:.9;
-  }
-  .cell.t-water::before { box-shadow: inset 0 0 0 1px rgba(80,130,170,.34), inset 0 -18px 32px rgba(12,20,30,.6); }
-  .dot.t-water { box-shadow: inset 0 0 0 1px rgba(80,130,170,.28); }
-
-  .cell.move-ok {
-    outline:2px dashed rgba(127,230,162,.8);
-    outline-offset:-6px;
-    filter:drop-shadow(0 20px 36px rgba(22,46,54,.4));
-  }
-  .cell.move-ok::before {
-    box-shadow:
-      inset 0 0 0 1px rgba(127,230,162,.45),
-      inset 0 -16px 28px rgba(12,26,20,.52),
-      0 0 18px rgba(127,230,162,.28);
-  }
-  .cell.place {
-    outline:2px dashed rgba(78,210,170,.85);
-    outline-offset:-6px;
-    cursor:pointer;
-    transform:translateY(-3px);
-    filter:drop-shadow(0 24px 40px rgba(24,52,62,.5));
-  }
-  .cell.place::before {
-    box-shadow:
-      inset 0 0 0 1px rgba(94,226,190,.6),
-      inset 0 -16px 28px rgba(16,36,32,.58),
-      0 0 22px rgba(94,226,190,.38);
-  }
-
-  /* === TOKEN (sprite + double bars) === */
-  @keyframes float {
-    0%,100% { transform:translateY(0); }
-    50% { transform:translateY(-4px); }
-  }
-  @keyframes pulseRing {
-    0% { transform:scale(.92); opacity:.75; }
-    70% { transform:scale(1.15); opacity:0; }
-    100% { transform:scale(1.18); opacity:0; }
-  }
-  .token{
-    position:relative;
-    width: calc(var(--cell) * 0.72);
-    height: calc(var(--cell) * 0.72);
-    border-radius:calc(var(--cell) * 0.18);
-    border:1px solid rgba(54,64,110,.85);
-    background:radial-gradient(circle at 30% 20%, rgba(255,255,255,.08), transparent 65%), #0f1420;
-    overflow:hidden;
-    box-shadow:0 12px 24px rgba(0,0,0,.45);
-    display:flex; align-items:center; justify-content:center;
-    transition:transform .18s ease, box-shadow .18s ease, border-color .2s ease;
-  }
-  .token::after {
-    content:"";
-    position:absolute;
-    inset:auto 18% 10%;
-    height:12%;
-    border-radius:50%;
-    background:radial-gradient(circle, rgba(0,0,0,.55), transparent 70%);
-    filter:blur(6px);
-    opacity:.7;
-    pointer-events:none;
-  }
-  .token::before {
-    content:"";
-    position:absolute;
-    inset:calc(var(--cell) * 0.04);
-    border-radius:calc(var(--cell) * 0.16);
-    border:1px solid rgba(96,114,182,.25);
-    pointer-events:none;
-  }
-  .token.ally { border-color:rgba(98,210,170,.9); box-shadow:0 16px 30px rgba(41,90,80,.45); }
-  .token.enemy { border-color:rgba(255,130,130,.85); box-shadow:0 16px 30px rgba(94,32,32,.45); }
-  .token.active { box-shadow:0 0 0 2px var(--accent), 0 18px 32px rgba(0,0,0,.55); animation:float 2.6s ease-in-out infinite; }
-  .token.active::before { border-color:rgba(127,230,162,.35); }
-  .token.active::after {
-    background:radial-gradient(circle, rgba(127,230,162,.55), transparent 70%);
-    opacity:.9;
-    animation:pulseRing 1.6s ease-out infinite;
-  }
-  .token.inrange { box-shadow: 0 0 0 2px rgba(127,230,162,.8), 0 18px 32px rgba(15,50,42,.55); }
-  .token.removable { cursor:pointer; outline:2px dashed rgba(255,154,154,.8); outline-offset:-4px; }
-  .token .sprite{
-    position:absolute; inset:0;
-    background-size:cover; background-position:center;
-    filter: drop-shadow(0 8px 12px rgba(0,0,0,.45));
-    transition:transform .18s ease;
-  }
-  .token:hover .sprite { transform:translateY(-4px) scale(1.02); }
-  .token .initial{
-    position:absolute; bottom:calc(var(--cell) * 0.32); left:calc(var(--cell) * 0.16);
-    font-weight:800; font-size:calc(var(--cell) * 0.22); color:#e8f1ff;
-    text-shadow:0 2px 0 rgba(0,0,0,.6);
-  }
-  .token .bars{ position:absolute; left:calc(var(--cell) * 0.12); right:calc(var(--cell) * 0.12); bottom:calc(var(--cell) * 0.12); display:flex; flex-direction:column; gap:5px; }
-  .miniBar{ height:7px; border-radius:6px; border:1px solid rgba(40,47,68,.9); background:rgba(18,24,40,.9); overflow:hidden; position:relative; }
-  .miniBar::after{ content:""; position:absolute; inset:0; background:linear-gradient(90deg, rgba(255,255,255,.1), rgba(255,255,255,0)); pointer-events:none; }
-  .miniBar .hpFill{ height:100%; background:linear-gradient(90deg,#4ade80,#22c55e); width:0%; box-shadow:0 0 10px rgba(127,230,162,.45); }
-  .miniBar .epFill{ height:100%; background:linear-gradient(90deg,#60a5fa,#22d3ee); width:0%; box-shadow:0 0 10px rgba(96,165,250,.35); }
-  .token .nameplate{ position:absolute; top:8px; left:8px; right:8px; padding:4px 6px; border-radius:8px; font-size:11px; text-align:center; background:rgba(10,14,24,.65); border:1px solid rgba(60,72,112,.75); color:#e6eefb; opacity:0; transition:.2s opacity; pointer-events:none; backdrop-filter:blur(6px); }
-  .token:hover .nameplate{ opacity:1; }
-
-  #phaseTitle { font-size:16px; letter-spacing:.06em; color:#e1f5ff; margin-bottom:14px; }
-  #boardHint { color:#b7c9ff; margin-top:10px; background:rgba(21,30,54,.55); border:1px solid rgba(72,92,140,.45); padding:8px 12px; border-radius:10px; box-shadow:0 10px 18px rgba(5,8,16,.4); }
-  #boardHint:empty { display:none; }
-  #board { position:relative; z-index:0; margin:0 auto; overflow:hidden; }
-  #board::before { content:""; position:absolute; inset:-18px; border-radius:18px; background:radial-gradient(circle at 20% 10%, rgba(127,230,162,.1), transparent 65%); opacity:.7; pointer-events:none; z-index:-1; }
-
-  #log { display:flex; flex-direction:column; gap:8px; padding-right:6px; }
-  #log::-webkit-scrollbar { width:8px; }
-  #log::-webkit-scrollbar-track { background:rgba(12,16,28,.6); border-radius:999px; }
-  #log::-webkit-scrollbar-thumb { background:linear-gradient(180deg, rgba(98,120,200,.55), rgba(46,60,120,.65)); border-radius:999px; }
-  .toast {
-    background:linear-gradient(120deg, rgba(18,26,44,.92), rgba(12,16,28,.9));
-    border:1px solid rgba(60,74,120,.55);
-    border-left:3px solid rgba(127,230,162,.6);
-    padding:10px 12px;
-    border-radius:10px;
-    font-size:13px;
-    line-height:1.4;
-    box-shadow:0 12px 22px rgba(0,0,0,.35);
-  }
-  .toast .dmg { color:#ff9b9b; font-weight:600; }
-  .toast .heal { color:#86f7b9; font-weight:600; }
-  .toast .hit { color:#facc15; font-weight:600; }
-
-  input[type="number"], input[type="text"] {
-    padding:10px 12px;
-    background:linear-gradient(160deg, rgba(17,23,37,.95), rgba(10,14,25,.92));
-    color:#fff;
-    border:1px solid rgba(68,96,146,.7);
-    border-radius:10px;
-    box-shadow:0 8px 16px rgba(0,0,0,.25) inset;
-    transition:border-color .18s ease, box-shadow .18s ease;
-  }
-  input[type="number"]:focus-visible,
-  input[type="text"]:focus-visible {
-    outline:none;
-    border-color:rgba(127,230,162,.9);
-    box-shadow:0 0 0 1px rgba(127,230,162,.35), 0 12px 24px rgba(16,38,40,.45);
-  }
-  select {
-    appearance:none;
-    padding:12px 40px 12px 14px;
-    min-height:42px;
-    background:linear-gradient(160deg, rgba(18,26,44,.96), rgba(13,18,32,.94));
-    color:#fff;
-    border:1px solid rgba(74,108,166,.75);
-    border-radius:12px;
-    box-shadow:0 10px 20px rgba(0,0,0,.28) inset;
-    font-weight:500;
-    letter-spacing:.01em;
-    transition:border-color .18s ease, box-shadow .18s ease;
-    cursor:pointer;
-    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 8"><path fill="%237fe6a2" d="M1.3.7 6 5.4 10.7.7 12 2 6 8 0 2z"/></svg>');
-    background-repeat:no-repeat;
-    background-size:14px 10px;
-    background-position:right 14px center;
-  }
-  select:focus-visible {
-    outline:none;
-    border-color:rgba(127,230,162,.9);
-    box-shadow:0 0 0 1px rgba(127,230,162,.35), 0 14px 28px rgba(18,44,40,.45);
-  }
-  select:hover {
-    border-color:rgba(127,230,162,.75);
-  }
-  input[type="number"] { width:64px; }
-  input[type="range"] {
-    accent-color:var(--accent);
-    background:transparent;
-  }
-  #zoomRange { width:160px; }
-  #terrainType { min-width:220px; }
-  label { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
-  input[type="radio"] { accent-color:var(--accent); }
-
-  .btn-row + .divider { margin-top:16px; }
-
-  .turnbar .pill { position:relative; padding-left:26px; }
-  .turnbar .pill::before {
-    content:"";
-    position:absolute;
-    left:10px;
-    top:50%;
-    width:8px;
-    height:8px;
-    border-radius:50%;
-    background:rgba(127,230,162,.7);
-    transform:translateY(-50%);
-    box-shadow:0 0 10px rgba(127,230,162,.6);
-  }
-
-  .panel.board {
-    grid-area:board;
-    display:flex;
-    flex-direction:column;
-    gap:18px;
-    padding:20px 20px 26px;
-  }
-  .panel.board .legend { margin-top:6px; }
-
-
-</style>
+    .btn:hover {
+      transform:translateY(-1px);
+      box-shadow:0 12px 24px rgba(14,18,34,.35);
+      border-color:rgba(114,153,255,.9);
+    }
+    .btn.primary {
+      background:linear-gradient(135deg, rgba(32,56,84,.95), rgba(41,94,114,.92));
+      border-color:rgba(86,190,180,.85);
+      box-shadow:0 10px 26px rgba(12,34,42,.45);
+    }
+    .btn.primary:hover {
+      border-color:rgba(127,230,162,.85);
+      box-shadow:0 16px 32px rgba(18,42,48,.55);
+    }
+    .btn.ghost {
+      background:rgba(18,24,37,.75);
+      border-color:rgba(50,60,92,.65);
+      color:var(--muted-strong);
+    }
+    .btn.outline {
+      background:transparent;
+      border-color:rgba(76,92,144,.65);
+      color:#c1ccff;
+    }
+    .hero-steps {
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+    .step {
+      display:flex;
+      gap:16px;
+      align-items:flex-start;
+      padding:16px 18px;
+      border-radius:16px;
+      background:rgba(14,18,30,.86);
+      border:1px solid rgba(60,74,118,.65);
+      position:relative;
+      overflow:hidden;
+    }
+    .step::after {
+      content:"";
+      position:absolute;
+      inset:auto 0 -40%;
+      height:80%;
+      background:radial-gradient(circle, rgba(127,230,162,.12), transparent 65%);
+      opacity:.7;
+      pointer-events:none;
+    }
+    .step-id {
+      font-family:'Unbounded','Outfit',system-ui;
+      font-size:20px;
+      letter-spacing:.06em;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:36px;
+      height:36px;
+      border-radius:12px;
+      background:rgba(58,72,118,.65);
+    }
+    .step h3 {
+      margin:0 0 6px;
+      font-size:16px;
+      letter-spacing:.02em;
+    }
+    .step p {
+      margin:0 0 8px;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.5;
+    }
+    .step-link {
+      font-size:12px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      text-decoration:none;
+      color:var(--accent);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .step-link span {
+      font-size:16px;
+      transition:transform .18s ease;
+    }
+    .step-link:hover span { transform:translateX(3px); }
+    h2.section-title {
+      margin:0 0 8px;
+      font-size:18px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    .section-lead {
+      margin:0 0 22px;
+      color:var(--muted);
+      max-width:680px;
+      line-height:1.6;
+    }
+    .nav-grid {
+      display:grid;
+      gap:18px;
+      grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .nav-card {
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      padding:20px 20px 22px;
+      border-radius:16px;
+      border:1px solid rgba(57,70,120,.7);
+      background:linear-gradient(180deg, rgba(16,20,34,.88), rgba(14,18,32,.92));
+      text-decoration:none;
+      color:#fff;
+      position:relative;
+      overflow:hidden;
+      transition:border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+    }
+    .nav-card::before {
+      content:"";
+      position:absolute;
+      inset:0;
+      background:radial-gradient(circle at 16% 20%, rgba(127,230,162,.12), transparent 60%);
+      opacity:0;
+      transition:opacity .18s ease;
+    }
+    .nav-card strong {
+      font-family:'Unbounded','Outfit',system-ui;
+      font-size:18px;
+      letter-spacing:.02em;
+    }
+    .nav-card p {
+      margin:0;
+      color:var(--muted);
+      line-height:1.5;
+      font-size:14px;
+    }
+    .nav-card .cta {
+      margin-top:auto;
+      font-size:12px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:var(--accent);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .nav-card .cta span {
+      font-size:16px;
+      transition:transform .18s ease;
+    }
+    .nav-card:hover {
+      border-color:rgba(127,230,162,.8);
+      transform:translateY(-2px);
+      box-shadow:0 18px 32px rgba(14,22,34,.45);
+    }
+    .nav-card:hover::before { opacity:1; }
+    .nav-card:hover .cta span { transform:translateX(4px); }
+    .nav-card.highlight {
+      border-color:rgba(127,230,162,.75);
+      box-shadow:0 12px 24px rgba(18,42,48,.38);
+    }
+    .nav-card .badge {
+      align-self:flex-start;
+      font-size:11px;
+      letter-spacing:.24em;
+      text-transform:uppercase;
+      color:var(--accent);
+      background:rgba(127,230,162,.16);
+      border:1px solid rgba(127,230,162,.35);
+      border-radius:999px;
+      padding:4px 10px;
+    }
+    .tool-grid {
+      display:grid;
+      gap:16px;
+      grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .tool-card {
+      padding:18px;
+      border-radius:14px;
+      border:1px solid rgba(60,74,118,.6);
+      background:rgba(18,24,40,.86);
+      text-decoration:none;
+      color:#fff;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      transition:border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+    }
+    .tool-card strong {
+      font-size:15px;
+    }
+    .tool-card p {
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.5;
+    }
+    .tool-card span {
+      font-size:12px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:var(--accent);
+    }
+    .tool-card:hover {
+      border-color:rgba(114,153,255,.85);
+      transform:translateY(-1px);
+      box-shadow:0 14px 26px rgba(14,22,36,.32);
+    }
+    .roadmap {
+      display:grid;
+      gap:18px;
+      grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
+    }
+    .roadmap-card {
+      padding:18px 20px 20px;
+      border-radius:16px;
+      background:rgba(16,21,34,.82);
+      border:1px solid rgba(60,74,118,.55);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .roadmap-card h3 {
+      margin:0;
+      font-size:15px;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:var(--muted-strong);
+    }
+    .roadmap-card p {
+      margin:0;
+      color:var(--muted);
+      line-height:1.5;
+      font-size:14px;
+    }
+    @media (max-width: 1024px) {
+      main { padding:28px 22px 56px; }
+      .hero { grid-template-columns:1fr; }
+      .hero-steps { order:-1; }
+    }
+    @media (max-width: 720px) {
+      header { padding:16px 18px; }
+      main { padding:22px 18px 48px; }
+      .panel { padding:24px; }
+      .hero-copy h2 { font-size:26px; }
+      .hero-actions { gap:10px; }
+      .btn { width:100%; justify-content:center; }
+      .step { flex-direction:column; }
+      .step-id { width:32px; height:32px; font-size:18px; }
+    }
+    @media (max-width: 540px) {
+      nav { gap:8px; }
+      .nav-btn { flex:1 1 calc(50% - 8px); justify-content:center; text-align:center; }
+      .panel { padding:20px; }
+      .tool-grid, .nav-grid { grid-template-columns:1fr; }
+    }
+  </style>
 </head>
 <body>
   <header>
-    <h1>Fable Tactics • Sprites + Terrain + A*</h1>
+    <h1>Fable Tactics Toolkit</h1>
     <nav>
-      <a href="start.html" class="nav-btn">Start</a>
+      <a href="index.html" class="nav-btn active">Start</a>
       <a href="game-setup.html" class="nav-btn">Game Setup</a>
       <a href="selector.html" class="nav-btn">Party Builder</a>
-      <a href="index.html" class="nav-btn active">Combat Sim</a>
+      <a href="combat-sim.html" class="nav-btn">Combat Sim</a>
       <a href="quickstart.html" class="nav-btn">Quick Start</a>
       <a href="unit-icons.html" class="nav-btn">Unit Icons</a>
-      <button id="navStartBtn" class="nav-btn primary" type="button">Start Battle</button>
-      <button id="navAutoBtn" class="nav-btn" type="button" title="Let the AI play for you">Auto Battle</button>
     </nav>
-    <button id="resetBtn" class="warn" type="button">Reset Board</button>
   </header>
   <main>
-    <section class="panel board">
-      <h2 id="phaseTitle">Setup: Place Units & Terrain</h2>
-      <div id="board" class="grid"></div>
-      <div id="boardHint" class="small"></div>
-    </section>
-
-    <section class="side">
-      <section class="panel" id="partyPanel" style="display:none">
-        <h2>Allies</h2>
-        <div id="partyList"></div>
-        <div class="divider"></div>
-        <div>
-          <div class="small">Turn Order</div>
-          <div id="turnbar" class="turnbar"></div>
+    <section class="panel hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Start Screen</p>
+        <h2>Chart the skirmish you want to test.</h2>
+        <p class="lead">
+          Use this hub to jump between encounter prep tools. Dial in battlefield objectives, craft bespoke parties, or launch a quick prototype in just a few clicks.
+        </p>
+        <div class="hero-actions">
+          <a class="btn primary" href="game-setup.html">Open Game Setup</a>
+          <a class="btn ghost" href="selector.html">Build Parties</a>
+          <a class="btn outline" href="combat-sim.html">Enter Combat Sim</a>
         </div>
-      </section>
-
-      <section class="panel" id="enemyPanel" style="display:none">
-        <h2>Enemies</h2>
-        <div id="enemyList"></div>
-        <div class="divider"></div>
-        <div class="small">Melee needs adjacency. Ranged/support need LOS. Terrain modifies ATK/DEF and path cost.</div>
-      </section>
-    </section>
-
-    <section class="panel controls">
-      <div class="col">
-        <h2>Actions</h2>
-        <div id="actionRow" class="btn-row">
-          <button id="attackBtn" class="primary" disabled>Attack</button>
-          <button id="abilityBtn" disabled>Ability</button>
-          <button id="defendBtn" disabled>Defend</button>
-          <button id="disengageBtn" disabled>Disengage</button>
-          <button id="moveBtn" disabled>Move</button>
-          <button id="endBtn" disabled>End Turn</button>
-          <button id="autoBtn" title="Let the AI play for you" disabled>Auto-Play</button>
+      </div>
+      <div class="hero-steps">
+        <div class="step">
+          <span class="step-id">1</span>
+          <div>
+            <h3>Frame the scenario</h3>
+            <p>Choose the map, win conditions, initiative flow, and automation flags in the dedicated setup screen.</p>
+            <a class="step-link" href="game-setup.html">Plan match <span aria-hidden="true">→</span></a>
+          </div>
         </div>
-        <div id="abilityRow" class="targetRow"></div>
-        <div id="targetRow" class="targetRow"></div>
+        <div class="step">
+          <span class="step-id">2</span>
+          <div>
+            <h3>Assemble each squad</h3>
+            <p>Pick units, tweak stats, and lock in deployment order inside the party builder.</p>
+            <a class="step-link" href="selector.html">Build roster <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-id">3</span>
+          <div>
+            <h3>Drop into the simulation</h3>
+            <p>Load your saved configuration or run a bespoke clash directly inside the combat sandbox.</p>
+            <a class="step-link" href="combat-sim.html">Run battle <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section class="panel log">
-      <h2>Combat Log</h2>
-      <div id="log"></div>
+    <section class="panel">
+      <h2 class="section-title">Set up your battle flow</h2>
+      <p class="section-lead">Pick the tool that matches your next task. Each option takes you to the part of the toolkit built to handle that stage of encounter preparation.</p>
+      <div class="nav-grid">
+        <a class="nav-card highlight" href="game-setup.html">
+          <span class="badge">Detailed Setup</span>
+          <strong>Game Setup</strong>
+          <p>Configure battlefield parameters, initiative order, AI toggles, and custom modifiers before you step onto the grid.</p>
+          <span class="cta">Configure scenario <span aria-hidden="true">→</span></span>
+        </a>
+        <a class="nav-card" href="selector.html">
+          <strong>Party Builder</strong>
+          <p>Draft allies and enemies, adjust stats, and export balanced lineups for your skirmish.</p>
+          <span class="cta">Build rosters <span aria-hidden="true">→</span></span>
+        </a>
+        <a class="nav-card" href="quickstart.html">
+          <strong>Quick Start</strong>
+          <p>Select a curated encounter template and tweak a few knobs to prototype faster.</p>
+          <span class="cta">Pick template <span aria-hidden="true">→</span></span>
+        </a>
+        <a class="nav-card" href="combat-sim.html">
+          <strong>Combat Sim</strong>
+          <p>Play out turns on the tactical board with health, energy, and AI controls ready to go.</p>
+          <span class="cta">Launch sandbox <span aria-hidden="true">→</span></span>
+        </a>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">Prep support</h2>
+      <p class="section-lead">Reference art assets and handy reminders while you stitch together the encounter.</p>
+      <div class="tool-grid">
+        <a class="tool-card" href="unit-icons.html">
+          <strong>Unit Icons</strong>
+          <p>Browse faction crests and silhouettes for party sheets, overlays, and tooltip callouts.</p>
+          <span>Open icon library</span>
+        </a>
+        <a class="tool-card" href="quickstart.html">
+          <strong>Encounter Presets</strong>
+          <p>Use the quick start presets as baselines for AI tests, difficulty spikes, or tutorial beats.</p>
+          <span>View presets</span>
+        </a>
+        <a class="tool-card" href="selector.html">
+          <strong>Roster Exports</strong>
+          <p>Save party configurations for future sessions and share them with your writing or balance team.</p>
+          <span>Review exports</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">Suggested setup sequence</h2>
+      <div class="roadmap">
+        <div class="roadmap-card">
+          <h3>Define Objectives</h3>
+          <p>Outline why the fight matters. Capture victory conditions, failure triggers, and pacing beats in the Game Setup notes.</p>
+        </div>
+        <div class="roadmap-card">
+          <h3>Draft Parties</h3>
+          <p>Balance damage types, support roles, and initiative spreads in the Party Builder before copying units into the combat sim.</p>
+        </div>
+        <div class="roadmap-card">
+          <h3>Playtest & Iterate</h3>
+          <p>Jump into the Combat Sim for iteration. Tweak stats, terrain, or automation in real time and loop back as needed.</p>
+        </div>
+      </div>
     </section>
   </main>
-
-<script src="class-data.js"></script>
-<script>
-/* Embedded sprite URIs or URLs. Replace with your own files if you like. */
-const CLASS_ENTRIES = window.FABLE_DATA.CLASS_DATABASE;
-const CLASS_NAMES = CLASS_ENTRIES.map(entry=>entry.name);
-const SPRITES = (()=>{
-  const spriteSvg = (label, primary, accent, glyph)=>{
-    const id = label.replace(/[^a-z0-9]/gi,'');
-    const safeGlyph = glyph || label[0] || '?';
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-      <defs>
-        <linearGradient id="grad${id}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="${primary}"/>
-          <stop offset="100%" stop-color="${accent}"/>
-        </linearGradient>
-        <radialGradient id="glow${id}" cx="0.3" cy="0.2" r="0.85">
-          <stop offset="0%" stop-color="rgba(255,255,255,0.45)"/>
-          <stop offset="60%" stop-color="rgba(255,255,255,0.1)"/>
-          <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
-        </radialGradient>
-      </defs>
-      <rect width="128" height="128" rx="22" fill="url(#grad${id})"/>
-      <rect width="128" height="128" rx="22" fill="url(#glow${id})" opacity="0.55"/>
-      <circle cx="108" cy="28" r="18" fill="rgba(255,255,255,0.16)"/>
-      <circle cx="32" cy="18" r="12" fill="rgba(0,0,0,0.18)"/>
-      <text x="64" y="78" text-anchor="middle" font-family="'Outfit', 'Segoe UI', sans-serif" font-size="56" fill="#ffffff" opacity="0.92">${safeGlyph}</text>
-      <text x="64" y="112" text-anchor="middle" font-family="'Outfit', 'Segoe UI', sans-serif" font-size="18" fill="#f8fbff" letter-spacing="1">${label}</text>
-    </svg>`;
-    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-  };
-  const palettes = [
-    ['#3b6bff','#91b4ff'],
-    ['#f97316','#facc15'],
-    ['#14b8a6','#60a5fa'],
-    ['#f472b6','#c084fc'],
-    ['#22c55e','#a3e635'],
-    ['#f87171','#fb7185'],
-    ['#0ea5e9','#38bdf8'],
-    ['#ef4444','#f97316'],
-    ['#a855f7','#f0abfc'],
-    ['#eab308','#f97316']
-  ];
-  const glyphs = window.FABLE_DATA.GLYPH_OVERRIDES || {};
-  return Object.fromEntries(CLASS_NAMES.map((label, idx)=>{
-    const [primary, accent] = palettes[idx % palettes.length];
-    const glyph = glyphs[label] || label[0] || '?';
-    return [label, spriteSvg(label, primary, accent, glyph)];
-  }));
-})();
-
-/* ========= Core / Grid ========= */
-const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
-const choice=(arr)=>arr[Math.floor(Math.random()*arr.length)];
-const GRID = {
-  radius: 4,
-  w: 0,
-  h: 0,
-  cell: 72,
-  desiredCell: 72,
-  originX: 0,
-  originY: 0,
-  playable: new Set(),
-  obstacles: new Set(),
-  terrain: new Map(),
-};
-const key=(x,y)=>`${x},${y}`;
-const SQRT3 = Math.sqrt(3);
-const HEX_AXIAL_DIRS = [
-  {q:+1,r:0},
-  {q:+1,r:-1},
-  {q:0,r:-1},
-  {q:-1,r:0},
-  {q:-1,r:+1},
-  {q:0,r:+1},
-];
-function axialToOffsetRaw(q,r){
-  const x = q;
-  const y = r + (q - (q & 1)) / 2;
-  return {x,y};
-}
-function computeHexMask(radius){
-  const playable=new Set();
-  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
-  for(let q=-radius; q<=radius; q++){
-    const rMin=Math.max(-radius, -q-radius);
-    const rMax=Math.min(radius, -q+radius);
-    for(let r=rMin; r<=rMax; r++){
-      const raw=axialToOffsetRaw(q,r);
-      if(raw.x<minX) minX=raw.x;
-      if(raw.x>maxX) maxX=raw.x;
-      if(raw.y<minY) minY=raw.y;
-      if(raw.y>maxY) maxY=raw.y;
-    }
-  }
-  if(!Number.isFinite(minX) || !Number.isFinite(minY)){
-    return {originX:0, originY:0, width:0, height:0, playable};
-  }
-  const originX = -minX;
-  const originY = -minY;
-  for(let q=-radius; q<=radius; q++){
-    const rMin=Math.max(-radius, -q-radius);
-    const rMax=Math.min(radius, -q+radius);
-    for(let r=rMin; r<=rMax; r++){
-      const raw=axialToOffsetRaw(q,r);
-      const x=raw.x + originX;
-      const y=raw.y + originY;
-      playable.add(key(x,y));
-    }
-  }
-  return {
-    originX,
-    originY,
-    width: (maxX - minX + 1),
-    height: (maxY - minY + 1),
-    playable,
-  };
-}
-function setGridRadius(radius){
-  const mask=computeHexMask(radius);
-  GRID.radius = radius;
-  GRID.originX = mask.originX;
-  GRID.originY = mask.originY;
-  GRID.w = mask.width;
-  GRID.h = mask.height;
-  GRID.playable = mask.playable;
-}
-setGridRadius(GRID.radius);
-const isPlayableHex=(x,y)=>GRID.playable.has(key(x,y));
-const hasObs=(x,y)=>isPlayableHex(x,y) && GRID.obstacles.has(key(x,y));
-function offsetToAxial(x,y){
-  const adjX = x - GRID.originX;
-  const adjY = y - GRID.originY;
-  const q = adjX;
-  const r = adjY - (adjX - (adjX & 1)) / 2;
-  return {q,r};
-}
-function axialToOffset(q,r){
-  const x = q + GRID.originX;
-  const y = r + (q - (q & 1)) / 2 + GRID.originY;
-  return {x,y};
-}
-function offsetToCube(x,y){
-  const axial = offsetToAxial(x,y);
-  const q = axial.q;
-  const r = axial.r;
-  return {x:q, y:-q - r, z:r};
-}
-function cubeToOffset(cube){
-  return axialToOffset(cube.x, cube.z);
-}
-function centerHex(){
-  return axialToOffset(0,0);
-}
-function inBounds(x,y){
-  return isPlayableHex(x,y);
-}
-function clampGridState(){
-  const isPlayableKey=(k)=>{
-    const [x,y]=k.split(',').map(Number);
-    return isPlayableHex(x,y);
-  };
-  GRID.obstacles = new Set([...GRID.obstacles].filter(isPlayableKey));
-  GRID.terrain = new Map([...GRID.terrain.entries()].filter(([k])=>isPlayableKey(k)));
-  const fallback=centerHex();
-  for(const u of G.units){
-    if(!u.pos) continue;
-    if(!isPlayableHex(u.pos.x,u.pos.y)){
-      const replacement=nearestPlayable(u.pos.x,u.pos.y) || fallback;
-      u.pos = replacement ? {x:replacement.x, y:replacement.y} : null;
-    }
-  }
-}
-function hexDistance(a,b){
-  const ac = offsetToCube(a.x,a.y);
-  const bc = offsetToCube(b.x,b.y);
-  return Math.max(
-    Math.abs(ac.x - bc.x),
-    Math.abs(ac.y - bc.y),
-    Math.abs(ac.z - bc.z)
-  );
-}
-const dist=(a,b)=>hexDistance(a,b);
-const inRange=(u,t,r)=>hexDistance(u.pos,t.pos)<=r;
-const isAdjacent=(a,b)=>hexDistance(a,b)===1;
-function hexNeighbors(x,y){
-  const axial = offsetToAxial(x,y);
-  return HEX_AXIAL_DIRS.map(dir=>axialToOffset(axial.q + dir.q, axial.r + dir.r));
-}
-function nearestPlayable(x,y){
-  if(isPlayableHex(x,y)) return {x,y};
-  let best=null, bestDist=Infinity;
-  for(const k of GRID.playable){
-    const [px,py]=k.split(',').map(Number);
-    const cand={x:px,y:py};
-    const d=dist({x, y}, cand);
-    if(d<bestDist){
-      bestDist=d;
-      best=cand;
-    }
-  }
-  return best;
-}
-function computeHexGeometry(cellSize){
-  const cellHeight = cellSize * SQRT3 / 2;
-  const hasCells = GRID.playable.size > 0;
-  if(!hasCells){
-    return { positions:[], width:0, height:0, offsetX:0, offsetY:0, cellHeight };
-  }
-  const positions=[];
-  let minLeft=Infinity, minTop=Infinity, maxRight=-Infinity, maxBottom=-Infinity;
-  for(let y=0;y<GRID.h;y++){
-    positions[y]=[];
-    for(let x=0;x<GRID.w;x++){
-      if(!isPlayableHex(x,y)){
-        positions[y][x]=null;
-        continue;
-      }
-      const axial = offsetToAxial(x,y);
-      const centerX = (cellSize * 0.75) * axial.q;
-      const centerY = cellHeight * (axial.r + axial.q/2);
-      const left = centerX - cellSize/2;
-      const top = centerY - cellHeight/2;
-      const right = left + cellSize;
-      const bottom = top + cellHeight;
-      positions[y][x]={left, top};
-      if(left<minLeft) minLeft=left;
-      if(top<minTop) minTop=top;
-      if(right>maxRight) maxRight=right;
-      if(bottom>maxBottom) maxBottom=bottom;
-    }
-  }
-  return {
-    positions,
-    width: maxRight - minLeft,
-    height: maxBottom - minTop,
-    offsetX: -minLeft,
-    offsetY: -minTop,
-    cellHeight
-  };
-}
-const TERRAIN = {
-  plain:{cost:1, atk:0, def:0, pass:true},
-  forest:{cost:2, atk:0, def:+2, pass:true},
-  hill:{cost:2, atk:+2, def:0, pass:true},
-  road:{cost:1, atk:0, def:0, pass:true},
-  swamp:{cost:3, atk:-2, def:0, pass:true},
-  water:{cost:999, atk:0, def:0, pass:false},
-};
-function tAt(x,y){ return TERRAIN[GRID.terrain.get(key(x,y))||'plain']; }
-function tNameAt(x,y){ return GRID.terrain.get(key(x,y))||'plain'; }
-function shortName(n){ return n.replace(/\(.*?\)/,'').trim().split(' ')[0]; }
-function getUnitAt(x,y){ return G.units.find(u=>!u.dead && u.pos && u.pos.x===x && u.pos.y===y); }
-function isOccupied(x,y){ return !!getUnitAt(x,y); }
-
-/* ========= LOS ========= */
-const lerp=(a,b,t)=>a + (b - a) * t;
-function cubeLerp(a,b,t){
-  return {
-    x: lerp(a.x,b.x,t),
-    y: lerp(a.y,b.y,t),
-    z: lerp(a.z,b.z,t)
-  };
-}
-function cubeRound(c){
-  let rx=Math.round(c.x), ry=Math.round(c.y), rz=Math.round(c.z);
-  const xDiff=Math.abs(rx-c.x), yDiff=Math.abs(ry-c.y), zDiff=Math.abs(rz-c.z);
-  if(xDiff>yDiff && xDiff>zDiff){
-    rx = -ry - rz;
-  }else if(yDiff>zDiff){
-    ry = -rx - rz;
-  }else{
-    rz = -rx - ry;
-  }
-  return {x:rx,y:ry,z:rz};
-}
-function lineCells(a,b){
-  const start=offsetToCube(a.x,a.y);
-  const end=offsetToCube(b.x,b.y);
-  const N=hexDistance(a,b);
-  const cells=[];
-  if(N<=1) return cells;
-  for(let i=1;i<N;i++){
-    const t=i/N;
-    const cube=cubeLerp(start,end,t);
-    const rounded=cubeRound(cube);
-    const pos=cubeToOffset(rounded);
-    cells.push(pos);
-  }
-  return cells;
-}
-function clearLine(a,b){
-  for(const c of lineCells(a,b)){ if(hasObs(c.x,c.y)) return false; }
-  return true;
-}
-
-/* ========= Status & Abilities ========= */
-const StatusLib={
-  Guard:{name:"Guard",desc:"Increase DEF by 50% for 1 turn.",duration:1,
-    apply(u){u.temp.defBonus=(u.temp.defBonus||0)+Math.ceil(u.stats.def*0.5);},
-    remove(u){u.temp.defBonus=0;},tick(){}},
-  Bleed:{name:"Bleed",desc:"Lose 5 HP at start for 2 turns.",duration:2,
-    apply(){},remove(){},tick(u,log){const dmg=5;applyDamage(u,dmg,log,`${u.name} bleeds for <span class="dmg">-${dmg}</span>.`);} },
-  Root:{name:"Root",desc:"Cannot move for 1 turn.",duration:1,apply(){},remove(){},tick(){}},
-  Inspire:{name:"Inspire",desc:"+2 ATK & +2 SPD for 2 turns.",duration:2,
-    apply(u){u.temp.atkBuff=(u.temp.atkBuff||0)+2; u.temp.spdBuff=(u.temp.spdBuff||0)+2;},
-    remove(u){u.temp.atkBuff=0; u.temp.spdBuff=0;},tick(){}},
-  Shield:{name:"Shield",desc:"Absorb 15 damage for 2 turns.",duration:2,
-    apply(u){u.temp.shield=(u.temp.shield||0)+15;},
-    remove(u){u.temp.shield=0;},tick(){}},
-  Quickdraw:{name:"Quickdraw",desc:"Leap to the front of initiative this round.",duration:1,
-    apply(u){u.temp.quickdraw=true;},
-    remove(u){u.temp.quickdraw=false;},tick(){}},
-};
-
-const AbilityLib={
-  Guard:{name:"Guard",desc:"Raise DEF by 50% (1 turn). Self-only.",cooldown:2,range:0,target:"self",
-    use(user,_t,log){ addStatus(user,"Guard",log); log(`${user.name} braces for impact.`); } },
-
-  PowerStrike:{name:"Power Strike",desc:"+50% ATK single hit. 1-turn CD. (range 1)",cooldown:1,range:1,target:"enemy",
-    use(user,target,log){const atk=Math.ceil((effAtk(user))*1.5);const dmg=computeDamage(atk,effDef(target));applyDamage(target,dmg,log,`${user.name} uses Power Strike on ${target.name} for <span class="dmg">-${dmg}</span>.`);}},
-
-  BleedingShot:{name:"Bleeding Shot",desc:"Light hit + Bleed. (range 3, needs LOS)",cooldown:2,range:3,target:"enemy",
-    use(user,target,log){const atk=Math.ceil((effAtk(user))*0.8);const dmg=computeDamage(atk,effDef(target));applyDamage(target,dmg,log,`${user.name} uses Bleeding Shot on ${target.name} for <span class="dmg">-${dmg}</span>.`);if(!target.dead){addStatus(target,"Bleed",log);log(`${target.name} is now <span class="hit">Bleeding</span>.`);}}},
-
-  Recover:{name:"Recover",desc:"Restore 12 HP to self.",cooldown:2,range:0,target:"self",
-    use(user,_t,log){const heal=12;const before=user.hp;user.hp=clamp(user.hp+heal,0,user.stats.maxHp);log(`${user.name} recovers <span class="heal">+${user.hp-before}</span> HP.`);} },
-
-  Heal:{name:"Heal",desc:"Restore 16 HP to an ally (R3, LOS).",cooldown:2,range:3,target:"ally",
-    use(user,target,log){const heal=16;const before=target.hp;target.hp=clamp(target.hp+heal,0,target.stats.maxHp);log(`${user.name} heals ${target.name} for <span class="heal">+${target.hp-before}</span>.`);} },
-  Inspire:{name:"Inspire",desc:"Buff ally with Inspire (+2 ATK & SPD, 2 turns). R3, LOS.",cooldown:3,range:3,target:"ally",
-    use(user,target,log){addStatus(target,"Inspire",log);log(`${user.name} inspires ${target.name}!`);} },
-  Shield:{name:"Shield",desc:"Grant a 15-HP shield to an ally (2 turns). R3, LOS.",cooldown:3,range:3,target:"ally",
-    use(user,target,log){addStatus(target,"Shield",log);log(`${user.name} shields ${target.name}.`);} },
-  Root:{name:"Root",desc:"Root an enemy (no movement) for 1 turn. R3, LOS.",cooldown:2,range:3,target:"enemy",
-    use(user,target,log){addStatus(target,"Root",log);log(`${user.name} roots ${target.name} in place!`);} },
-};
-
-const SKILL_BEHAVIORS = window.FABLE_DATA.SKILL_BEHAVIORS;
-const SKILL_DATA = window.FABLE_DATA.SKILL_DATA || {};
-const skillKey = window.FABLE_DATA.skillKey;
-
-function skillMeta(name){
-  return SKILL_DATA[name];
-}
-
-function skillRange(meta, fallback){
-  return typeof meta?.rangeValue === 'number' ? meta.rangeValue : fallback;
-}
-
-function skillCooldown(meta, fallback){
-  return typeof meta?.cooldown === 'number' ? meta.cooldown : fallback;
-}
-
-function skillDesc(name, fallback, meta){
-  if(!meta) return fallback;
-  const effect = (meta.effect || '').trim();
-  const effectText = effect ? (/[.!?]$/.test(effect) ? effect : `${effect}.`) : '';
-  const costParts = [];
-  if(typeof meta.ep === 'number') costParts.push(`EP ${meta.ep}`);
-  if(typeof meta.ap === 'number') costParts.push(`AP ${meta.ap}`);
-  const costText = costParts.length ? ` Cost: ${costParts.join(', ')}.` : '';
-  const tags = Array.isArray(meta.tags) && meta.tags.length ? ` Tags: ${meta.tags.join(', ')}.` : '';
-  const typeText = meta.type ? ` Type: ${meta.type}.` : '';
-  return `${name}: ${effectText}${costText}${tags}${typeText}`.trim();
-}
-
-function gatherFreeCells(center, maxRange){
-  if(!center || typeof maxRange !== 'number') return [];
-  const cells=[];
-  for(let y=0;y<GRID.h;y++){
-    for(let x=0;x<GRID.w;x++){
-      if(!isPlayableHex(x,y)) continue;
-      if(x===center.x && y===center.y) continue;
-      if(hasObs(x,y)) continue;
-      const terrain = tAt(x,y);
-      if(!terrain.pass) continue;
-      const occupant = getUnitAt(x,y);
-      if(occupant) continue;
-      if(dist(center,{x,y})>maxRange) continue;
-      cells.push({x,y});
-    }
-  }
-  cells.sort((a,b)=>{
-    const da=dist(center,a);
-    const db=dist(center,b);
-    if(da!==db) return da-db;
-    if(a.y!==b.y) return a.y-b.y;
-    return a.x-b.x;
-  });
-  return cells;
-}
-
-function ensureAbilityForSkill(name){
-  const key = skillKey(name);
-  if(AbilityLib[key]) return key;
-  const behavior = SKILL_BEHAVIORS[name] || 'attackMelee';
-  AbilityLib[key] = makeAbilityFromBehavior(name, behavior);
-  return key;
-}
-
-function makeAbilityFromBehavior(name, behavior){
-  switch(behavior){
-    case 'moveSlipstream': {
-      const meta = skillMeta(name);
-      const cooldown = skillCooldown(meta, 1);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Reposition ignoring engagement.`, meta),
-        cooldown,
-        range: meta?.rangeValue,
-        target:'self',
-        requiresCell:true,
-        validCells(user){
-          if(!user?.pos) return [];
-          const maxRange = (typeof meta?.rangeValue==='number' && meta.rangeValue>0)
-            ? meta.rangeValue
-            : Math.max(1, user.mov ?? 0);
-          return gatherFreeCells(user.pos, maxRange);
-        },
-        useCell(user,_target,pos,log){
-          if(!user?.pos){ log(`${name} fizzles; ${user?.name||'Unit'} has no position.`); return false; }
-          if(user.statuses.some(s=>s.key==='Root')){ log(`${user.name} cannot use ${name} while rooted.`); return false; }
-          user.pos={x:pos.x,y:pos.y};
-          log(`${user.name} slips through the fray to (${pos.x},${pos.y}) with ${name}.`);
-          return true;
-        }
-      };
-    }
-    case 'moveBlink': {
-      const meta = skillMeta(name);
-      const range = Math.max(1, skillRange(meta, 3));
-      const cooldown = skillCooldown(meta, 2);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Blink to a nearby hex.`, meta),
-        cooldown,
-        range,
-        target:'self',
-        requiresCell:true,
-        validCells(user){
-          if(!user?.pos) return [];
-          return gatherFreeCells(user.pos, range);
-        },
-        useCell(user,_target,pos,log){
-          if(!user?.pos){ log(`${name} fizzles; ${user?.name||'Unit'} has no position.`); return false; }
-          user.pos={x:pos.x,y:pos.y};
-          log(`${user.name} blinks to (${pos.x},${pos.y}) using ${name}.`);
-          return true;
-        }
-      };
-    }
-    case 'teleportAlly': {
-      const meta = skillMeta(name);
-      const range = Math.max(1, skillRange(meta, 4));
-      const cooldown = skillCooldown(meta, 3);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Teleport an ally within range.`, meta),
-        cooldown,
-        range,
-        target:'ally',
-        requiresCell:true,
-        validCells(user,target){
-          if(!user?.pos) return [];
-          const cells = gatherFreeCells(user.pos, range);
-          if(target?.pos){
-            return cells.filter(c=>!(c.x===target.pos.x && c.y===target.pos.y));
-          }
-          return cells;
-        },
-        useCell(user,target,pos,log){
-          const mover = target || user;
-          if(!mover?.pos){ log(`${name} has no effect; target is not placed.`); return false; }
-          mover.pos={x:pos.x,y:pos.y};
-          if(user.id===mover.id){
-            log(`${user.name} warps to (${pos.x},${pos.y}) with ${name}.`);
-          } else {
-            log(`${user.name} warps ${mover.name} to (${pos.x},${pos.y}) with ${name}.`);
-          }
-          return true;
-        }
-      };
-    }
-    case 'quickdraw': {
-      const meta = skillMeta(name);
-      const cooldown = skillCooldown(meta, 0);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Gain the Quickdraw edge for this round.`, meta),
-        cooldown,
-        range:0,
-        target:'self',
-        use(user,_target,log){
-          addStatus(user,'Quickdraw',log);
-          log(`${user.name} readies ${name}, preparing to act first.`);
-          return true;
-        }
-      };
-    }
-    case 'attackRanged': {
-      const meta = skillMeta(name);
-      const range = skillRange(meta, 3);
-      const cooldown = skillCooldown(meta, 1);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Ranged strike.`, meta),
-        cooldown, range, target:'enemy',
-        use(user,target,log){
-          const atk = effAtk(user);
-          const dmg = computeDamage(atk, effDef(target));
-          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
-        }
-      };
-    }
-    case 'attackRangedRoot': {
-      const meta = skillMeta(name);
-      const range = skillRange(meta, 3);
-      const cooldown = skillCooldown(meta, 2);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Ranged strike that roots.`, meta),
-        cooldown, range, target:'enemy',
-        use(user,target,log){
-          const atk = effAtk(user);
-          const dmg = computeDamage(atk, effDef(target));
-          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
-          if(!target.dead){ addStatus(target,'Root',log); log(`${target.name} is rooted by ${name}.`); }
-        }
-      };
-    }
-    case 'attackMeleeBleed': {
-      const meta = skillMeta(name);
-      const range = skillRange(meta, 1);
-      const cooldown = skillCooldown(meta, 2);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Close strike that bleeds.`, meta),
-        cooldown, range, target:'enemy',
-        use(user,target,log){
-          const atk = effAtk(user);
-          const dmg = computeDamage(atk, effDef(target));
-          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
-          if(!target.dead){ addStatus(target,'Bleed',log); log(`${target.name} bleeds from ${name}.`); }
-        }
-      };
-    }
-    case 'attackLifeSteal': {
-      const meta = skillMeta(name);
-      const range = skillRange(meta, 2);
-      const cooldown = skillCooldown(meta, 2);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Strike and siphon life.`, meta),
-        cooldown, range, target:'enemy',
-        use(user,target,log){
-          const atk = effAtk(user);
-          const dmg = computeDamage(atk, effDef(target));
-          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
-          if(dmg>0 && !user.dead){
-            const before = user.hp;
-            user.hp = clamp(user.hp + Math.ceil(dmg/2), 0, user.stats.maxHp);
-            const healed = user.hp - before;
-            if(healed>0){ log(`${user.name} siphons <span class=\"heal\">+${healed}</span> HP.`); }
-          }
-        }
-      };
-    }
-    case 'buffSelfGuard': {
-      const meta = skillMeta(name);
-      const range = skillRange(meta, 0);
-      const cooldown = skillCooldown(meta, 2);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Brace for impact.`, meta),
-        cooldown, range, target:'self',
-        use(user,_target,log){ addStatus(user,'Guard',log); log(`${user.name} uses ${name} and steadies their defense.`); }
-      };
-    }
-    case 'buffSelfInspire': {
-      const meta = skillMeta(name);
-      const range = skillRange(meta, 0);
-      const cooldown = skillCooldown(meta, 2);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Empower self.`, meta),
-        cooldown, range, target:'self',
-        use(user,_target,log){ addStatus(user,'Inspire',log); log(`${user.name} channels ${name}.`); }
-      };
-    }
-    case 'buffAllyGuard': {
-      const meta = skillMeta(name);
-      const range = skillRange(meta, 3);
-      const cooldown = skillCooldown(meta, 2);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Protect an ally.`, meta),
-        cooldown, range, target:'ally',
-        use(user,target,log){ addStatus(target,'Guard',log); log(`${user.name} uses ${name} to shield ${target.name}.`); }
-      };
-    }
-    case 'buffAllyInspire': {
-      const meta = skillMeta(name);
-      const range = skillRange(meta, 3);
-      const cooldown = skillCooldown(meta, 2);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Bolster an ally.`, meta),
-        cooldown, range, target:'ally',
-        use(user,target,log){ addStatus(target,'Inspire',log); log(`${user.name} inspires ${target.name} with ${name}.`); }
-      };
-    }
-    case 'heal': {
-      const meta = skillMeta(name);
-      const range = skillRange(meta, 3);
-      const cooldown = skillCooldown(meta, 2);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Restore an ally.`, meta),
-        cooldown, range, target:'ally',
-        use(user,target,log){
-          const before = target.hp;
-          target.hp = clamp(target.hp + 18, 0, target.stats.maxHp);
-          const healed = target.hp - before;
-          log(`${user.name} uses ${name} on ${target.name} for <span class=\"heal\">+${healed}</span> HP.`);
-        }
-      };
-    }
-    case 'root': {
-      const meta = skillMeta(name);
-      const range = skillRange(meta, 3);
-      const cooldown = skillCooldown(meta, 2);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Immobilize an enemy.`, meta),
-        cooldown, range, target:'enemy',
-        use(user,target,log){ addStatus(target,'Root',log); log(`${user.name} uses ${name} to root ${target.name}.`); }
-      };
-    }
-    case 'swap': {
-      const meta = skillMeta(name);
-      const range = skillRange(meta, 3);
-      const cooldown = skillCooldown(meta, 2);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Swap positions with an ally.`, meta),
-        cooldown, range, target:'ally',
-        use(user,target,log){
-          if(user===target) return;
-          if(!user.pos || !target.pos){ log(`${name} fizzles; both units must be placed.`); return; }
-          const ux = user.pos.x, uy = user.pos.y;
-          user.pos.x = target.pos.x;
-          user.pos.y = target.pos.y;
-          target.pos.x = ux;
-          target.pos.y = uy;
-          log(`${user.name} swaps places with ${target.name} using ${name}.`);
-        }
-      };
-    }
-    case 'attackMelee':
-    default: {
-      const meta = skillMeta(name);
-      const range = skillRange(meta, 1);
-      const cooldown = skillCooldown(meta, 1);
-      return {
-        name,
-        desc: skillDesc(name, `${name}: Close-range strike.`, meta),
-        cooldown, range, target:'enemy',
-        use(user,target,log){
-          const atk = effAtk(user);
-          const dmg = computeDamage(atk, effDef(target));
-          applyDamage(target,dmg,log,`${user.name} uses ${name} on ${target.name} for <span class=\"dmg\">-${dmg}</span>.`);
-        }
-      };
-    }
-  }
-}
-
-/* ========= Templates ========= */
-const UnitTemplates = Object.fromEntries(CLASS_ENTRIES.map(entry=>{
-  const derived = window.FABLE_DATA.computeDerivedStats(entry);
-  const abilityKeys = (entry.startingSkills||[]).map(skill=>ensureAbilityForSkill(skill));
-  const abilities = abilityKeys.length ? abilityKeys : ['PowerStrike'];
-  return [entry.name, {
-    label: entry.name,
-    name: window.FABLE_DATA.defaultNameFor(entry.name),
-    role: entry.category,
-    stats:{ maxHp: derived.maxHp, atk: derived.atk, def: derived.def, spd: derived.spd },
-    abilities,
-    range: derived.range,
-    epMax: entry.resources?.EP ?? 2,
-    mov: entry.resources?.MOV ?? 4,
-    attributes: entry.stats,
-    attunement: entry.attunement,
-    resources: entry.resources
-  }];
-}));
-
-function makeUnit(tplKey, team, pos){
-  const T = UnitTemplates[tplKey] || UnitTemplates.Knight;
-  return {
-    id: crypto.randomUUID(),
-    name: T.name, team, tplKey,
-    stats: {...T.stats}, hp:T.stats.maxHp, dead:false,
-    temp:{defBonus:0,defend:false,atkBuff:0,spdBuff:0,shield:0,quickdraw:false}, statuses:[],
-    abilities: (T.abilities||[]).map(k=>({key:k,cd:0})),
-    range: T.range ?? 1,
-    pos: pos? {...pos} : null,
-    ep: 0, epMax: T.epMax ?? 2,
-    mov: T.mov ?? 4,
-    dataset: T
-  };
-}
-
-/* ========= Global State ========= */
-const G={ phase:"setup", units:[], acting:null, round:1, moveMode:false, moveTargets:null, auto:false, obstacleMode:false, terrainMode:false };
-
-/* ========= Damage / Effective Stats ========= */
-function effAtk(u){ const t=u.pos? tAt(u.pos.x,u.pos.y) : TERRAIN.plain; return u.stats.atk + (u.temp.atkBuff||0) + (t.atk||0); }
-function effDef(u){ const t=u.pos? tAt(u.pos.x,u.pos.y) : TERRAIN.plain; return u.stats.def + (u.temp.defBonus||0) + (u.temp.defend?2:0) + (t.def||0); }
-function computeDamage(atk,def){ const base=Math.max(1, (atk) - Math.floor(def*0.7)); const variance=rand(-2,2); return Math.max(1, base+variance); }
-function applyDamage(target,dmg,log,msg){
-  let remaining=dmg;
-  if(target.temp.shield && remaining>0){
-    const used=Math.min(target.temp.shield, remaining);
-    target.temp.shield -= used;
-    remaining -= used;
-    log(`${target.name}'s shield absorbs <span class="heal">${used}</span>.`);
-  }
-  if(remaining>0){
-    target.hp=clamp(target.hp-remaining,0,target.stats.maxHp);
-    if(msg) log(msg);
-    if(target.hp===0){ target.dead=true; log(`<b>${target.name}</b> is defeated.`); }
-  } else {
-    if(msg) log(msg.replace(/for.+/, 'but it was fully absorbed.'));
-  }
-}
-function addStatus(u,key,log){
-  const tpl=StatusLib[key];
-  if(!tpl) return;
-  const ex=u.statuses.find(s=>s.key===key);
-  if(ex){
-    ex.turnsLeft=tpl.duration;
-    if(tpl.remove) tpl.remove(u,log);
-  } else {
-    u.statuses.push({key,turnsLeft:tpl.duration});
-  }
-  if(tpl.apply) tpl.apply(u,log);
-}
-function tickStatusesStart(u,log){ for(const s of [...u.statuses]){ const tpl=StatusLib[s.key]; if(tpl&&tpl.tick) tpl.tick(u,log); if(u.hp===0) break; } }
-function cleanupStatusesEnd(u,log){
-  for(const s of [...u.statuses]){
-    s.turnsLeft-=1;
-    if(s.turnsLeft<=0){
-      const tpl=StatusLib[s.key];
-      if(tpl&&tpl.remove) tpl.remove(u,log);
-      u.statuses=u.statuses.filter(x=>x!==s);
-    }
-  }
-  u.temp.defend=false;
-  u.temp.disengaged=false;
-}
-
-/* ========= Turn & Teams ========= */
-function living(team){ return G.units.filter(u=>u.team===team && !u.dead); }
-function anyLiving(team){ return living(team).length>0; }
-function initiativeScore(u){
-  const base = u.stats.spd + (u.temp.spdBuff||0);
-  return (u.temp.quickdraw ? 1000 : 0) + base;
-}
-function initiativeOrder(){
-  return G.units.filter(u=>!u.dead).slice().sort((a,b)=>{
-    const sb=initiativeScore(b);
-    const sa=initiativeScore(a);
-    if(sb!==sa) return sb-sa;
-    return (a.id > b.id ? 1 : -1);
-  });
-}
-
-/* ========= DOM ========= */
-const BOARD=document.getElementById('board');
-const PHASE=document.getElementById('phaseTitle');
-const BOARD_HINT=document.getElementById('boardHint');
-const PARTY_PANEL=document.getElementById('partyPanel');
-const ENEMY_PANEL=document.getElementById('enemyPanel');
-const resetBtn=document.getElementById('resetBtn');
-const quickSetupBtn=document.getElementById('quickSetupBtn');
-const quickstartPanel=document.getElementById('setupPanel');
-const HAS_SETUP_PANEL=!!quickstartPanel;
-
-const PARTY=document.getElementById('partyList');
-const ENEMIES=document.getElementById('enemyList');
-const TURNBAR=document.getElementById('turnbar');
-const LOG=document.getElementById('log');
-
-const ATTACK=document.getElementById('attackBtn');
-const ABILITY=document.getElementById('abilityBtn');
-const DEFEND=document.getElementById('defendBtn');
-const DISENGAGE=document.getElementById('disengageBtn');
-const MOVE=document.getElementById('moveBtn');
-const END=document.getElementById('endBtn');
-const AUTO=document.getElementById('autoBtn');
-
-const TARGETS=document.getElementById('targetRow');
-const ABILROW=document.getElementById('abilityRow');
-
-const buildRow=document.getElementById('buildRow');
-const buildSearchInput = document.getElementById('buildSearch');
-const roleFilterButtons = [...document.querySelectorAll('[data-role-filter]')];
-const rangeFilterButtons = [...document.querySelectorAll('[data-range-filter]')];
-const presetSelect=document.getElementById('presetSelect');
-const loadPresetBtn=document.getElementById('loadPresetBtn');
-const presetDescription=document.getElementById('presetDescription');
-const fromSelectorBtn=document.getElementById('fromSelectorBtn');
-const clearBtn=document.getElementById('clearBtn');
-const startBtn=document.getElementById('startBtn');
-const navStartBtn=document.getElementById('navStartBtn');
-const navAutoBtn=document.getElementById('navAutoBtn');
-
-const gridWInput = document.getElementById('gridW');
-const gridHInput = document.getElementById('gridH');
-const applyGridBtn = document.getElementById('applyGridBtn');
-const zoomRange = document.getElementById('zoomRange');
-const zoomVal = document.getElementById('zoomVal');
-
-function parsePx(value){
-  return typeof value === 'string' ? parseFloat(value) || 0 : 0;
-}
-
-function fitBoardCellToPanel(updateControls = true){
-  const panel = BOARD.closest('.panel.board');
-  const desired = GRID.desiredCell ?? GRID.cell;
-  let applied = desired;
-
-  if(panel){
-    const panelStyles = getComputedStyle(panel);
-    const boardStyles = getComputedStyle(BOARD);
-    const availableWidth = panel.clientWidth - parsePx(panelStyles.paddingLeft) - parsePx(panelStyles.paddingRight);
-    const paddingX = parsePx(boardStyles.paddingLeft) + parsePx(boardStyles.paddingRight);
-    const geometry = computeHexGeometry(desired);
-    const factor = desired > 0 ? geometry.width / desired : 0;
-    const usableWidth = availableWidth - paddingX;
-    if(Number.isFinite(factor) && factor > 0 && Number.isFinite(usableWidth) && usableWidth > 0){
-      const maxCell = usableWidth / factor;
-      if(Number.isFinite(maxCell) && maxCell > 0){
-        const step = zoomRange ? (parseFloat(zoomRange.step) || 1) : 1;
-        const safeMax = Math.floor((maxCell - 0.5) / step) * step;
-        if(safeMax > 0){
-          applied = Math.min(desired, safeMax);
-        } else {
-          const fallback = Math.max(1, maxCell);
-          applied = Math.min(desired, fallback);
-        }
-      }
-    }
-  }
-
-  GRID.cell = applied;
-  BOARD.style.setProperty('--cell', applied + 'px');
-  BOARD.style.setProperty('--hex-h', (applied * SQRT3 / 2) + 'px');
-  if(updateControls){
-    if(zoomRange) zoomRange.value = applied;
-    if(zoomVal) zoomVal.textContent = applied + 'px';
-  }
-}
-
-const obstacleBtn=document.getElementById('obstacleBtn');
-const clearObsBtn=document.getElementById('clearObsBtn');
-
-const terrainBtn=document.getElementById('terrainBtn');
-const terrainType=document.getElementById('terrainType');
-
-let setupHighlightTimeout;
-function setSetupOpen(open){
-  if(!open){
-    clearTimeout(setupHighlightTimeout);
-    quickstartPanel?.classList.remove('quickstart-highlight');
-    return;
-  }
-  if(G.phase !== 'setup' || !quickstartPanel){
-    return;
-  }
-  quickstartPanel.classList.add('quickstart-highlight');
-  quickstartPanel.scrollIntoView({ behavior:'smooth', block:'start' });
-  clearTimeout(setupHighlightTimeout);
-  setupHighlightTimeout = window.setTimeout(()=>{
-    quickstartPanel?.classList.remove('quickstart-highlight');
-  }, 1200);
-}
-
-quickSetupBtn?.addEventListener('click', ()=>{
-  setSetupOpen(true);
-});
-
-/* ========= Build buttons ========= */
-let activeBuild="Knight";
-let activeRoleFilter = 'all';
-let activeRangeFilter = 'all';
-let buildSearchTerm = '';
-
-function updateActiveChip(buttons, activeValue, attr){
-  buttons.forEach(btn=>{
-    const value = btn.getAttribute(attr);
-    if(value === activeValue){
-      btn.classList.add('active');
-      btn.setAttribute('aria-pressed','true');
-    } else {
-      btn.classList.remove('active');
-      btn.setAttribute('aria-pressed','false');
-    }
-  });
-}
-
-function renderBuildButtons(){
-  if(!buildRow) return;
-  buildRow.innerHTML="";
-  const searchTerm = buildSearchTerm.trim().toLowerCase();
-  const entries = Object.entries(UnitTemplates)
-    .map(([key, template])=>({ key, template }))
-    .sort((a,b)=>a.template.label.localeCompare(b.template.label));
-
-  const filtered = entries.filter(({template})=>{
-    const roleMatch = activeRoleFilter==='all' || template.role===activeRoleFilter;
-    const isRanged = (template.range ?? 1) > 1;
-    const rangeMatch = activeRangeFilter==='all'
-      || (activeRangeFilter==='ranged' && isRanged)
-      || (activeRangeFilter==='melee' && !isRanged);
-    let searchMatch = true;
-    if(searchTerm){
-      const haystack = [template.label, template.role, template.abilities?.join(' ') ?? '', template.attributes ? Object.keys(template.attributes).join(' ') : '']
-        .join(' ')
-        .toLowerCase();
-      searchMatch = haystack.includes(searchTerm);
-    }
-    return roleMatch && rangeMatch && searchMatch;
-  });
-
-  const groups = new Map();
-  filtered.forEach(entry=>{
-    const role = entry.template.role || 'Adventurer';
-    if(!groups.has(role)) groups.set(role, []);
-    groups.get(role).push(entry);
-  });
-
-  const order = ['Combat','Support','Utility'];
-  const sortedGroups = [...groups.entries()].sort((a,b)=>{
-    const ia = order.indexOf(a[0]);
-    const ib = order.indexOf(b[0]);
-    if(ia === -1 && ib === -1) return a[0].localeCompare(b[0]);
-    if(ia === -1) return 1;
-    if(ib === -1) return -1;
-    return ia - ib;
-  });
-
-  if(!sortedGroups.length){
-    const empty=document.createElement('div');
-    empty.className='build-empty';
-    empty.textContent='No builds match your filters. Try clearing the search or selecting a different role.';
-    buildRow.appendChild(empty);
-    return;
-  }
-
-  sortedGroups.forEach(([role, list])=>{
-    const section=document.createElement('details');
-    section.className='build-section';
-    const summary=document.createElement('summary');
-    summary.className='build-section-summary';
-    const label=document.createElement('span');
-    label.textContent=role;
-    const count=document.createElement('span');
-    count.className='build-section-count';
-    count.textContent = list.length === 1 ? '1 class' : `${list.length} classes`;
-    summary.append(label,count);
-    section.appendChild(summary);
-    const grid=document.createElement('div');
-    grid.className='build-grid';
-    list.forEach(({key, template})=>{
-      const b=document.createElement('button');
-      b.type='button';
-      b.className = 'buildBtn' + (key===activeBuild ? ' primary' : '');
-      b.setAttribute('aria-pressed', key===activeBuild ? 'true' : 'false');
-      const roleLabel = template.role || 'Adventurer';
-      const rangeLabel = (template.range ?? 1) > 1 ? 'Ranged' : 'Melee';
-      b.title = `${template.label} (${roleLabel}) – ${rangeLabel} unit with SPD ${template.stats.spd}`;
-      const sprite=document.createElement('span');
-      sprite.className='buildSprite';
-      const spriteUrl = SPRITES[key] || '';
-      if(spriteUrl) sprite.style.backgroundImage = `url(${spriteUrl})`;
-      const label=document.createElement('span');
-      label.className='buildLabel';
-      label.textContent=template.label;
-      const meta=document.createElement('span');
-      meta.className='buildMeta';
-      meta.textContent = `${roleLabel} • ${rangeLabel} • SPD ${template.stats.spd}`;
-      b.append(sprite,label,meta);
-      b.onclick=()=>{
-        activeBuild=key;
-        renderBuildButtons();
-        renderBoard();
-      };
-      grid.appendChild(b);
-    });
-    section.appendChild(grid);
-    const shouldOpen = list.some(({key})=>key===activeBuild) || activeRoleFilter!=='all' || sortedGroups.length===1;
-    if(shouldOpen){
-      section.setAttribute('open','');
-    }
-    buildRow.appendChild(section);
-  });
-}
-
-buildSearchInput?.addEventListener('input', (event)=>{
-  buildSearchTerm = event.target.value ?? '';
-  renderBuildButtons();
-});
-
-roleFilterButtons.forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    const next = btn.getAttribute('data-role-filter') || 'all';
-    if(activeRoleFilter === next) return;
-    activeRoleFilter = next;
-    updateActiveChip(roleFilterButtons, activeRoleFilter, 'data-role-filter');
-    renderBuildButtons();
-  });
-});
-
-rangeFilterButtons.forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    const next = btn.getAttribute('data-range-filter') || 'all';
-    if(activeRangeFilter === next) return;
-    activeRangeFilter = next;
-    updateActiveChip(rangeFilterButtons, activeRangeFilter, 'data-range-filter');
-    renderBuildButtons();
-  });
-});
-
-updateActiveChip(roleFilterButtons, activeRoleFilter, 'data-role-filter');
-updateActiveChip(rangeFilterButtons, activeRangeFilter, 'data-range-filter');
-function getSelectedTeam(){
-  const radios=[...document.querySelectorAll('input[name="team"]')];
-  const r=radios.find(x=>x.checked); return r? r.value : "ally";
-}
-
-/* ========= Grid controls ========= */
-function syncGridControls(){
-  if(gridWInput) gridWInput.value = GRID.w;
-  if(gridHInput) gridHInput.value = GRID.h;
-  fitBoardCellToPanel();
-  if(obstacleBtn) obstacleBtn.textContent = `Obstacle Mode: ${G.obstacleMode?'ON':'OFF'}`;
-  if(terrainBtn) terrainBtn.textContent = `Terrain Mode: ${G.terrainMode?'ON':'OFF'}`;
-}
-
-function clampRadiusValue(r){
-  return Math.max(2, Math.min(5, r));
-}
-function radiusFromInput(v){
-  const num=parseInt(v,10);
-  if(!Number.isFinite(num)) return null;
-  return Math.max(1, Math.floor((num - 1) / 2));
-}
-function applyGridSize(w,h){
-  const rW=radiusFromInput(w);
-  const rH=radiusFromInput(h);
-  let radius = GRID.radius;
-  if(rW!=null && rH!=null) radius = Math.min(rW, rH);
-  else if(rW!=null) radius = rW;
-  else if(rH!=null) radius = rH;
-  radius = clampRadiusValue(radius);
-  setGridRadius(radius);
-  clampGridState();
-  syncGridControls();
-  render();
-}
-applyGridBtn?.addEventListener('click', ()=> applyGridSize(gridWInput?.value, gridHInput?.value));
-if(zoomRange){
-  zoomRange.addEventListener('input', ()=>{
-    GRID.desiredCell = parseInt(zoomRange.value,10) || GRID.desiredCell;
-    fitBoardCellToPanel();
-  });
-}
-window.addEventListener('resize', ()=>fitBoardCellToPanel());
-obstacleBtn?.addEventListener('click', ()=>{
-  G.obstacleMode=!G.obstacleMode;
-  if(G.obstacleMode) G.terrainMode=false;
-  obstacleBtn.textContent = `Obstacle Mode: ${G.obstacleMode?'ON':'OFF'}`;
-  terrainBtn.textContent = `Terrain Mode: OFF`;
-  render();
-});
-terrainBtn?.addEventListener('click', ()=>{
-  G.terrainMode=!G.terrainMode;
-  if(G.terrainMode) G.obstacleMode=false;
-  terrainBtn.textContent = `Terrain Mode: ${G.terrainMode?'ON':'OFF'}`;
-  obstacleBtn.textContent = `Obstacle Mode: OFF`;
-  render();
-});
-clearObsBtn?.addEventListener('click', ()=>{ GRID.obstacles.clear(); render(); });
-
-function resetBoardState(){
-  G.phase="setup";
-  G.units=[];
-  G.acting=null;
-  G.round=1;
-  G.moveMode=false;
-  G.moveTargets=null;
-  G.auto=false;
-  G.obstacleMode=false;
-  G.terrainMode=false;
-  GRID.obstacles.clear();
-  GRID.terrain.clear();
-  activeBuild="Knight";
-  if(terrainType) terrainType.value='plain';
-  TARGETS.innerHTML='';
-  ABILROW.innerHTML='';
-  LOG.innerHTML='';
-  BOARD_HINT.innerHTML='';
-  setSetupOpen(false);
-  syncGridControls();
-  renderBuildButtons();
-  render();
-}
-
-resetBtn?.addEventListener('click', ()=>{
-  const battleInProgress = G.phase==='battle' && anyLiving('ally') && anyLiving('enemy');
-  if(battleInProgress && !confirm('A battle is currently in progress. Reset the board?')) return;
-  if(HAS_SETUP_PANEL){
-    resetBoardState();
-    return;
-  }
-  const defaultScenario = activeScenarioKey || QUICK_SCENARIOS[0]?.key || null;
-  if(defaultScenario){
-    if(G.phase==='battle') G.phase='setup';
-    applyScenario(defaultScenario);
-    startBattle();
-  } else {
-    resetBoardState();
-  }
-});
-
-/* ========= Rendering ========= */
-function log(msg){
-  const el=document.createElement('div');
-  el.className='toast';
-  el.innerHTML=msg;
-  LOG.prepend(el);
-  LOG.scrollTop=0;
-}
-
-function render(){
-  PHASE.textContent = G.phase==="setup" ? "Setup: Place Units & Terrain" : "Battle";
-  BOARD.style.setProperty('--w', GRID.w);
-  BOARD.style.setProperty('--h', GRID.h);
-  fitBoardCellToPanel();
-
-  if(G.phase==="setup"){
-    PARTY_PANEL.style.display="none";
-    ENEMY_PANEL.style.display="none";
-    if(quickSetupBtn){ quickSetupBtn.disabled=false; }
-    ATTACK.disabled=ABILITY.disabled=DEFEND.disabled=MOVE.disabled=END.disabled=true;
-    AUTO.disabled=true;
-    AUTO.textContent="Auto-Play";
-    if(startBtn) startBtn.disabled=false;
-    if(navStartBtn){
-      navStartBtn.disabled=false;
-      navStartBtn.classList.add('primary');
-    }
-    if(navAutoBtn){
-      navAutoBtn.disabled=true;
-      navAutoBtn.textContent='Auto Battle';
-      navAutoBtn.classList.remove('primary');
-    }
-  }else{
-    setSetupOpen(false);
-    if(quickSetupBtn){ quickSetupBtn.disabled=true; }
-    PARTY_PANEL.style.display="";
-    ENEMY_PANEL.style.display="";
-    // reflect Auto state
-    AUTO.disabled=false;
-    AUTO.textContent = G.auto ? "Auto-Play: ON" : "Auto-Play";
-    if(startBtn) startBtn.disabled=true;
-    if(navStartBtn){
-      navStartBtn.disabled=true;
-      navStartBtn.classList.remove('primary');
-    }
-    if(navAutoBtn){
-      navAutoBtn.disabled=false;
-      navAutoBtn.textContent = G.auto ? 'Auto Battle: ON' : 'Auto Battle';
-      navAutoBtn.classList.toggle('primary', G.auto);
-    }
-
-    const playerTurn=G.acting && G.acting.team==='ally' && !G.acting.dead;
-    const locked = G.auto; // when Auto is ON, disable manual controls
-    ATTACK.disabled = !playerTurn || locked;
-    ABILITY.disabled = !playerTurn || locked;
-    DEFEND.disabled  = !playerTurn || locked;
-    DISENGAGE.disabled = !playerTurn || locked;
-    MOVE.disabled    = !playerTurn || locked;
-    END.disabled     = !playerTurn || locked;
-  }
-
-  PARTY.innerHTML=''; for(const u of living('ally')) PARTY.appendChild(renderUnit(u));
-  ENEMIES.innerHTML=''; for(const u of living('enemy')) ENEMIES.appendChild(renderUnit(u));
-
-  TURNBAR.innerHTML='';
-  if(G.phase==="battle"){
-    for(const u of initiativeOrder()){
-      const pill=document.createElement('span');
-      pill.className='pill'+(G.acting&&G.acting.id===u.id?' active':'');
-      pill.textContent=shortName(u.name);
-      TURNBAR.appendChild(pill);
-    }
-  }
-
-  renderBoard();
-}
-
-function renderUnit(u){
-  const wrap=document.createElement('div');
-  wrap.className='unit'+(u.dead?' dead':'');
-  const side=document.createElement('div'); side.className='badge'; side.textContent=u.team==='ally'?'ALLY':'ENEMY';
-  const info=document.createElement('div'); info.className='col';
-  const name=document.createElement('div'); name.innerHTML=`<b>${u.name}</b>`;
-  const stats=document.createElement('div'); stats.className='stats';
-  const posTxt = u.pos? ` • POS (${u.pos.x},${u.pos.y}) • ${tNameAt(u.pos.x,u.pos.y).toUpperCase()}` : '';
-  stats.innerHTML = `ATK ${effAtk(u)} • DEF ${effDef(u)} • SPD ${u.stats.spd + (u.temp.spdBuff||0)} • RNG ${u.range}${posTxt}`;
-  const hpbar=document.createElement('div'); hpbar.className='hpbar';
-  const hp=document.createElement('div'); hp.className='hp'; const pct=Math.round((u.hp/u.stats.maxHp)*100); hp.style.width=pct+'%'; hpbar.appendChild(hp);
-  const statusLine=document.createElement('div'); statusLine.className='small'; statusLine.style.marginTop='6px';
-  statusLine.innerHTML = `<span class="tag">EP ${u.ep}/${u.epMax}</span> ` + u.statuses.map(s=>`<span class="tag">${s.key} ${s.turnsLeft}</span>`).join(' ');
-  info.appendChild(name); info.appendChild(stats); info.appendChild(hpbar); info.appendChild(statusLine);
-  wrap.appendChild(side); wrap.appendChild(info);
-  return wrap;
-}
-
-function renderBoard(){
-  BOARD.innerHTML='';
-  const placing = (G.phase==="setup");
-  const terrainLabel = (terrainType?.value ?? 'plain').toUpperCase();
-  const setupHint = HAS_SETUP_PANEL
-    ? `Placing: <b>${UnitTemplates[activeBuild].label}</b> for <b>${getSelectedTeam()==='ally'?'Allies':'Enemies'}</b>. Click a tile to place; click a token to remove. Toggle Obstacles/Terrain.`
-    : `Setup tools live on the Quick Start page. Configure parties and terrain there, then return to battle.`;
-  BOARD_HINT.innerHTML = placing
-    ? (G.obstacleMode ? `Obstacle Mode: click tiles to toggle walls. Obstacles block LOS.`
-       : G.terrainMode ? `Terrain Mode: painting <b>${terrainLabel}</b>. Water is impassable.`
-       : setupHint)
-    : `Terrain applies to ATK/DEF; obstacles block LOS. AI uses A* to path around terrain and walls.`;
-
-  const inRangeIds=new Set();
-  if(G.phase==="battle" && G.acting){
-    const foes = G.acting.team==='ally' ? living('enemy') : living('ally');
-    for(const t of foes){
-      const ok = inRange(G.acting,t,G.acting.range) && (G.acting.range===1 || clearLine(G.acting.pos,t.pos));
-      if(ok) inRangeIds.add(t.id);
-    }
-  }
-
-  let moveTargets=null;
-  if(G.moveMode && G.acting){
-    moveTargets = G.moveTargets || computeReachableHexes(G.acting);
-    G.moveTargets = moveTargets;
-  } else if(!G.moveMode) {
-    G.moveTargets = null;
-  }
-
-  const geometry = computeHexGeometry(GRID.cell);
-  const width = Math.max(0, Math.ceil(geometry.width));
-  const height = Math.max(0, Math.ceil(geometry.height));
-  BOARD.style.width = width + 'px';
-  BOARD.style.height = height + 'px';
-  BOARD.style.setProperty('--hex-h', geometry.cellHeight + 'px');
-
-  for(let y=0;y<GRID.h;y++){
-    for(let x=0;x<GRID.w;x++){
-      if(!isPlayableHex(x,y)) continue;
-      const tClass = 't-' + (GRID.terrain.get(key(x,y))||'plain');
-      const cell=document.createElement('div'); cell.className=`cell ${tClass}`+(hasObs(x,y)?' obstacle':'');
-      const pos=geometry.positions[y]?.[x];
-      if(pos){
-        const left = pos.left + geometry.offsetX;
-        const top = pos.top + geometry.offsetY;
-        cell.style.left = `${left.toFixed(2)}px`;
-        cell.style.top = `${top.toFixed(2)}px`;
-      }
-      cell.style.width = GRID.cell + 'px';
-      cell.style.height = (geometry.cellHeight || GRID.cell) + 'px';
-      const u=getUnitAt(x,y);
-
-      if(placing){
-        if(G.obstacleMode){
-          cell.onclick=()=>{ 
-            if(u) return;
-            if(hasObs(x,y)) GRID.obstacles.delete(key(x,y));
-            else GRID.obstacles.add(key(x,y));
-            render();
-          };
-        } else if(G.terrainMode){
-          cell.onclick=()=>{
-            if(hasObs(x,y)) return;
-            const val = terrainType ? terrainType.value : 'plain';
-            if(val==='plain') GRID.terrain.delete(key(x,y));
-            else GRID.terrain.set(key(x,y), val);
-            render();
-          };
-        } else {
-          if(!u && !hasObs(x,y) && tAt(x,y).pass){
-            cell.classList.add('place');
-            cell.onclick=()=>{ const team=getSelectedTeam(); G.units.push(makeUnit(activeBuild, team, {x,y})); render(); };
-          }else if(u){
-            const token=renderToken(u, inRangeIds);
-            token.classList.add('removable');
-            token.title="Remove unit";
-            token.onclick=()=>{ G.units=G.units.filter(z=>z!==u); render(); };
-            cell.appendChild(token);
-          }
-        }
-      } else {
-        if(u){ cell.appendChild(renderToken(u, inRangeIds)); }
-        const mk = key(x,y);
-        const moveCost = moveTargets?.get(mk);
-        if(G.moveMode && moveTargets && moveCost && moveCost>0 && !u){
-          cell.classList.add('move-ok');
-          cell.style.cursor='pointer';
-          cell.onclick=()=>{
-            if(G.acting.statuses.some(s=>s.key==='Root')){ log(`${G.acting.name} is rooted and cannot move.`); return; }
-            if(!moveTargets.has(mk)){ return; }
-            const beforeAdj = adjacentEnemies(G.acting).filter(e=>e.ep>0);
-            G.acting.pos={x,y};
-            const afterAdj = adjacentEnemies(G.acting);
-            const provoking = beforeAdj.filter(e => !afterAdj.some(a=>a.id===e.id));
-            if(provoking.length && !G.acting.temp.disengaged){
-              const e = provoking[0];
-              e.ep = Math.max(0, e.ep-1);
-              const atk = effAtk(e);
-              const def = effDef(G.acting);
-              const dmg = computeDamage(atk,def);
-              applyDamage(G.acting, dmg, log, `${e.name} makes an <b>engagement strike</b> on ${G.acting.name} for <span class="dmg">-${dmg}</span>.`);
-              if(G.acting.dead){ G.moveMode=false; G.moveTargets=null; render(); return endTurn(); }
-            }
-            log(`${G.acting.name} moves to (${x},${y}).`);
-            G.moveMode=false; G.moveTargets=null; render(); endTurn();
-          };
-        }
-      }
-
-      BOARD.appendChild(cell);
-    }
-  }
-}
-function renderToken(unit, inRangeIds){
-  const token=document.createElement('div');
-  token.className=`token ${unit.team}`+(G.acting&&G.acting.id===unit.id?' active':'')+(inRangeIds.has(unit.id)?' inrange':'');
-  const sprite=document.createElement('div');
-  sprite.className='sprite';
-  const url = SPRITES[unit.tplKey] || "";
-  if(url) sprite.style.backgroundImage = `url("${url}")`;
-  token.appendChild(sprite);
-
-  if(!url){
-    const init=document.createElement('div');
-    init.className='initial';
-    init.textContent = shortName(unit.name).slice(0,2).toUpperCase();
-    token.appendChild(init);
-  }
-
-  const bars=document.createElement('div'); bars.className='bars';
-  const hpShell=document.createElement('div'); hpShell.className='miniBar';
-  const hpFill=document.createElement('div'); hpFill.className='hpFill';
-  hpFill.style.width = Math.max(0, Math.round((unit.hp/unit.stats.maxHp)*100)) + '%';
-  hpShell.appendChild(hpFill);
-
-  const epShell=document.createElement('div'); epShell.className='miniBar';
-  const epFill=document.createElement('div'); epFill.className='epFill';
-  const epPct = Math.max(0, Math.min(100, Math.round((unit.ep / (unit.epMax||1))*100)));
-  epFill.style.width = epPct + '%';
-  epShell.appendChild(epFill);
-
-  bars.appendChild(hpShell); bars.appendChild(epShell);
-  token.appendChild(bars);
-
-  const plate=document.createElement('div'); plate.className='nameplate'; plate.textContent = shortName(unit.name);
-  token.appendChild(plate);
-
-  token.title = `${unit.name}\nHP ${unit.hp}/${unit.stats.maxHp} • EP ${unit.ep}/${unit.epMax}`;
-  return token;
-}
-
-/* ========= Setup controls ========= */
-const QUICK_SCENARIOS=[
-  {
-    key:'bridge-clash',
-    name:'Bridge Clash',
-    description:'River bisects the battlefield with parties meeting at a narrow crossing.',
-    setup(ctx){
-      const {playableCells, midX, midY, setTerrain, nearest, placeUnit}=ctx;
-      if(!playableCells.length) return;
-      for(const cell of playableCells){
-        if(cell.x===midX){ setTerrain(cell,'water'); }
-      }
-      const roadMid=isPlayableHex(midX,midY) ? {x:midX,y:midY} : nearest(0,0);
-      if(roadMid) setTerrain(roadMid,'road');
-      const roadNorth=nearest(0,-1);
-      if(roadNorth) setTerrain(roadNorth,'road');
-
-      const forestTargets=[nearest(-3,-2), nearest(-2,2)];
-      forestTargets.forEach(pos=>setTerrain(pos,'forest'));
-
-      const hillTargets=[nearest(3,2), nearest(2,-2)];
-      hillTargets.forEach(pos=>setTerrain(pos,'hill'));
-
-      const minX=Math.min(...playableCells.map(c=>c.x));
-      const maxX=Math.max(...playableCells.map(c=>c.x));
-      const leftColumn=playableCells.filter(c=>c.x===minX).sort((a,b)=>a.y-b.y);
-      const rightColumn=playableCells.filter(c=>c.x===maxX).sort((a,b)=>a.y-b.y);
-      const desiredYs=[midY, midY+1, midY-1];
-      function pickColumnSlots(column){
-        const used=new Set();
-        return desiredYs.map(target=>{
-          let best=null, bestDist=Infinity;
-          for(const cell of column){
-            const cellKey=key(cell.x,cell.y);
-            if(used.has(cellKey)) continue;
-            const d=Math.abs(cell.y-target);
-            if(d<bestDist){ bestDist=d; best=cell; }
-          }
-          if(best){ used.add(key(best.x,best.y)); return best; }
-          return null;
-        });
-      }
-      const allySlots=pickColumnSlots(leftColumn);
-      const enemySlots=pickColumnSlots(rightColumn);
-
-      ['Knight','Archer','Cleric'].forEach((name, idx)=>{
-        if(allySlots[idx]) placeUnit(name,'ally', allySlots[idx]);
-      });
-      ['Warlock','Reaper','Shaman'].forEach((name, idx)=>{
-        if(enemySlots[idx]) placeUnit(name,'enemy', enemySlots[idx]);
-      });
-    }
-  },
-  {
-    key:'forest-ambush',
-    name:'Forest Ambush',
-    description:'Strike from dense woodland while foes slog through boggy ground.',
-    setup(ctx){
-      const {setTerrainRelative, placeUnitRelative}=ctx;
-      const forestOffsets=[
-        [-1,-3],[0,-3],[1,-3],
-        [-2,-2],[-1,-2],[0,-2],[1,-2],[2,-2],
-        [-1,-1],[0,-1],[1,-1]
-      ];
-      forestOffsets.forEach(([dx,dy])=>setTerrainRelative(dx,dy,'forest'));
-      [[-1,2],[0,3],[1,2],[0,2]].forEach(([dx,dy])=>setTerrainRelative(dx,dy,'swamp'));
-      [[-2,0],[2,0]].forEach(([dx,dy])=>setTerrainRelative(dx,dy,'hill'));
-      [[0,0],[0,1]].forEach(([dx,dy])=>setTerrainRelative(dx,dy,'road'));
-
-      placeUnitRelative('Scout','ally', -1, -2);
-      placeUnitRelative('Archer','ally', 0, -1);
-      placeUnitRelative('Druid','ally', 1, -2);
-      placeUnitRelative('Rogue','ally', -2, -1);
-
-      placeUnitRelative('Fighter','enemy', -1, 2);
-      placeUnitRelative('Warlock','enemy', 0, 3);
-      placeUnitRelative('Shaman','enemy', 1, 2);
-      placeUnitRelative('Reaper','enemy', 2, 1);
-    }
-  },
-  {
-    key:'encircled-outpost',
-    name:'Encircled Outpost',
-    description:'Defend a barricaded center while attackers close in from every side.',
-    radius:5,
-    setup(ctx){
-      const {center, setTerrain, addObstacle, placeUnit, placeUnitRelative, setTerrainRelative, nearest}=ctx;
-      const stronghold=center || nearest(0,0);
-      if(stronghold){
-        setTerrain(stronghold,'road');
-        const neighbors=hexNeighbors(stronghold.x,stronghold.y).filter(pos=>isPlayableHex(pos.x,pos.y));
-        const openNeighbors=[];
-        neighbors.forEach((pos, idx)=>{
-          if(idx===0 || idx===2 || idx===4){
-            addObstacle(pos);
-          } else {
-            setTerrain(pos, idx===1 ? 'road' : 'hill');
-            openNeighbors.push(pos);
-          }
-        });
-        placeUnit('Warden','ally', stronghold);
-        if(openNeighbors[0]) placeUnit('Cleric','ally', openNeighbors[0]);
-        if(openNeighbors[1]) placeUnit('Archer','ally', openNeighbors[1]);
-        if(openNeighbors[2]) placeUnit('Magician','ally', openNeighbors[2]);
-      }
-
-      setTerrainRelative(0,-2,'hill');
-      setTerrainRelative(0,2,'road');
-      setTerrainRelative(2,-1,'road');
-      setTerrainRelative(-2,1,'road');
-
-      const attackers=[
-        {name:'Gunslinger', dx:3, dy:-1},
-        {name:'Warlock', dx:-3, dy:1},
-        {name:'Reaper', dx:0, dy:3},
-        {name:'Fighter', dx:2, dy:2},
-        {name:'Necromancer', dx:-1, dy:3},
-      ];
-      attackers.forEach(({name,dx,dy})=>placeUnitRelative(name,'enemy',dx,dy));
-    }
-  }
-];
-
-let activeScenarioKey=QUICK_SCENARIOS[0]?.key ?? null;
-
-function findScenario(key){
-  return QUICK_SCENARIOS.find(s=>s.key===key) || null;
-}
-
-function createScenarioContext(){
-  const playableCells=[...GRID.playable].map(k=>{
-    const [x,y]=k.split(',').map(Number);
-    return {x,y};
-  });
-  const center=centerHex();
-  const midX=center?.x ?? Math.floor(GRID.w/2);
-  const midY=center?.y ?? Math.floor(GRID.h/2);
-  const used=new Set();
-  const ctx={
-    center,
-    playableCells,
-    midX,
-    midY,
-    nearest(dx,dy){
-      return nearestPlayable(midX+dx, midY+dy);
-    },
-    setTerrain(cell,type){
-      if(!cell) return;
-      GRID.terrain.set(key(cell.x,cell.y), type);
-    },
-    addObstacle(cell){
-      if(!cell) return;
-      GRID.obstacles.add(key(cell.x,cell.y));
-    },
-    placeUnit(name,team,cell){
-      if(!cell) return;
-      const cellKey=key(cell.x,cell.y);
-      if(GRID.obstacles.has(cellKey) || used.has(cellKey)) return;
-      used.add(cellKey);
-      G.units.push(makeUnit(name, team, {x:cell.x, y:cell.y}));
-    },
-  };
-  ctx.setTerrainRelative=(dx,dy,type)=>{
-    const pos=nearestPlayable(midX+dx, midY+dy);
-    if(pos) ctx.setTerrain(pos,type);
-  };
-  ctx.addObstacleRelative=(dx,dy)=>{
-    const pos=nearestPlayable(midX+dx, midY+dy);
-    if(pos) ctx.addObstacle(pos);
-  };
-  ctx.placeUnitRelative=(name,team,dx,dy)=>{
-    const pos=nearestPlayable(midX+dx, midY+dy);
-    if(pos) ctx.placeUnit(name,team,pos);
-  };
-  return ctx;
-}
-
-function updatePresetDescription(){
-  if(!presetDescription) return;
-  const selected=presetSelect?.value || activeScenarioKey;
-  const scenario=selected ? findScenario(selected) : null;
-  if(scenario){
-    presetDescription.textContent=`${scenario.name}: ${scenario.description}`;
-    if(loadPresetBtn){ loadPresetBtn.textContent=`Load ${scenario.name}`; }
-  } else {
-    presetDescription.textContent='';
-    if(loadPresetBtn){ loadPresetBtn.textContent='Load Scenario'; }
-  }
-}
-
-function populateScenarioOptions(){
-  if(!presetSelect) return;
-  const desired=activeScenarioKey;
-  presetSelect.innerHTML='';
-  QUICK_SCENARIOS.forEach((scenario, idx)=>{
-    const option=document.createElement('option');
-    option.value=scenario.key;
-    option.textContent=scenario.name;
-    if(desired){
-      option.selected=scenario.key===desired;
-    } else if(idx===0){
-      option.selected=true;
-      activeScenarioKey=scenario.key;
-    }
-    presetSelect.appendChild(option);
-  });
-  if(!presetSelect.value && activeScenarioKey){
-    presetSelect.value=activeScenarioKey;
-  }
-  updatePresetDescription();
-}
-
-function applyScenario(key){
-  const scenario=findScenario(key);
-  if(!scenario) return;
-  const inBattle=G.phase==='battle' && anyLiving('ally') && anyLiving('enemy');
-  if(inBattle && !confirm('A battle is currently in progress. Load a new scenario?')) return;
-
-  activeScenarioKey=scenario.key;
-  resetBoardState();
-
-  if(typeof scenario.radius==='number'){
-    const safeRadius=Math.max(2, Math.min(5, Math.floor(scenario.radius)));
-    setGridRadius(safeRadius);
-  }
-
-  GRID.obstacles.clear();
-  GRID.terrain.clear();
-  G.units=[];
-
-  const ctx=createScenarioContext();
-  scenario.setup?.(ctx);
-
-  clampGridState();
-  syncGridControls();
-  render();
-  setSetupOpen(true);
-
-  if(presetSelect){ presetSelect.value=scenario.key; }
-  updatePresetDescription();
-}
-
-populateScenarioOptions();
-
-if(!HAS_SETUP_PANEL){
-  const defaultScenario = activeScenarioKey || QUICK_SCENARIOS[0]?.key || null;
-  if(defaultScenario){
-    applyScenario(defaultScenario);
-    startBattle();
-  }
-}
-
-presetSelect?.addEventListener('change', ()=>{
-  activeScenarioKey=presetSelect.value;
-  updatePresetDescription();
-});
-
-loadPresetBtn?.addEventListener('click', ()=>{
-  const key=presetSelect?.value || activeScenarioKey;
-  if(key) applyScenario(key);
-});
-
-clearBtn?.addEventListener('click', ()=>{ G.units=[]; render(); });
-
-fromSelectorBtn?.addEventListener('click', () => {
-  try{
-    const data = JSON.parse(localStorage.getItem('ft_setup') || 'null');
-    if(!data || !Array.isArray(data.allies) || !Array.isArray(data.enemies)){
-      alert('No selector setup found. Build one in selector.html first.');
-      return;
-    }
-    G.units = [];
-    function title(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
-    function placeList(list, team){
-      for(const u of list){
-        const guess = title(u.tpl);
-        const desired = u.pos && typeof u.pos.x==='number' && typeof u.pos.y==='number' ? {x:u.pos.x, y:u.pos.y} : null;
-        const pos = desired ? nearestPlayable(desired.x, desired.y) : null;
-        const made = makeUnit(guess in UnitTemplates ? guess : "Knight", team, pos);
-        if(u.name) made.name = u.name;
-        G.units.push(made);
-      }
-    }
-    placeList(data.allies, 'ally');
-    placeList(data.enemies, 'enemy');
-    render();
-  }catch(e){
-    alert('Could not load selector setup.');
-  }
-});
-
-function startBattle(){
-  const a=living('ally').length, e=living('enemy').length;
-  if(a===0 || e===0){ alert("Place at least one Ally and one Enemy."); return; }
-  G.phase="battle";
-  for(const u of G.units){ u.dead=false; u.hp=u.stats.maxHp; u.statuses=[]; u.temp={defBonus:0,defend:false,atkBuff:0,spdBuff:0,shield:0,quickdraw:false}; for(const a of u.abilities) a.cd=0; if(!u.pos){ autoPlace(u); } }
-  log("<i>The battle begins.</i>");
-  nextTurn_init();
-}
-
-startBtn?.addEventListener('click', startBattle);
-if(navStartBtn) navStartBtn.onclick=startBattle;
-
-function autoPlace(u){
-  const leftCols = 2, rightCols = 2;
-  if(u.team==='ally'){
-    for(let y=0;y<GRID.h;y++){
-      for(let x=0;x<Math.min(leftCols, GRID.w); x++){
-        if(!isPlayableHex(x,y)) continue;
-        if(!getUnitAt(x,y) && !hasObs(x,y) && tAt(x,y).pass){ u.pos={x,y}; return; }
-      }
-    }
-  } else {
-    for(let y=0;y<GRID.h;y++){
-      for(let x=GRID.w-1; x>=Math.max(0, GRID.w - rightCols); x--){
-        if(!isPlayableHex(x,y)) continue;
-        if(!getUnitAt(x,y) && !hasObs(x,y) && tAt(x,y).pass){ u.pos={x,y}; return; }
-      }
-    }
-  }
-  for(let y=0;y<GRID.h;y++){
-    for(let x=0;x<GRID.w;x++){
-      if(!isPlayableHex(x,y)) continue;
-      if(!getUnitAt(x,y) && !hasObs(x,y) && tAt(x,y).pass){ u.pos={x,y}; return; }
-    }
-  }
-}
-
-/* ========= Battle controls ========= */
-ATTACK.onclick=()=>{
-  if(!(G.acting && G.acting.team==='ally')) return;
-  TARGETS.innerHTML=''; ABILROW.innerHTML=''; G.moveMode=false; G.moveTargets=null;
-  const foes=living('enemy').filter(t=>inRange(G.acting,t,G.acting.range) && (G.acting.range===1 || clearLine(G.acting.pos,t.pos)));
-  if(!foes.length){ log(`No targets in range/LOS (R${G.acting.range}).`); return; }
-  foes.forEach(t=>{
-    const b=document.createElement('button'); b.className='targetBtn';
-    b.textContent=`${shortName(t.name)} (d=${dist(G.acting.pos,t.pos)})`;
-    b.onclick=()=>{
-      const adj = adjacentEnemies(G.acting).filter(e=>e.ep>0);
-      const isRanged = G.acting.range>1;
-      if(isRanged && adj.length && !G.acting.temp.disengaged){ const e=adj[0]; e.ep=Math.max(0,e.ep-1); const atkP=effAtk(e), defP=effDef(G.acting); const dmgP=computeDamage(atkP,defP); applyDamage(G.acting,dmgP,log,`${e.name} interrupts with an <b>engagement strike</b> for <span class='dmg'>-${dmgP}</span>.`); if(G.acting.dead){ render(); return endTurn(); } }
-      const atk=effAtk(G.acting);
-      const def=effDef(t);
-      const dmg=computeDamage(atk,def);
-      applyDamage(t,dmg,log,`${G.acting.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`);
-      render(); endTurn();
-    };
-    TARGETS.appendChild(b);
-  });
-};
-
-ABILITY.onclick=()=>{
-  if(!(G.acting && G.acting.team==='ally')) return;
-  TARGETS.innerHTML=''; ABILROW.innerHTML=''; G.moveMode=false; G.moveTargets=null;
-  for(const a of G.acting.abilities){
-    const tpl=AbilityLib[a.key];
-    const b=document.createElement('button');
-    b.className='targetBtn'; b.title=`${tpl.name}: ${tpl.desc}`;
-    b.textContent=`${tpl.name}${a.cd ? ` (${a.cd})` : ''}`;
-    b.disabled=a.cd>0;
-    b.onclick=()=>{
-      const promptCells=(targetUnit)=>{
-        if(typeof tpl.validCells!=='function'){ log(`${tpl.name} has no valid cell selector.`); return; }
-        const cells = tpl.validCells(G.acting, targetUnit);
-        if(!cells.length){ log(`No valid destinations for ${tpl.name}.`); return; }
-        TARGETS.innerHTML='';
-        cells.forEach(pos=>{
-          const cb=document.createElement('button'); cb.className='targetBtn';
-          cb.textContent=`(${pos.x},${pos.y}) d=${dist((targetUnit?.pos)||G.acting.pos,pos)}`;
-          cb.onclick=()=>{
-            const result = tpl.useCell ? tpl.useCell(G.acting, targetUnit, pos, log) : tpl.use(G.acting, pos, log);
-            if(result===false) return;
-            a.cd=tpl.cooldown||0;
-            render();
-            endTurn();
-          };
-          TARGETS.appendChild(cb);
-        });
-      };
-
-      if(tpl.target==='self'){
-        if(tpl.requiresCell){
-          promptCells(G.acting);
-          return;
-        }
-        const result = tpl.use(G.acting, G.acting, log);
-        if(result===false) return;
-        a.cd=tpl.cooldown||0;
-        render();
-        return endTurn();
-      }
-
-      const rng=tpl.range||1;
-      const isAlly = tpl.target==='ally';
-      const pool = isAlly ? living('ally') : living('enemy');
-      const cands=pool.filter(t=>inRange(G.acting,t,rng) && (rng===1 || clearLine(G.acting.pos,t.pos)));
-      if(!cands.length){ log(`No valid targets in ${tpl.name} range/LOS (R${rng}).`); return; }
-      TARGETS.innerHTML='';
-      cands.forEach(t=>{
-        const tb=document.createElement('button'); tb.className='targetBtn';
-        tb.textContent=`${shortName(t.name)} (d=${dist(G.acting.pos,t.pos)})`;
-        tb.onclick=()=>{
-          if(tpl.requiresCell){
-            promptCells(t);
-            return;
-          }
-          if((tpl.range||1)>1 && !G.acting.temp.disengaged){
-            const adj=adjacentEnemies(G.acting).filter(e=>e.ep>0);
-            if(adj.length){
-              const e=adj[0];
-              e.ep=Math.max(0,e.ep-1);
-              const atkP=effAtk(e), defP=effDef(G.acting);
-              const dmgP=computeDamage(atkP,defP);
-              applyDamage(G.acting,dmgP,log,`${e.name} interrupts with an <b>engagement strike</b> for <span class='dmg'>-${dmgP}</span>.`);
-              if(G.acting.dead){ render(); return endTurn(); }
-            }
-          }
-          const result = tpl.use(G.acting, t, log);
-          if(result===false) return;
-          a.cd=tpl.cooldown||0;
-          render();
-          endTurn();
-        };
-        TARGETS.appendChild(tb);
-      });
-    };
-    ABILROW.appendChild(b);
-  }
-};
-
-DEFEND.onclick=()=>{
-  if(!(G.acting && G.acting.team==='ally')) return;
-  G.moveMode=false;
-  G.moveTargets=null;
-  G.acting.temp.defend=true;
-  log(`${G.acting.name} takes a defensive stance (+2 DEF this turn).`);
-  render(); endTurn();
-};
-
-DISENGAGE.onclick=()=>{
-  if(!(G.acting && G.acting.team==='ally')) return;
-  G.moveMode=false;
-  G.moveTargets=null;
-  G.acting.temp.disengaged=true;
-  log(`${G.acting.name} prepares to <b>disengage</b> (no engagement strikes this turn).`);
-  render(); endTurn();
-};
-
-MOVE.onclick=()=>{
-  if(!(G.acting && G.acting.team==='ally')) return;
-  if(G.acting.statuses.some(s=>s.key==='Root')){ log(`${G.acting.name} is rooted and cannot move.`); return; }
-  if(G.moveMode){
-    G.moveMode=false;
-    G.moveTargets=null;
-    render();
-    return;
-  }
-  const targets = computeReachableHexes(G.acting);
-  const available = targets ? [...targets.entries()].filter(([,cost])=>cost>0) : [];
-  if(!available.length){
-    G.moveMode=false;
-    G.moveTargets=null;
-    log(`${G.acting.name} has no reachable hexes.`);
-    render();
-    return;
-  }
-  G.moveMode=true;
-  G.moveTargets=targets;
-  const mov=G.acting.mov ?? 0;
-  log(`Select a hex within MOV ${mov} for ${G.acting.name} to move.`);
-  render();
-};
-
-END.onclick=()=>{
-  if(!(G.acting && G.acting.team==='ally')) return;
-  G.moveMode=false; G.moveTargets=null; log(`${G.acting.name} ends their turn.`); endTurn();
-};
-
-function toggleAutoPlay(){
-  G.auto=!G.auto;
-  render(); // reflect new label/disabled states
-  if(G.auto && G.acting && G.acting.team==='ally'){
-    aiAct(); // kick it off immediately if it's our turn
-  }
-}
-
-AUTO.onclick=toggleAutoPlay;
-if(navAutoBtn) navAutoBtn.onclick=toggleAutoPlay;
-
-/* ========= Turn flow ========= */
-function nextTurn_init(){
-  const order=initiativeOrder();
-  G.acting=order[0]||null;
-  render(); if(G.acting) startTurn();
-}
-function nextTurn_advance(){
-  if(!anyLiving('ally')||!anyLiving('enemy')) return endBattle();
-  const order=initiativeOrder();
-  const idx=order.findIndex(u=>u.id===G.acting.id);
-  G.acting=order[(idx+1)%order.length];
-  if((idx+1)%order.length===0) G.round++;
-  render(); startTurn();
-}
-function startTurn(){
-  G.moveMode=false;
-  G.moveTargets=null;
-  if(G.acting.dead) { return nextTurn_advance(); }
-  log(`<span class="small">— Round ${G.round} • ${G.acting.name}'s turn —</span>`);
-  tickStatusesStart(G.acting, log);
-  if(G.acting.dead){ render(); return nextTurn_advance(); }
-  for(const a of G.acting.abilities) a.cd=Math.max(0,a.cd-1);
-  if(G.acting.pos){ const adj = adjacentEnemies(G.acting); if(adj.length>0) { G.acting.ep = Math.min(G.acting.epMax, G.acting.ep+1); log(`${G.acting.name} gains <b>+1 EP</b> from engagement (${G.acting.ep}/${G.acting.epMax}).`);} }
-  render();
-  if(G.acting.team==='enemy' || G.auto) aiAct();
-}
-function endTurn(){ G.moveMode=false; G.moveTargets=null; cleanupStatusesEnd(G.acting, log); render(); nextTurn_advance(); }
-
-function endBattle(){
-  const win=anyLiving('ally') && !anyLiving('enemy');
-  const lose=!anyLiving('ally') && anyLiving('enemy');
-  log(win? "<b>Victory!</b> All enemies defeated."
-      : lose? "<b>Defeat.</b> The party has fallen."
-      : "<b>Battle Ends.</b>");
-  ATTACK.disabled = ABILITY.disabled = DEFEND.disabled = MOVE.disabled = END.disabled = true;
-  G.auto=false; render();
-}
-
-/* ========= Helpers ========= */
-function adjacentEnemies(u){
-  const foes = living(u.team==='ally'?'enemy':'ally');
-  return foes.filter(t=>isAdjacent(u.pos, t.pos));
-}
-
-/* ========= A* (occupancy-aware) ========= */
-function neighbors(p, goal){
-  const out=[];
-  for(const nb of hexNeighbors(p.x,p.y)){
-    const {x,y}=nb;
-    if(!inBounds(x,y)) continue;
-    if(hasObs(x,y)) continue;
-    const terr=tAt(x,y);
-    if(!terr.pass) continue;
-    if(!(goal && x===goal.x && y===goal.y) && isOccupied(x,y)) continue;
-    out.push({x,y, cost: terr.cost});
-  }
-  return out;
-}
-
-function computeReachableHexes(unit){
-  if(!unit || !unit.pos) return null;
-  const maxMove = unit.mov ?? 0;
-  const startKey = key(unit.pos.x, unit.pos.y);
-  const costs = new Map([[startKey, 0]]);
-  if(maxMove<=0) return costs;
-  const frontier=[{x:unit.pos.x,y:unit.pos.y,cost:0}];
-  while(frontier.length){
-    frontier.sort((a,b)=>a.cost-b.cost);
-    const current=frontier.shift();
-    for(const nb of hexNeighbors(current.x,current.y)){
-      const {x:nx,y:ny}=nb;
-      if(!inBounds(nx,ny)) continue;
-      if(hasObs(nx,ny)) continue;
-      const terr=tAt(nx,ny);
-      if(!terr.pass) continue;
-      const occupant=getUnitAt(nx,ny);
-      if(occupant && occupant.id!==unit.id) continue;
-      const stepCost = terr.cost ?? 1;
-      const newCost = current.cost + stepCost;
-      if(newCost>maxMove) continue;
-      const nk=key(nx,ny);
-      if(newCost < (costs.get(nk) ?? Infinity)){
-        costs.set(nk,newCost);
-        frontier.push({x:nx,y:ny,cost:newCost});
-      }
-    }
-  }
-  return costs;
-}
-function aStar(start,goal){
-  const gScore=new Map(), fScore=new Map(), came=new Map();
-  const open=new Set([key(start.x,start.y)]);
-  gScore.set(key(start.x,start.y),0);
-  fScore.set(key(start.x,start.y), dist(start,goal));
-
-  function lowest(){
-    let bestK=null, best=Infinity;
-    for(const k of open){
-      const f=fScore.get(k) ?? Infinity;
-      if(f<best){ best=f; bestK=k; }
-    }
-    return bestK;
-  }
-  while(open.size){
-    const curK=lowest();
-    const [cx,cy]=curK.split(',').map(Number);
-    if(cx===goal.x && cy===goal.y){
-      const path=[]; let k=curK;
-      while(k){ const [x,y]=k.split(',').map(Number); path.push({x,y}); k=came.get(k); }
-      path.reverse();
-      return path;
-    }
-    open.delete(curK);
-    for(const nb of neighbors({x:cx,y:cy}, goal)){
-      const nk=key(nb.x,nb.y);
-      const tentative = (gScore.get(curK) ?? Infinity) + nb.cost;
-      if(tentative < (gScore.get(nk) ?? Infinity)){
-        came.set(nk, curK);
-        gScore.set(nk, tentative);
-        const h = dist({x:nb.x,y:nb.y}, goal);
-        fScore.set(nk, tentative + h);
-        if(!open.has(nk)) open.add(nk);
-      }
-    }
-  }
-  return null;
-}
-
-/* ========= AI ========= */
-function aiAct(){
-  const u=G.acting; if(!u || u.dead) return;
-  setTimeout(()=>{
-    const foes=living(u.team==='ally'?'enemy':'ally');
-    const ready=u.abilities.filter(a=>a.cd===0).map(a=>({a,tpl:AbilityLib[a.key]}));
-
-    // Support if useful
-    const allyPool=living(u.team);
-    const lowAlly = allyPool.slice().sort((a,b)=>(a.hp/a.stats.maxHp)-(b.hp/b.stats.maxHp))[0];
-    const canHeal = ready.find(x=>x.tpl===AbilityLib.Heal) && lowAlly && inRange(u,lowAlly,3) && clearLine(u.pos,lowAlly.pos) && lowAlly.hp<=lowAlly.stats.maxHp-10;
-    if(canHeal){ AbilityLib.Heal.use(u, lowAlly, log); ready.find(x=>x.tpl===AbilityLib.Heal).a.cd=AbilityLib.Heal.cooldown; render(); return endTurn(); }
-    const canShield = ready.find(x=>x.tpl===AbilityLib.Shield) && lowAlly && inRange(u,lowAlly,3) && clearLine(u.pos,lowAlly.pos) && (lowAlly.temp.shield||0)<8;
-    if(canShield){ AbilityLib.Shield.use(u, lowAlly, log); ready.find(x=>x.tpl===AbilityLib.Shield).a.cd=AbilityLib.Shield.cooldown; render(); return endTurn(); }
-
-    // Offensive ability
-    const damaging=ready.filter(x=>x.tpl.target==='enemy');
-    const usable=damaging.find(x=>foes.some(t=>inRange(u,t,x.tpl.range||1) && (x.tpl.range===1 || clearLine(u.pos,t.pos))));
-    if(usable){
-      const rng=usable.tpl.range||1;
-      const cands=foes.filter(t=>inRange(u,t,rng) && (rng===1 || clearLine(u.pos,t.pos)));
-      const t=choice(cands);
-      usable.tpl.use(u,t,log); usable.a.cd=usable.tpl.cooldown||0; render(); return endTurn();
-    }
-
-    // Basic attack
-    const attackables=foes.filter(t=>inRange(u,t,u.range) && (u.range===1 || clearLine(u.pos,t.pos)));
-    if(attackables.length){
-      const t=attackables.slice().sort((a,b)=> (effDef(a)) - (effDef(b)) )[0];
-      const atk=effAtk(u), def=effDef(t);
-      const dmg=computeDamage(atk,def);
-      applyDamage(t,dmg,log,`${u.name} attacks ${t.name} for <span class="dmg">-${dmg}</span>.`);
-      render(); return endTurn();
-    }
-
-    // Disengage if threatened by EP and low HP
-    const adjThreats = adjacentEnemies(u).filter(e=>e.ep>0);
-    if(adjThreats.length && u.hp <= Math.ceil(u.stats.maxHp*0.35)){
-      u.temp.disengaged=true;
-      log(`${u.name} disengages to avoid punishment.`);
-      render(); return endTurn();
-    }
-
-    // Move via A* on the hex grid
-    const target=foes.slice().sort((a,b)=>dist(u.pos,a.pos)-dist(u.pos,b.pos))[0];
-    if(target){
-      const maxMove=u.mov ?? 0;
-      if(maxMove>0){
-        const path = aStar(u.pos, target.pos);
-        if(path && path.length>=2){
-          let remaining=maxMove;
-          let dest=null;
-          for(let i=1;i<path.length;i++){
-            const step=path[i];
-            const occ=getUnitAt(step.x,step.y);
-            if(occ && occ.id!==u.id) break;
-            const stepCost=tAt(step.x,step.y).cost ?? 1;
-            if(stepCost>remaining) break;
-            remaining-=stepCost;
-            dest={x:step.x,y:step.y};
-          }
-          if(dest){
-            const beforeAdj=adjacentEnemies(u).filter(e=>e.ep>0);
-            u.pos=dest;
-            const afterAdj=adjacentEnemies(u);
-            const provoking=beforeAdj.filter(e=>!afterAdj.some(a=>a.id===e.id));
-            if(provoking.length && !u.temp.disengaged){
-              const e=provoking[0];
-              e.ep=Math.max(0,e.ep-1);
-              const atk=effAtk(e);
-              const def=effDef(u);
-              const dmg=computeDamage(atk,def);
-              applyDamage(u,dmg,log,`${e.name} makes an <b>engagement strike</b> on ${u.name} for <span class="dmg">-${dmg}</span>.`);
-              if(u.dead){ render(); return endTurn(); }
-            }
-            log(`${u.name} advances via terrain to (${dest.x},${dest.y}).`);
-            render(); return endTurn();
-          }
-        }
-        let best=null;
-        let bestDist=Infinity;
-        for(const nb of hexNeighbors(u.pos.x,u.pos.y)){
-          const {x:nx,y:ny}=nb;
-          if(!inBounds(nx,ny)) continue;
-          if(hasObs(nx,ny)) continue;
-          const terr=tAt(nx,ny);
-          if(!terr.pass) continue;
-          if((terr.cost ?? 1)>maxMove) continue;
-          if(getUnitAt(nx,ny)) continue;
-          const d=dist({x:nx,y:ny}, target.pos);
-          if(d<bestDist){ bestDist=d; best={x:nx,y:ny}; }
-        }
-        if(best){
-          const beforeAdj=adjacentEnemies(u).filter(e=>e.ep>0);
-          u.pos=best;
-          const afterAdj=adjacentEnemies(u);
-          const provoking=beforeAdj.filter(e=>!afterAdj.some(a=>a.id===e.id));
-          if(provoking.length && !u.temp.disengaged){
-            const e=provoking[0];
-            e.ep=Math.max(0,e.ep-1);
-            const atk=effAtk(e);
-            const def=effDef(u);
-            const dmg=computeDamage(atk,def);
-            applyDamage(u,dmg,log,`${e.name} makes an <b>engagement strike</b> on ${u.name} for <span class="dmg">-${dmg}</span>.`);
-            if(u.dead){ render(); return endTurn(); }
-          }
-          log(`${u.name} inches forward across the hexes.`);
-          render(); return endTurn();
-        }
-      }
-    }
-    u.temp.defend=true; log(`${u.name} defends.`); render(); endTurn();
-  }, 250);
-}
-
-/* ========= Boot ========= */
-(function preloadSprites(){ Object.values(SPRITES).forEach(src=>{ if(!src) return; const i=new Image(); i.src=src; }); })();
-(function boot(){
-  renderBuildButtons();
-  setSetupOpen(false);
-  render();
-  syncGridControls();
-})();
-</script>
 </body>
 </html>
