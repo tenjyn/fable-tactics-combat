@@ -115,10 +115,11 @@
     padding:28px 26px 64px;
     display:grid;
     gap:22px;
-    grid-template-columns:minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 0.9fr);
+    grid-template-columns:minmax(0, 1.1fr) minmax(0, 1.8fr) minmax(0, 1fr);
     grid-template-areas:
-      "board controls side"
-      "board log side";
+      "quick board controls"
+      "quick board log"
+      "quick board side";
     align-items:start;
     position:relative;
   }
@@ -183,6 +184,108 @@
   .small { font-size:12px; color:var(--muted); }
   .mono { font-family:'JetBrains Mono', 'Fira Mono', 'Cormorant Garamond', monospace; letter-spacing:.05em; }
   .divider { height:1px; background:rgba(155,126,84,.55); margin:12px 0; border-radius:999px; }
+
+  .quickstart { grid-area:quick; display:flex; flex-direction:column; gap:16px; }
+  .quickstart.quickstart-highlight { box-shadow:0 0 0 3px rgba(195,154,61,.45), 0 18px 30px rgba(10,5,2,.35); }
+  .quickstart-top { display:flex; flex-direction:column; gap:6px; }
+  .quickstart-description { margin:0; color:var(--muted-strong); }
+  .quickstart .divider { height:1px; background:rgba(195,154,61,.45); margin:8px 0; }
+  .quickstart-header { display:flex; flex-direction:column; gap:2px; }
+  .quickstart-title { font-weight:600; letter-spacing:.12em; text-transform:uppercase; font-size:12px; color:var(--muted-strong); }
+  .quickstart-hint { color:var(--muted); }
+  .quickstart-controls { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; }
+  .search-field { flex:1 1 220px; display:flex; flex-direction:column; gap:6px; }
+  .search-field input { width:100%; }
+  .filter-stack { display:flex; flex-wrap:wrap; gap:12px; }
+  .filter-group { display:flex; flex-direction:column; gap:6px; min-width:160px; }
+  .filter-label { font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted-strong); }
+  .chip-row { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip {
+    padding:6px 12px;
+    border-radius:20px;
+    border:1px solid rgba(195,154,61,.4);
+    background:linear-gradient(180deg, rgba(246,233,204,.88), rgba(228,205,163,.85));
+    font-size:12px;
+    letter-spacing:.08em;
+    color:var(--muted-strong);
+    box-shadow:0 4px 10px rgba(0,0,0,.12);
+    transition:border-color .18s ease, box-shadow .18s ease, background .18s ease, color .18s ease;
+  }
+  .chip:hover { border-color:rgba(225,193,112,.7); color:var(--ink); }
+  .chip.active {
+    color:var(--ink);
+    border-color:rgba(225,193,112,.85);
+    box-shadow:0 0 0 2px rgba(225,193,112,.28), 0 8px 16px rgba(12,6,2,.28);
+  }
+  .build-section {
+    border:1px solid rgba(195,154,61,.3);
+    border-radius:16px;
+    margin-bottom:12px;
+    background:rgba(255,248,232,.72);
+    overflow:hidden;
+  }
+  .build-section:last-of-type { margin-bottom:0; }
+  .build-section-summary {
+    padding:10px 14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.05em;
+    cursor:pointer;
+  }
+  .build-section[open] .build-section-summary { background:rgba(195,154,61,.12); }
+  .build-section-count { font-size:12px; color:var(--muted); }
+  .build-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; padding:12px; }
+  .buildBtn {
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    align-items:flex-start;
+    padding:12px 14px;
+    border-radius:14px;
+    border:1px solid rgba(195,154,61,.35);
+    background:linear-gradient(180deg, rgba(249,237,209,.92), rgba(231,208,166,.9));
+    color:var(--ink);
+    text-align:left;
+    transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+  }
+  .buildBtn .buildSprite {
+    width:48px;
+    height:48px;
+    border-radius:12px;
+    background-size:cover;
+    background-position:center;
+    box-shadow:0 8px 16px rgba(0,0,0,.15);
+  }
+  .buildBtn .buildLabel { font-weight:600; letter-spacing:.04em; }
+  .buildBtn .buildMeta { font-size:12px; color:var(--muted); }
+  .buildBtn:hover { transform:translateY(-1px); border-color:rgba(225,193,112,.75); box-shadow:0 10px 18px rgba(12,6,2,.35); }
+  .buildBtn.primary { border-color:rgba(225,193,112,.95); box-shadow:0 0 0 2px rgba(225,193,112,.3), 0 12px 20px rgba(12,6,2,.38); }
+  .buildBtn.primary .buildSprite { box-shadow:0 10px 18px rgba(0,0,0,.22); }
+  .build-empty {
+    padding:22px;
+    text-align:center;
+    font-size:13px;
+    color:var(--muted-strong);
+    background:rgba(255,248,232,.65);
+    border-radius:14px;
+    border:1px dashed rgba(195,154,61,.5);
+  }
+  .preset-row { display:flex; flex-wrap:wrap; gap:10px; }
+  .preset-picker { flex:1 1 220px; }
+  .preset-description { margin-top:8px; color:var(--muted-strong); min-height:22px; }
+  .sr-only {
+    position:absolute;
+    width:1px;
+    height:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    border:0;
+  }
 
   .board { grid-area:board; }
   .side { grid-area:side; display:grid; gap:18px; }
@@ -568,6 +671,44 @@
       inset 0 -16px 28px rgba(120,92,52,.48),
       0 0 18px rgba(195,154,61,.28);
   }
+  .cell.move-path {
+    outline-style:solid;
+    outline-width:2px;
+    outline-color:rgba(225,193,112,.85);
+  }
+  .cell.move-dest {
+    transform:translateY(-2px);
+    filter:drop-shadow(0 28px 44px rgba(120,92,52,.55));
+  }
+  .moveCost {
+    position:absolute;
+    top:6px;
+    right:6px;
+    padding:2px 6px;
+    border-radius:10px;
+    font-size:11px;
+    letter-spacing:.08em;
+    background:rgba(19,10,4,.65);
+    color:#f4e7cb;
+    box-shadow:0 4px 12px rgba(0,0,0,.25);
+    pointer-events:none;
+  }
+  .moveIndex {
+    position:absolute;
+    bottom:6px;
+    left:6px;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    display:grid;
+    place-items:center;
+    font-size:11px;
+    font-weight:600;
+    color:var(--ink);
+    background:rgba(225,193,112,.85);
+    box-shadow:0 6px 12px rgba(0,0,0,.2);
+    pointer-events:none;
+  }
   .cell.place {
     outline:2px dashed rgba(225,193,112,.9);
     outline-offset:-6px;
@@ -592,7 +733,8 @@
         "log log";
       padding:24px 20px 52px;
     }
-      .log { max-height:none; }
+    .panel.quickstart { position:static; max-height:none; }
+    .log { max-height:none; }
   }
   @media (max-width: 960px) {
     header { gap:14px; }
@@ -602,6 +744,7 @@
     main {
       grid-template-columns:minmax(0, 1fr);
       grid-template-areas:
+        "quick"
         "board"
         "controls"
         "side"
@@ -646,7 +789,7 @@
       <a href="game-setup.html" class="nav-btn">Game Setup</a>
       <a href="selector.html" class="nav-btn">Party Builder</a>
       <a href="combat-sim.html" class="nav-btn active">Combat Sim</a>
-      <a href="quickstart.html" class="nav-btn">Quick Start</a>
+      <button id="quickSetupBtn" class="nav-btn" type="button" aria-controls="setupPanel">Setup Tools</button>
       <a href="unit-icons.html" class="nav-btn">Unit Icons</a>
       <button id="navStartBtn" class="nav-btn primary" type="button">Start Battle</button>
       <button id="navAutoBtn" class="nav-btn" type="button" title="Let the AI play for you">Auto Battle</button>
@@ -654,6 +797,122 @@
     <button id="resetBtn" class="warn" type="button">Reset Board</button>
   </header>
   <main>
+    <section class="panel quickstart" id="setupPanel">
+      <div class="quickstart-top">
+        <h2>Setup Toolkit</h2>
+        <p class="quickstart-description small">Build parties, reshape the board, and paint terrain without leaving the sim. Obstacles block LOS; water is impassable.</p>
+      </div>
+      <div class="divider"></div>
+
+      <div class="btn-row" style="margin-bottom:8px">
+        <label><input type="radio" name="team" value="ally" checked> Allies</label>
+        <label><input type="radio" name="team" value="enemy"> Enemies</label>
+      </div>
+
+      <div class="quickstart-header">
+        <span class="quickstart-title">Party Presets</span>
+        <span class="quickstart-hint small">Search or filter to drop tuned builds straight onto the map.</span>
+      </div>
+
+      <div class="quickstart-controls">
+        <div class="search-field">
+          <label for="buildSearch" class="sr-only">Search builds</label>
+          <input id="buildSearch" type="search" placeholder="Search builds…" autocomplete="off">
+        </div>
+        <div class="filter-stack">
+          <div class="filter-group" role="group" aria-label="Filter by role">
+            <span class="filter-label small">Role</span>
+            <div class="chip-row">
+              <button type="button" class="chip active" data-role-filter="all">All</button>
+              <button type="button" class="chip" data-role-filter="Combat">Combat</button>
+              <button type="button" class="chip" data-role-filter="Support">Support</button>
+              <button type="button" class="chip" data-role-filter="Utility">Utility</button>
+            </div>
+          </div>
+          <div class="filter-group" role="group" aria-label="Filter by attack type">
+            <span class="filter-label small">Range</span>
+            <div class="chip-row">
+              <button type="button" class="chip active" data-range-filter="all">All</button>
+              <button type="button" class="chip" data-range-filter="melee">Melee</button>
+              <button type="button" class="chip" data-range-filter="ranged">Ranged</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="buildRow"></div>
+
+      <div class="divider"></div>
+
+      <div class="btn-row" style="flex-wrap:wrap; align-items:center">
+        <div class="small">Grid:</div>
+        <label class="small">W <input id="gridW" type="number" min="3" max="15" value="9"></label>
+        <label class="small">H <input id="gridH" type="number" min="3" max="15" value="9"></label>
+        <button id="applyGridBtn" class="ghost">Apply</button>
+
+        <div class="small" style="margin-left:16px">Zoom:</div>
+        <input id="zoomRange" type="range" min="16" max="96" value="72" step="2">
+        <span id="zoomVal" class="small mono">72px</span>
+      </div>
+
+      <div class="btn-row board-shape-row" style="flex-wrap:wrap; align-items:center">
+        <div class="small">Shape:</div>
+        <select id="boardShape">
+          <option value="hex">Hexagon</option>
+          <option value="parallelogram">Parallelogram</option>
+          <option value="ring">Ring</option>
+          <option value="custom">Custom Layout</option>
+        </select>
+        <label class="small board-shape-opt" data-shape-opt="radius">Radius <input id="boardRadius" type="number" min="2" max="6" value="4"></label>
+        <label class="small board-shape-opt" data-shape-opt="thickness">Ring Thickness <input id="boardThickness" type="number" min="1" max="5" value="1"></label>
+      </div>
+
+      <div class="board-shape-opt" data-shape-opt="layout">
+        <label for="boardLayout" class="small">Custom Layout (# = tile, . = gap)</label>
+        <textarea id="boardLayout" class="board-layout" placeholder="Example:\n..###..\n.#####.\n..###.."></textarea>
+        <div class="small muted">Rows map to offset coordinates; use <strong>#</strong> for playable hexes.</div>
+      </div>
+
+      <div class="btn-row">
+        <button id="obstacleBtn" class="ghost">Obstacle Mode: OFF</button>
+        <button id="clearObsBtn" class="ghost">Clear Obstacles</button>
+      </div>
+
+      <div class="btn-row" style="align-items:center">
+        <button id="terrainBtn" class="ghost">Terrain Mode: OFF</button>
+        <select id="terrainType">
+          <option value="plain">Plain</option>
+          <option value="forest">Forest (+2 DEF, cost 2)</option>
+          <option value="hill">Hill (+2 ATK, cost 2)</option>
+          <option value="road">Road (cost 1)</option>
+          <option value="swamp">Swamp (-2 ATK, cost 3)</option>
+          <option value="water">Water (impassable)</option>
+        </select>
+      </div>
+
+      <div class="legend">
+        <div class="lg"><span class="dot t-forest"></span>Forest</div>
+        <div class="lg"><span class="dot t-hill"></span>Hill</div>
+        <div class="lg"><span class="dot t-road"></span>Road</div>
+        <div class="lg"><span class="dot t-swamp"></span>Swamp</div>
+        <div class="lg"><span class="dot t-water"></span>Water</div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="btn-row preset-row">
+        <div class="preset-picker">
+          <label for="presetSelect" class="sr-only">Choose a quick scenario</label>
+          <select id="presetSelect" aria-describedby="presetDescription"></select>
+        </div>
+        <button id="loadPresetBtn" class="ghost">Load Scenario</button>
+        <button id="fromSelectorBtn" class="ghost">Preset: From Selector</button>
+        <button id="clearBtn" class="ghost">Clear Units</button>
+        <button id="startBtn" class="primary">Start Battle</button>
+      </div>
+      <div id="presetDescription" class="small preset-description"></div>
+      <div class="small muted">Prefer the guided walkthrough? <a href="quickstart.html">Open the Quick Start page</a>.</div>
+    </section>
+
     <section class="panel board">
       <h2 id="phaseTitle">Setup: Place Units & Terrain</h2>
       <div id="board" class="grid"></div>
@@ -769,6 +1028,14 @@ const GRID = {
   playable: new Set(),
   obstacles: new Set(),
   terrain: new Map(),
+};
+let boardHintDefault='';
+const MOVE_PREVIEW={
+  active:false,
+  keys:new Set(),
+  path:[],
+  destKey:null,
+  cost:null,
 };
 const key=(x,y)=>`${x},${y}`;
 const SQRT3 = Math.sqrt(3);
@@ -2010,6 +2277,9 @@ if(zoomRange){
   });
 }
 window.addEventListener('resize', ()=>fitBoardCellToPanel());
+BOARD?.addEventListener('mouseleave', ()=>{
+  if(G.moveMode) clearMovePreview();
+});
 obstacleBtn?.addEventListener('click', ()=>{
   G.obstacleMode=!G.obstacleMode;
   if(G.obstacleMode) G.terrainMode=false;
@@ -2163,6 +2433,110 @@ function renderUnit(u){
   return wrap;
 }
 
+function applyMovePreviewClasses(){
+  if(!BOARD) return;
+  const cells = BOARD.querySelectorAll('.cell');
+  const indexMap = new Map();
+  MOVE_PREVIEW.path.forEach((step, idx)=>{ indexMap.set(key(step.x,step.y), idx); });
+  cells.forEach(cell=>{
+    const cellKey = cell.dataset?.cellKey;
+    const inPath = MOVE_PREVIEW.active && cellKey ? MOVE_PREVIEW.keys.has(cellKey) : false;
+    const isDest = MOVE_PREVIEW.active && cellKey === MOVE_PREVIEW.destKey;
+    cell.classList.toggle('move-path', inPath);
+    cell.classList.toggle('move-dest', isDest);
+    let indexEl = cell.querySelector('.moveIndex');
+    if(inPath){
+      const idx = indexMap.get(cellKey);
+      if(idx !== undefined){
+        if(!indexEl){
+          indexEl=document.createElement('span');
+          indexEl.className='moveIndex';
+          cell.appendChild(indexEl);
+        }
+        indexEl.textContent = idx;
+      }
+    } else if(indexEl){
+      indexEl.remove();
+    }
+  });
+}
+
+function updateMovePreviewHint(){
+  if(!BOARD_HINT) return;
+  if(MOVE_PREVIEW.active && MOVE_PREVIEW.path.length>=1 && Number.isFinite(MOVE_PREVIEW.cost)){
+    const dest = MOVE_PREVIEW.path[MOVE_PREVIEW.path.length-1];
+    const steps = Math.max(0, MOVE_PREVIEW.path.length-1);
+    const actorName = G.acting?.name || 'Unit';
+    const stepWord = steps===1 ? 'step' : 'steps';
+    const costWord = MOVE_PREVIEW.cost===1 ? 'point' : 'points';
+    BOARD_HINT.innerHTML = `${actorName} → (${dest.x},${dest.y}): ${steps} ${stepWord}, cost ${MOVE_PREVIEW.cost} movement ${costWord}.`;
+  } else {
+    BOARD_HINT.innerHTML = boardHintDefault;
+  }
+}
+
+function clearMovePreview(force=false){
+  if(!MOVE_PREVIEW.active && !force) return;
+  MOVE_PREVIEW.active=false;
+  MOVE_PREVIEW.keys = new Set();
+  MOVE_PREVIEW.path = [];
+  MOVE_PREVIEW.destKey=null;
+  MOVE_PREVIEW.cost=null;
+  applyMovePreviewClasses();
+  if(BOARD_HINT) BOARD_HINT.innerHTML = boardHintDefault;
+}
+
+function updateMovePreview(path, cost){
+  if(!Array.isArray(path) || !path.length){
+    clearMovePreview();
+    return;
+  }
+  MOVE_PREVIEW.active=true;
+  MOVE_PREVIEW.path=path.slice();
+  MOVE_PREVIEW.keys=new Set(path.map(step=>key(step.x,step.y)));
+  const dest=path[path.length-1];
+  MOVE_PREVIEW.destKey=key(dest.x,dest.y);
+  MOVE_PREVIEW.cost=Number.isFinite(cost)?cost:null;
+  applyMovePreviewClasses();
+  updateMovePreviewHint();
+}
+
+function traceCheapestPath(unit, target, costs){
+  if(!unit?.pos || !target || !costs) return null;
+  const startKey = key(unit.pos.x, unit.pos.y);
+  const targetKey = key(target.x, target.y);
+  if(!costs.has(targetKey)) return null;
+  const path=[];
+  let currentKey = targetKey;
+  let safety=0;
+  while(safety++<512){
+    const [cx,cy]=currentKey.split(',').map(Number);
+    path.push({x:cx,y:cy});
+    if(currentKey===startKey) break;
+    const currentCost = costs.get(currentKey);
+    const stepCost = tAt(cx,cy).cost ?? 1;
+    let nextKey=null;
+    for(const nb of hexNeighbors(cx,cy)){
+      const nk=key(nb.x,nb.y);
+      if(!costs.has(nk)) continue;
+      const nbCost = costs.get(nk);
+      if(nbCost + stepCost === currentCost){
+        nextKey=nk;
+        break;
+      }
+    }
+    if(!nextKey){
+      return null;
+    }
+    currentKey=nextKey;
+  }
+  if(path[path.length-1].x!==unit.pos.x || path[path.length-1].y!==unit.pos.y){
+    return null;
+  }
+  path.reverse();
+  return path;
+}
+
 function renderBoard(){
   BOARD.innerHTML='';
   const placing = (G.phase==="setup");
@@ -2170,11 +2544,25 @@ function renderBoard(){
   const setupHint = HAS_SETUP_PANEL
     ? `Placing: <b>${UnitTemplates[activeBuild].label}</b> for <b>${getSelectedTeam()==='ally'?'Allies':'Enemies'}</b>. Click a tile to place; click a token to remove. Toggle Obstacles/Terrain or adjust the board shape controls above.`
     : `Setup tools live on the Quick Start page. Configure parties and terrain there, then return to battle.`;
-  BOARD_HINT.innerHTML = placing
-    ? (G.obstacleMode ? `Obstacle Mode: click tiles to toggle walls. Obstacles block LOS.`
-       : G.terrainMode ? `Terrain Mode: painting <b>${terrainLabel}</b>. Water is impassable.`
-       : setupHint)
-    : `Terrain applies to ATK/DEF; obstacles block LOS. AI uses A* to path around terrain and walls.`;
+
+  if(placing){
+    boardHintDefault = G.obstacleMode
+      ? `Obstacle Mode: click tiles to toggle walls. Obstacles block LOS.`
+      : G.terrainMode
+        ? `Terrain Mode: painting <b>${terrainLabel}</b>. Water is impassable.`
+        : setupHint;
+  } else if(G.moveMode && G.acting){
+    const mov = Math.max(0, G.acting.mov ?? 0);
+    const moveWord = mov===1 ? 'point' : 'points';
+    const actorName = G.acting.name || 'Unit';
+    boardHintDefault = `${actorName} can spend up to ${mov} movement ${moveWord}. Hover a highlighted hex to preview the path.`;
+  } else {
+    boardHintDefault = `Terrain applies to ATK/DEF; obstacles block LOS. AI uses A* to path around terrain and walls.`;
+  }
+
+  if(!MOVE_PREVIEW.active){
+    BOARD_HINT.innerHTML = boardHintDefault;
+  }
 
   const inRangeIds=new Set();
   if(G.phase==="battle" && G.acting){
@@ -2189,8 +2577,9 @@ function renderBoard(){
   if(G.moveMode && G.acting){
     moveTargets = G.moveTargets || computeReachableHexes(G.acting);
     G.moveTargets = moveTargets;
-  } else if(!G.moveMode) {
+  } else {
     G.moveTargets = null;
+    clearMovePreview(true);
   }
 
   const geometry = computeHexGeometry(GRID.cell);
@@ -2218,8 +2607,10 @@ function renderBoard(){
   for(let y=0;y<GRID.h;y++){
     for(let x=0;x<GRID.w;x++){
       if(!isPlayableHex(x,y)) continue;
-      const tClass = 't-' + (GRID.terrain.get(key(x,y))||'plain');
+      const mk = key(x,y);
+      const tClass = 't-' + (GRID.terrain.get(mk)||'plain');
       const cell=document.createElement('div'); cell.className=`cell ${tClass}`+(hasObs(x,y)?' obstacle':'');
+      cell.dataset.cellKey = mk;
       const pos=geometry.positions[y]?.[x];
       if(pos){
         const left = pos.left + geometry.offsetX;
@@ -2238,18 +2629,18 @@ function renderBoard(){
 
       if(placing){
         if(G.obstacleMode){
-          cell.onclick=()=>{ 
+          cell.onclick=()=>{
             if(u) return;
-            if(hasObs(x,y)) GRID.obstacles.delete(key(x,y));
-            else GRID.obstacles.add(key(x,y));
+            if(hasObs(x,y)) GRID.obstacles.delete(mk);
+            else GRID.obstacles.add(mk);
             render();
           };
         } else if(G.terrainMode){
           cell.onclick=()=>{
             if(hasObs(x,y)) return;
             const val = terrainType ? terrainType.value : 'plain';
-            if(val==='plain') GRID.terrain.delete(key(x,y));
-            else GRID.terrain.set(key(x,y), val);
+            if(val==='plain') GRID.terrain.delete(mk);
+            else GRID.terrain.set(mk, val);
             render();
           };
         } else {
@@ -2266,11 +2657,23 @@ function renderBoard(){
         }
       } else {
         if(u){ cell.appendChild(renderToken(u, inRangeIds)); }
-        const mk = key(x,y);
         const moveCost = moveTargets?.get(mk);
-        if(G.moveMode && moveTargets && moveCost && moveCost>0 && !u){
+        if(G.moveMode && moveTargets && Number.isFinite(moveCost) && moveCost>0 && !u){
           cell.classList.add('move-ok');
           cell.style.cursor='pointer';
+          const badge=document.createElement('span');
+          badge.className='moveCost';
+          badge.textContent=moveCost;
+          cell.appendChild(badge);
+          cell.addEventListener('mouseenter', ()=>{
+            if(!G.moveMode || !G.acting) return;
+            const path = traceCheapestPath(G.acting, {x,y}, moveTargets);
+            if(path){ updateMovePreview(path, moveCost); }
+            else { clearMovePreview(); }
+          });
+          cell.addEventListener('mouseleave', ()=>{
+            if(G.moveMode) clearMovePreview();
+          });
           cell.onclick=()=>{
             if(G.acting.statuses.some(s=>s.key==='Root')){ log(`${G.acting.name} is rooted and cannot move.`); return; }
             if(!moveTargets.has(mk)){ return; }
@@ -2311,6 +2714,10 @@ function renderBoard(){
       </linearGradient>
     </defs>`;
     baseSvg.innerHTML = defs + `<g class="tiles" fill="url(#${fillId})">${basePolys.join('')}</g>`;
+  }
+  applyMovePreviewClasses();
+  if(MOVE_PREVIEW.active){
+    updateMovePreviewHint();
   }
 }
 function renderToken(unit, inRangeIds){
