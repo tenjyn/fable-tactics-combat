@@ -370,6 +370,13 @@
   .legend { display:flex; gap:10px; flex-wrap:wrap; margin:8px 0; }
   .legend .lg { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted-strong); background:rgba(248,235,205,.85); padding:4px 8px; border-radius:8px; border:1px solid rgba(195,154,61,.45); }
 
+  .board-shape-row { gap:12px; }
+  .board-shape-row select { min-width:160px; }
+  .board-shape-opt { display:none; }
+  .board-shape-opt input { width:72px; }
+  .board-layout { width:100%; min-height:112px; margin-top:6px; }
+  .small.muted { color:var(--muted); }
+
   .dot {
     width:16px;
     height:16px;
@@ -401,27 +408,31 @@
     --hex-gap: 0px;
     position:relative;
     display:block;
-    padding:20px;
-    border-radius:20px;
-    background:
-      radial-gradient(circle at 22% 22%, rgba(225,193,112,.3), transparent 60%),
-      radial-gradient(circle at 78% 14%, rgba(124,93,42,.2), transparent 64%),
-      repeating-linear-gradient(120deg, rgba(201,174,126,.4) 0 2px, rgba(187,158,110,.36) 2px 44px),
-      repeating-linear-gradient(60deg, rgba(206,180,132,.35) 0 2px, rgba(192,163,115,.34) 2px 44px),
-      linear-gradient(180deg, rgba(207,180,130,.92), rgba(186,158,110,.94));
-    border:1px solid rgba(195,154,61,.65);
-    box-shadow:inset 0 0 28px rgba(70,50,28,.35), 0 20px 38px rgba(12,6,3,.4);
+    padding:0;
     min-height:var(--hex-h);
-    overflow:visible;
   }
-  .grid::before {
-    content:"";
+  .grid::before { display:none; }
+
+  .board-base {
     position:absolute;
-    inset:14px;
-    border-radius:16px;
-    border:1px solid rgba(195,154,61,.3);
-    box-shadow:inset 0 0 18px rgba(0,0,0,.12);
+    inset:0;
+    width:100%;
+    height:100%;
     pointer-events:none;
+    filter:drop-shadow(0 20px 38px rgba(12,6,3,.38));
+  }
+  .board-base .tiles { mix-blend-mode:normal; }
+  .board-base .tile {
+    fill:var(--board-fill, url(#boardBaseFill));
+    stroke:rgba(195,154,61,.48);
+    stroke-width:1.4;
+    stroke-linejoin:round;
+  }
+  .board-base .tile-border {
+    fill:none;
+    stroke:rgba(19,10,4,.35);
+    stroke-width:2.4;
+    stroke-linejoin:round;
   }
 
   .cell {
@@ -651,7 +662,7 @@
     <section class="panel quickstart" id="setupPanel">
       <div class="quickstart-top">
         <h2>Quick Start</h2>
-        <p class="quickstart-description small">Choose build/team. Toggle obstacle or terrain painting. Water is impassable. Obstacles block LOS.</p>
+        <p class="quickstart-description small">Choose build/team. Toggle obstacle or terrain painting or reshape the arena. Water is impassable. Obstacles block LOS.</p>
       </div>
       <div class="divider"></div>
 
@@ -698,13 +709,31 @@
       <!-- Grid size + zoom -->
       <div class="btn-row" style="flex-wrap:wrap; align-items:center">
         <div class="small">Grid:</div>
-        <label class="small">W <input id="gridW" type="number" min="5" max="11" value="9"></label>
-        <label class="small">H <input id="gridH" type="number" min="5" max="11" value="9"></label>
+        <label class="small">W <input id="gridW" type="number" min="3" max="15" value="9"></label>
+        <label class="small">H <input id="gridH" type="number" min="3" max="15" value="9"></label>
         <button id="applyGridBtn" class="ghost">Apply</button>
 
         <div class="small" style="margin-left:16px">Zoom:</div>
         <input id="zoomRange" type="range" min="16" max="96" value="72" step="2">
         <span id="zoomVal" class="small mono">72px</span>
+      </div>
+
+      <div class="btn-row board-shape-row" style="flex-wrap:wrap; align-items:center">
+        <div class="small">Shape:</div>
+        <select id="boardShape">
+          <option value="hex">Hexagon</option>
+          <option value="parallelogram">Parallelogram</option>
+          <option value="ring">Ring</option>
+          <option value="custom">Custom Layout</option>
+        </select>
+        <label class="small board-shape-opt" data-shape-opt="radius">Radius <input id="boardRadius" type="number" min="2" max="6" value="4"></label>
+        <label class="small board-shape-opt" data-shape-opt="thickness">Ring Thickness <input id="boardThickness" type="number" min="1" max="5" value="1"></label>
+      </div>
+
+      <div class="board-shape-opt" data-shape-opt="layout">
+        <label for="boardLayout" class="small">Custom Layout (# = tile, . = gap)</label>
+        <textarea id="boardLayout" class="board-layout" placeholder="Example:\n..###..\n.#####.\n..###.."></textarea>
+        <div class="small muted">Rows map to offset coordinates; use <strong>#</strong> for playable hexes.</div>
       </div>
 
       <div class="btn-row">
@@ -849,6 +878,8 @@ const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const choice=(arr)=>arr[Math.floor(Math.random()*arr.length)];
 const GRID = {
+  shapeKey:'hex',
+  shapeOptions:{ radius:4 },
   radius: 4,
   w: 0,
   h: 0,
@@ -875,53 +906,216 @@ function axialToOffsetRaw(q,r){
   const y = r + (q - (q & 1)) / 2;
   return {x,y};
 }
-function computeHexMask(radius){
-  const playable=new Set();
+function offsetToAxialRaw(x,y){
+  const q = x;
+  const r = y - (x - (x & 1)) / 2;
+  return {q,r};
+}
+function makeEmptyMask(){
+  return {originX:0, originY:0, width:0, height:0, playable:new Set()};
+}
+function maskFromOffsets(offsets){
+  if(!offsets || !offsets.length) return makeEmptyMask();
+  const unique=[];
+  const seen=new Set();
+  for(const pos of offsets){
+    if(!pos) continue;
+    const x=Math.round(pos.x);
+    const y=Math.round(pos.y);
+    const k=`${x},${y}`;
+    if(seen.has(k)) continue;
+    seen.add(k);
+    unique.push({x,y});
+  }
+  if(!unique.length) return makeEmptyMask();
   let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
-  for(let q=-radius; q<=radius; q++){
-    const rMin=Math.max(-radius, -q-radius);
-    const rMax=Math.min(radius, -q+radius);
-    for(let r=rMin; r<=rMax; r++){
-      const raw=axialToOffsetRaw(q,r);
-      if(raw.x<minX) minX=raw.x;
-      if(raw.x>maxX) maxX=raw.x;
-      if(raw.y<minY) minY=raw.y;
-      if(raw.y>maxY) maxY=raw.y;
-    }
+  for(const {x,y} of unique){
+    if(x<minX) minX=x;
+    if(x>maxX) maxX=x;
+    if(y<minY) minY=y;
+    if(y>maxY) maxY=y;
   }
-  if(!Number.isFinite(minX) || !Number.isFinite(minY)){
-    return {originX:0, originY:0, width:0, height:0, playable};
-  }
-  const originX = -minX;
-  const originY = -minY;
-  for(let q=-radius; q<=radius; q++){
-    const rMin=Math.max(-radius, -q-radius);
-    const rMax=Math.min(radius, -q+radius);
-    for(let r=rMin; r<=rMax; r++){
-      const raw=axialToOffsetRaw(q,r);
-      const x=raw.x + originX;
-      const y=raw.y + originY;
-      playable.add(key(x,y));
-    }
+  const width = maxX - minX + 1;
+  const height = maxY - minY + 1;
+  const playable=new Set();
+  const normalized=unique.map(({x,y})=>{
+    const nx=x-minX;
+    const ny=y-minY;
+    playable.add(key(nx,ny));
+    return {x:nx,y:ny};
+  });
+  const centerX=(width-1)/2;
+  const centerY=(height-1)/2;
+  let origin=normalized[0];
+  let best=Infinity;
+  for(const pos of normalized){
+    const dx=pos.x-centerX;
+    const dy=pos.y-centerY;
+    const d=Math.hypot(dx,dy);
+    if(d<best){ best=d; origin=pos; }
   }
   return {
-    originX,
-    originY,
-    width: (maxX - minX + 1),
-    height: (maxY - minY + 1),
+    originX:origin.x,
+    originY:origin.y,
+    width,
+    height,
     playable,
   };
 }
-function setGridRadius(radius){
-  const mask=computeHexMask(radius);
-  GRID.radius = radius;
-  GRID.originX = mask.originX;
-  GRID.originY = mask.originY;
-  GRID.w = mask.width;
-  GRID.h = mask.height;
-  GRID.playable = mask.playable;
+function maskFromAxials(axials){
+  if(!axials || !axials.length) return makeEmptyMask();
+  const offsets=axials.map(({q,r})=>axialToOffsetRaw(q,r));
+  return maskFromOffsets(offsets);
 }
-setGridRadius(GRID.radius);
+function computeHexMask(radius){
+  const r=Math.max(1, Math.floor(radius));
+  const coords=[];
+  for(let q=-r; q<=r; q++){
+    const rMin=Math.max(-r, -q-r);
+    const rMax=Math.min(r, -q+r);
+    for(let n=rMin; n<=rMax; n++){
+      coords.push({q, r:n});
+    }
+  }
+  return maskFromAxials(coords);
+}
+function computeParallelogramMask(width,height){
+  const w=Math.max(1, Math.floor(width));
+  const h=Math.max(1, Math.floor(height));
+  const minQ=-Math.floor((w-1)/2);
+  const minR=-Math.floor((h-1)/2);
+  const maxQ=minQ + w - 1;
+  const maxR=minR + h - 1;
+  const coords=[];
+  for(let q=minQ; q<=maxQ; q++){
+    for(let r=minR; r<=maxR; r++){
+      coords.push({q,r});
+    }
+  }
+  return maskFromAxials(coords);
+}
+function computeRingMask(radius, thickness){
+  const outer=Math.max(1, Math.floor(radius));
+  const outerMask=computeHexMask(outer);
+  const gap=Math.max(0, Math.floor(thickness));
+  if(gap<=0 || gap>=outer) return outerMask;
+  const innerMask=computeHexMask(outer-gap);
+  const playable=new Set();
+  for(const cell of outerMask.playable){
+    if(!innerMask.playable.has(cell)) playable.add(cell);
+  }
+  return {
+    originX:outerMask.originX,
+    originY:outerMask.originY,
+    width:outerMask.width,
+    height:outerMask.height,
+    playable,
+  };
+}
+function computeCustomMask(layout){
+  if(typeof layout!=='string') return makeEmptyMask();
+  const rows=layout
+    .replace(/\r/g,'')
+    .split('\n')
+    .map(row=>row.replace(/\s+$/,''));
+  const offsets=[];
+  rows.forEach((row, yIdx)=>{
+    for(let xIdx=0; xIdx<row.length; xIdx++){
+      const ch=row[xIdx];
+      if(ch==='#' || ch==='X' || ch==='x' || ch==='1'){
+        offsets.push({x:xIdx, y:yIdx});
+      }
+    }
+  });
+  return maskFromOffsets(offsets);
+}
+const BOARD_SHAPES=[
+  {
+    key:'hex',
+    label:'Hexagon',
+    controls:['radius'],
+    defaults:{ radius:4 },
+    sanitize(options){
+      const radius=Math.max(2, Math.min(6, Number.isFinite(options.radius)?Math.floor(options.radius):4));
+      return { radius };
+    },
+    create(options){
+      return computeHexMask(options.radius);
+    },
+  },
+  {
+    key:'parallelogram',
+    label:'Parallelogram',
+    controls:['width','height'],
+    defaults:{ width:9, height:9 },
+    sanitize(options){
+      const width=Math.max(3, Math.min(15, Number.isFinite(options.width)?Math.floor(options.width):9));
+      const height=Math.max(3, Math.min(15, Number.isFinite(options.height)?Math.floor(options.height):9));
+      return { width, height };
+    },
+    create(options){
+      return computeParallelogramMask(options.width, options.height);
+    },
+  },
+  {
+    key:'ring',
+    label:'Ring',
+    controls:['radius','thickness'],
+    defaults:{ radius:4, thickness:1 },
+    sanitize(options){
+      const radius=Math.max(2, Math.min(6, Number.isFinite(options.radius)?Math.floor(options.radius):4));
+      const thickness=Math.max(1, Math.min(radius-1, Number.isFinite(options.thickness)?Math.floor(options.thickness):1));
+      return { radius, thickness };
+    },
+    create(options){
+      return computeRingMask(options.radius, options.thickness);
+    },
+  },
+  {
+    key:'custom',
+    label:'Custom Layout',
+    controls:['layout'],
+    defaults:{ layout:'..###..\n.#####.\n..###..' },
+    sanitize(options){
+      const raw=typeof options.layout==='string' ? options.layout : '';
+      const layout=raw.replace(/\r/g,'').split('\n').map(row=>row.replace(/\s+$/,'')).join('\n').trim();
+      return { layout };
+    },
+    create(options){
+      return computeCustomMask(options.layout);
+    },
+  },
+];
+function findBoardShape(key){
+  return BOARD_SHAPES.find(shape=>shape.key===key) || BOARD_SHAPES[0];
+}
+function setGridShape(shapeKey, rawOptions){
+  const shape=findBoardShape(shapeKey);
+  const merged={...shape.defaults};
+  if(GRID.shapeKey===shape.key && GRID.shapeOptions){
+    Object.assign(merged, GRID.shapeOptions);
+  }
+  if(rawOptions) Object.assign(merged, rawOptions);
+  const options=shape.sanitize ? shape.sanitize(merged) : merged;
+  const mask=shape.create ? shape.create(options) : makeEmptyMask();
+  if(!mask.playable || mask.playable.size===0){
+    console.warn('Board shape produced no playable cells.');
+    return false;
+  }
+  GRID.shapeKey=shape.key;
+  GRID.shapeOptions=options;
+  if(typeof options.radius==='number') GRID.radius=options.radius;
+  GRID.originX=mask.originX;
+  GRID.originY=mask.originY;
+  GRID.w=mask.width;
+  GRID.h=mask.height;
+  GRID.playable=mask.playable;
+  return true;
+}
+function setGridRadius(radius){
+  setGridShape('hex', { radius });
+}
+setGridShape(GRID.shapeKey, GRID.shapeOptions);
 const isPlayableHex=(x,y)=>GRID.playable.has(key(x,y));
 const hasObs=(x,y)=>isPlayableHex(x,y) && GRID.obstacles.has(key(x,y));
 function offsetToAxial(x,y){
@@ -1034,6 +1228,18 @@ function computeHexGeometry(cellSize){
     offsetY: -minTop,
     cellHeight
   };
+}
+
+let BOARD_BASE_ID=0;
+function hexPolygonPoints(cx, cy, radius){
+  const pts=[];
+  for(let i=0;i<6;i++){
+    const angle=Math.PI/180*(60*i - 30);
+    const x=cx + radius*Math.cos(angle);
+    const y=cy + radius*Math.sin(angle);
+    pts.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+  }
+  return pts.join(' ');
 }
 const TERRAIN = {
   plain:{cost:1, atk:0, def:0, pass:true},
@@ -1617,6 +1823,11 @@ const gridHInput = document.getElementById('gridH');
 const applyGridBtn = document.getElementById('applyGridBtn');
 const zoomRange = document.getElementById('zoomRange');
 const zoomVal = document.getElementById('zoomVal');
+const boardShapeSelect = document.getElementById('boardShape');
+const boardRadiusInput = document.getElementById('boardRadius');
+const boardThicknessInput = document.getElementById('boardThickness');
+const boardLayoutInput = document.getElementById('boardLayout');
+const boardShapeOptionEls = [...document.querySelectorAll('[data-shape-opt]')];
 
 function parsePx(value){
   return typeof value === 'string' ? parseFloat(value) || 0 : 0;
@@ -1836,36 +2047,77 @@ function getSelectedTeam(){
 }
 
 /* ========= Grid controls ========= */
+function updateBoardShapeVisibility(){
+  const shape = findBoardShape(boardShapeSelect?.value || GRID.shapeKey);
+  boardShapeOptionEls.forEach(el=>{
+    const opt = el.getAttribute('data-shape-opt');
+    const shouldShow = !!shape?.controls?.includes(opt);
+    el.style.display = shouldShow ? '' : 'none';
+  });
+}
+
 function syncGridControls(){
   gridWInput.value = GRID.w;
   gridHInput.value = GRID.h;
+  if(boardShapeSelect){
+    boardShapeSelect.value = GRID.shapeKey;
+  }
+  const opts = GRID.shapeOptions || {};
+  if(boardRadiusInput && typeof opts.radius === 'number'){ boardRadiusInput.value = opts.radius; }
+  if(boardThicknessInput && typeof opts.thickness === 'number'){ boardThicknessInput.value = opts.thickness; }
+  if(boardLayoutInput && typeof opts.layout === 'string'){ boardLayoutInput.value = opts.layout; }
+  updateBoardShapeVisibility();
   fitBoardCellToPanel();
   obstacleBtn.textContent = `Obstacle Mode: ${G.obstacleMode?'ON':'OFF'}`;
   terrainBtn.textContent = `Terrain Mode: ${G.terrainMode?'ON':'OFF'}`;
 }
 
-function clampRadiusValue(r){
-  return Math.max(2, Math.min(5, r));
+function readBoardShapeOptions(){
+  const shape = findBoardShape(boardShapeSelect?.value || GRID.shapeKey);
+  const options={};
+  if(shape.controls?.includes('radius') && boardRadiusInput){
+    const radius=parseInt(boardRadiusInput.value,10);
+    if(Number.isFinite(radius)) options.radius=radius;
+  }
+  if(shape.controls?.includes('thickness') && boardThicknessInput){
+    const thickness=parseInt(boardThicknessInput.value,10);
+    if(Number.isFinite(thickness)) options.thickness=thickness;
+  }
+  if(shape.controls?.includes('width') && gridWInput){
+    const width=parseInt(gridWInput.value,10);
+    if(Number.isFinite(width)) options.width=width;
+  }
+  if(shape.controls?.includes('height') && gridHInput){
+    const height=parseInt(gridHInput.value,10);
+    if(Number.isFinite(height)) options.height=height;
+  }
+  if(shape.controls?.includes('layout') && boardLayoutInput){
+    const raw = boardLayoutInput.value || '';
+    options.layout = raw.trim().length ? raw : (shape.defaults?.layout || '');
+  }
+  return { shapeKey: shape.key, options };
 }
-function radiusFromInput(v){
-  const num=parseInt(v,10);
-  if(!Number.isFinite(num)) return null;
-  return Math.max(1, Math.floor((num - 1) / 2));
-}
-function applyGridSize(w,h){
-  const rW=radiusFromInput(w);
-  const rH=radiusFromInput(h);
-  let radius = GRID.radius;
-  if(rW!=null && rH!=null) radius = Math.min(rW, rH);
-  else if(rW!=null) radius = rW;
-  else if(rH!=null) radius = rH;
-  radius = clampRadiusValue(radius);
-  setGridRadius(radius);
+
+function applyBoardSettings(){
+  const {shapeKey, options} = readBoardShapeOptions();
+  const ok = setGridShape(shapeKey, options);
+  if(!ok){
+    alert('Board shape configuration produced no playable tiles. Adjust the options and try again.');
+    return;
+  }
   clampGridState();
   syncGridControls();
   render();
 }
-applyGridBtn.onclick = ()=> applyGridSize(gridWInput.value, gridHInput.value);
+
+applyGridBtn.onclick = applyBoardSettings;
+boardShapeSelect?.addEventListener('change', ()=>{
+  updateBoardShapeVisibility();
+  applyBoardSettings();
+});
+boardRadiusInput?.addEventListener('change', applyBoardSettings);
+boardThicknessInput?.addEventListener('change', applyBoardSettings);
+boardLayoutInput?.addEventListener('change', applyBoardSettings);
 zoomRange.oninput = ()=>{
   GRID.desiredCell = parseInt(zoomRange.value,10) || GRID.desiredCell;
   fitBoardCellToPanel();
@@ -1897,6 +2149,7 @@ function resetBoardState(){
   G.auto=false;
   G.obstacleMode=false;
   G.terrainMode=false;
+  setGridShape('hex', { radius:4 });
   GRID.obstacles.clear();
   GRID.terrain.clear();
   activeBuild="Knight";
@@ -2018,7 +2271,7 @@ function renderBoard(){
   BOARD_HINT.innerHTML = placing
     ? (G.obstacleMode ? `Obstacle Mode: click tiles to toggle walls. Obstacles block LOS.`
        : G.terrainMode ? `Terrain Mode: painting <b>${terrainType.value.toUpperCase()}</b>. Water is impassable.`
-       : `Placing: <b>${UnitTemplates[activeBuild].label}</b> for <b>${getSelectedTeam()==='ally'?'Allies':'Enemies'}</b>. Click a tile to place; click a token to remove. Toggle Obstacles/Terrain.`)
+       : `Placing: <b>${UnitTemplates[activeBuild].label}</b> for <b>${getSelectedTeam()==='ally'?'Allies':'Enemies'}</b>. Click a tile to place; click a token to remove. Toggle Obstacles/Terrain or adjust the board shape controls above.`)
     : `Terrain applies to ATK/DEF; obstacles block LOS. AI uses A* to path around terrain and walls.`;
 
   const inRangeIds=new Set();
@@ -2045,6 +2298,21 @@ function renderBoard(){
   BOARD.style.height = height + 'px';
   BOARD.style.setProperty('--hex-h', geometry.cellHeight + 'px');
 
+  let baseSvg=null;
+  let basePolys=null;
+  if(width>0 && height>0){
+    baseSvg=document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    baseSvg.classList.add('board-base');
+    baseSvg.setAttribute('role','presentation');
+    baseSvg.setAttribute('aria-hidden','true');
+    baseSvg.setAttribute('focusable','false');
+    baseSvg.setAttribute('width', width);
+    baseSvg.setAttribute('height', height);
+    baseSvg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    BOARD.appendChild(baseSvg);
+    basePolys=[];
+  }
+
   for(let y=0;y<GRID.h;y++){
     for(let x=0;x<GRID.w;x++){
       if(!isPlayableHex(x,y)) continue;
@@ -2056,6 +2324,11 @@ function renderBoard(){
         const top = pos.top + geometry.offsetY;
         cell.style.left = `${left.toFixed(2)}px`;
         cell.style.top = `${top.toFixed(2)}px`;
+        if(basePolys){
+          const cx = left + GRID.cell/2;
+          const cy = top + (geometry.cellHeight || GRID.cell)/2;
+          basePolys.push(`<polygon class="tile" points="${hexPolygonPoints(cx, cy, GRID.cell/2)}"></polygon>`);
+        }
       }
       cell.style.width = GRID.cell + 'px';
       cell.style.height = (geometry.cellHeight || GRID.cell) + 'px';
@@ -2120,6 +2393,22 @@ function renderBoard(){
 
       BOARD.appendChild(cell);
     }
+  }
+
+  if(baseSvg && basePolys){
+    let fillId = BOARD.dataset.boardFillId;
+    if(!fillId){
+      BOARD_BASE_ID += 1;
+      fillId = `boardBaseFill${BOARD_BASE_ID}`;
+      BOARD.dataset.boardFillId = fillId;
+    }
+    const defs=`<defs>
+      <linearGradient id="${fillId}" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#f7ebcd"/>
+        <stop offset="100%" stop-color="#d9bb83"/>
+      </linearGradient>
+    </defs>`;
+    baseSvg.innerHTML = defs + `<g class="tiles" fill="url(#${fillId})">${basePolys.join('')}</g>`;
   }
 }
 function renderToken(unit, inRangeIds){
@@ -2280,6 +2569,29 @@ const QUICK_SCENARIOS=[
       ];
       attackers.forEach(({name,dx,dy})=>placeUnitRelative(name,'enemy',dx,dy));
     }
+  },
+  {
+    key:'fey-circle',
+    name:'Fey Circle',
+    description:'Battle along a hollow leyline ring while the center remains sealed.',
+    shape:{ key:'ring', options:{ radius:5, thickness:2 } },
+    setup(ctx){
+      const {playableCells, addObstacleRelative, placeUnitRelative, setTerrain}=ctx;
+      playableCells.forEach(cell=>setTerrain(cell,'road'));
+      [[0,-5],[5,0],[0,5],[-5,0]].forEach(([dx,dy])=>addObstacleRelative(dx,dy));
+
+      const allySlots=[[-3,-2],[-4,0],[-3,2]];
+      ['Knight','Cleric','Rogue'].forEach((name, idx)=>{
+        const slot=allySlots[idx];
+        if(slot) placeUnitRelative(name,'ally', slot[0], slot[1]);
+      });
+
+      const enemySlots=[[3,2],[4,0],[3,-2]];
+      ['Warlock','Reaper','Shaman'].forEach((name, idx)=>{
+        const slot=enemySlots[idx];
+        if(slot) placeUnitRelative(name,'enemy', slot[0], slot[1]);
+      });
+    }
   }
 ];
 
@@ -2381,9 +2693,17 @@ function applyScenario(key){
   activeScenarioKey=scenario.key;
   resetBoardState();
 
-  if(typeof scenario.radius==='number'){
-    const safeRadius=Math.max(2, Math.min(5, Math.floor(scenario.radius)));
-    setGridRadius(safeRadius);
+  if(scenario.shape){
+    if(typeof scenario.shape==='string'){
+      setGridShape(scenario.shape, {});
+    } else if(typeof scenario.shape==='object'){
+      const shapeKey=scenario.shape.key || GRID.shapeKey;
+      const options={...(scenario.shape.options||{})};
+      setGridShape(shapeKey, options);
+    }
+  } else if(typeof scenario.radius==='number'){
+    const safeRadius=Math.max(2, Math.min(6, Math.floor(scenario.radius)));
+    setGridShape('hex', { radius:safeRadius });
   }
 
   GRID.obstacles.clear();
