@@ -225,6 +225,16 @@
       border-color:rgba(195,154,61,.55);
       color:var(--accent);
     }
+    .btn.map {
+      background:linear-gradient(180deg, rgba(146,188,170,.92), rgba(94,134,116,.9));
+      border-color:rgba(92,138,118,.55);
+      color:#0f261f;
+    }
+    .btn.map:hover {
+      background:linear-gradient(180deg, rgba(162,206,188,.96), rgba(102,146,129,.94));
+      box-shadow:0 18px 32px rgba(18,32,26,.38);
+      border-color:rgba(114,168,146,.7);
+    }
     .hero-steps {
       display:flex;
       flex-direction:column;
@@ -485,6 +495,7 @@
       <a href="selector.html" class="nav-btn">Party Builder</a>
       <a href="combat-sim.html" class="nav-btn">Combat Sim</a>
       <a href="quickstart.html" class="nav-btn">Quick Start</a>
+      <a href="board-builder.html" class="nav-btn">Map Builder</a>
       <a href="unit-icons.html" class="nav-btn">Unit Icons</a>
     </nav>
   </header>
@@ -499,6 +510,7 @@
         <div class="hero-actions">
           <a class="btn primary" href="game-setup.html">Open Game Setup</a>
           <a class="btn ghost" href="selector.html">Build Parties</a>
+          <a class="btn map" href="board-builder.html">Craft a Map</a>
           <a class="btn outline" href="combat-sim.html">Enter Combat Sim</a>
         </div>
       </div>
@@ -507,7 +519,7 @@
           <span class="step-id">1</span>
           <div>
             <h3>Frame the scenario</h3>
-            <p>Choose the map, win conditions, initiative flow, and automation flags in the dedicated setup screen.</p>
+            <p>Choose an existing battlefield or <a href="board-builder.html">paint a new map</a>, then dial in win conditions, initiative flow, and automation flags.</p>
             <a class="step-link" href="game-setup.html">Plan match <span aria-hidden="true">→</span></a>
           </div>
         </div>
@@ -549,6 +561,11 @@
           <strong>Quick Start</strong>
           <p>Select a curated encounter template and tweak a few knobs to prototype faster.</p>
           <span class="cta">Pick template <span aria-hidden="true">→</span></span>
+        </a>
+        <a class="nav-card" href="board-builder.html">
+          <strong>Map Builder</strong>
+          <p>Paint tiles, highlight hazards, and export JSON layouts for the combat simulator.</p>
+          <span class="cta">Design battlefield <span aria-hidden="true">→</span></span>
         </a>
         <a class="nav-card" href="combat-sim.html">
           <strong>Combat Sim</strong>

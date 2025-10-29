@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fable Tactics – Battlemap Builder</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:wght@400;500;600&display=swap');
+    :root {
+      --bg:#120d07;
+      --bg-accent:#1d1409;
+      --parchment:#f3e7c8;
+      --parchment-deep:#e6d4aa;
+      --ink:#2f1c0f;
+      --ink-soft:#4a2b17;
+      --muted:#8c7358;
+      --muted-strong:#5b3d24;
+      --accent:#c39a3d;
+      --accent-strong:#e1c269;
+      --accent-soft:rgba(195,154,61,.22);
+      --panel-border:#d8bc85;
+      --panel-shadow:rgba(9,5,2,.45);
+    }
+    * { box-sizing:border-box; font-family:'Cormorant Garamond','Times New Roman',serif; }
+    body {
+      margin:0;
+      min-height:100vh;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 18% 8%, rgba(195,154,61,.18) 0%, transparent 42%),
+        radial-gradient(circle at 82% 0%, rgba(138,92,38,.25) 0%, transparent 52%),
+        linear-gradient(180deg, #1a1209 0%, #130c06 55%, #1d1408 100%);
+      position:relative;
+      overflow-x:hidden;
+    }
+    body::before {
+      content:"";
+      position:fixed;
+      inset:-160px;
+      background:
+        radial-gradient(rgba(255,244,214,.08) 1px, transparent 1px),
+        repeating-linear-gradient(125deg, rgba(90,58,26,.06) 0 14px, transparent 14px 28px);
+      background-size:120px 120px, 220px 220px;
+      opacity:.45;
+      mix-blend-mode:screen;
+      pointer-events:none;
+      z-index:-2;
+    }
+    header {
+      padding:18px 24px;
+      border-bottom:2px solid rgba(195,154,61,.35);
+      background:linear-gradient(135deg, rgba(67,41,19,.95), rgba(40,23,11,.95));
+      position:sticky;
+      top:0;
+      z-index:6;
+      display:flex;
+      align-items:center;
+      gap:18px;
+      box-shadow:0 14px 22px rgba(7,4,2,.45);
+    }
+    header h1 {
+      margin:0;
+      font-family:'Cinzel','Cormorant Garamond',serif;
+      font-size:20px;
+      letter-spacing:.3em;
+      text-transform:uppercase;
+      color:var(--accent-strong);
+      flex:1;
+    }
+    nav {
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    nav .nav-btn {
+      color:var(--muted-strong);
+      text-decoration:none;
+      font-size:12px;
+      letter-spacing:.22em;
+      text-transform:uppercase;
+      padding:8px 14px;
+      border-radius:999px;
+      border:1px solid rgba(195,154,61,.45);
+      background:linear-gradient(180deg, rgba(245,231,197,.92), rgba(228,206,162,.88));
+      box-shadow:0 6px 14px rgba(12,6,2,.35);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease, color .18s ease;
+    }
+    nav .nav-btn:hover {
+      transform:translateY(-1px);
+      color:var(--ink);
+      border-color:rgba(225,193,112,.75);
+      box-shadow:0 10px 18px rgba(10,5,2,.45);
+    }
+    nav .nav-btn.active {
+      color:var(--ink);
+      border-color:rgba(225,193,112,.9);
+      box-shadow:0 0 0 2px rgba(225,193,112,.3), 0 12px 20px rgba(12,5,2,.45);
+    }
+    main {
+      max-width:1280px;
+      margin:0 auto;
+      padding:32px 26px 64px;
+      display:grid;
+      gap:22px;
+    }
+    .panel {
+      background:linear-gradient(180deg, rgba(245,231,197,.96), rgba(228,209,172,.95));
+      border:1px solid var(--panel-border);
+      border-radius:18px;
+      padding:28px;
+      position:relative;
+      overflow:hidden;
+      box-shadow:0 26px 44px var(--panel-shadow);
+    }
+    .panel::before {
+      content:"";
+      position:absolute;
+      inset:1px;
+      border-radius:16px;
+      background:linear-gradient(160deg, rgba(255,255,255,.6), rgba(243,226,191,.82));
+      mix-blend-mode:multiply;
+      opacity:.45;
+      z-index:-1;
+    }
+    .panel::after {
+      content:"";
+      position:absolute;
+      inset:auto -22% -46%;
+      height:74%;
+      background:radial-gradient(circle, rgba(195,154,61,.28) 0%, transparent 68%);
+      opacity:0;
+      transition:opacity .35s ease;
+      pointer-events:none;
+    }
+    .panel:hover::after { opacity:.75; }
+    .hero {
+      display:grid;
+      gap:22px;
+    }
+    .hero h2 {
+      margin:0;
+      font-family:'Cinzel','Cormorant Garamond',serif;
+      font-size:32px;
+      letter-spacing:.04em;
+      color:var(--ink-soft);
+    }
+    .hero p {
+      margin:0;
+      font-size:18px;
+      line-height:1.6;
+      color:var(--ink);
+    }
+    .builder-layout {
+      display:grid;
+      grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+      gap:24px;
+      align-items:start;
+    }
+    .controls {
+      display:grid;
+      gap:18px;
+    }
+    .control-group {
+      background:linear-gradient(180deg, rgba(249,236,206,.94), rgba(232,213,175,.92));
+      border:1px solid rgba(178,140,74,.42);
+      border-radius:14px;
+      padding:18px 20px 20px;
+      display:grid;
+      gap:12px;
+      position:relative;
+      box-shadow:0 14px 22px rgba(12,7,3,.25);
+    }
+    .control-group h3 {
+      margin:0;
+      font-size:18px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--muted-strong);
+    }
+    .control-group label {
+      display:flex;
+      flex-direction:column;
+      font-size:15px;
+      letter-spacing:.04em;
+      color:var(--ink-soft);
+      gap:4px;
+    }
+    .control-group input[type="number"],
+    .control-group input[type="text"],
+    .control-group input[type="color"],
+    .control-group textarea {
+      font:inherit;
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid rgba(141,99,40,.45);
+      background:rgba(255,248,226,.9);
+      color:var(--ink);
+    }
+    .control-group textarea {
+      min-height:120px;
+      resize:vertical;
+    }
+    .control-group button,
+    .palette button {
+      border-radius:10px;
+      border:1px solid rgba(141,99,40,.55);
+      background:linear-gradient(180deg, rgba(133,88,36,.94), rgba(92,57,24,.92));
+      color:#fdf7e3;
+      padding:9px 14px;
+      font-size:14px;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      cursor:pointer;
+      transition:transform .16s ease, box-shadow .16s ease;
+      box-shadow:0 10px 20px rgba(15,8,3,.3);
+    }
+    .control-group button:hover,
+    .palette button:hover { transform:translateY(-1px); box-shadow:0 14px 24px rgba(12,7,3,.35); }
+    .control-group button.secondary {
+      background:linear-gradient(180deg, rgba(224,208,172,.94), rgba(203,179,135,.92));
+      color:var(--ink);
+    }
+    .palette {
+      display:grid;
+      gap:10px;
+      grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));
+    }
+    .palette button {
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:6px;
+      padding:12px;
+      border-radius:12px;
+      text-align:left;
+      border:2px solid transparent;
+      position:relative;
+    }
+    .palette button .swatch {
+      width:100%;
+      height:36px;
+      border-radius:8px;
+      border:1px solid rgba(54,36,18,.35);
+      box-shadow:inset 0 2px 5px rgba(0,0,0,.18);
+    }
+    .palette button.active {
+      border-color:rgba(225,193,112,.9);
+      box-shadow:0 0 0 2px rgba(225,193,112,.35), 0 12px 22px rgba(12,7,3,.28);
+    }
+    .board-panel {
+      display:grid;
+      gap:16px;
+    }
+    .board-shell {
+      background:linear-gradient(180deg, rgba(249,236,206,.96), rgba(235,215,177,.94));
+      border:1px solid rgba(178,140,74,.42);
+      border-radius:18px;
+      padding:22px;
+      box-shadow:0 24px 40px rgba(12,7,3,.28);
+      position:relative;
+    }
+    .board-shell::before {
+      content:"";
+      position:absolute;
+      inset:14px;
+      border-radius:14px;
+      border:1px dashed rgba(163,126,70,.4);
+      pointer-events:none;
+    }
+    #board {
+      display:grid;
+      gap:1px;
+      background:#472b16;
+      padding:8px;
+      border-radius:12px;
+      box-shadow:inset 0 2px 8px rgba(0,0,0,.35);
+      touch-action:none;
+    }
+    .cell {
+      width:var(--cell-size, 44px);
+      height:var(--cell-size, 44px);
+      border-radius:6px;
+      box-shadow:inset 0 4px 6px rgba(255,255,255,.16);
+      position:relative;
+      cursor:crosshair;
+      transition:transform .08s ease, box-shadow .08s ease;
+    }
+    .cell:hover { transform:translateY(-1px); box-shadow:inset 0 4px 6px rgba(255,255,255,.24), 0 6px 12px rgba(0,0,0,.25); }
+    .cell::after {
+      content:attr(data-label);
+      position:absolute;
+      bottom:4px;
+      right:6px;
+      font-size:11px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:rgba(0,0,0,.45);
+    }
+    .board-status {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      font-size:15px;
+      color:var(--muted-strong);
+      padding:0 8px;
+    }
+    .board-status strong { color:var(--ink-soft); }
+    .board-tools {
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .board-tools button {
+      background:linear-gradient(180deg, rgba(98,68,34,.95), rgba(68,44,22,.92));
+      border-radius:999px;
+      padding:8px 16px;
+      font-size:13px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+    .board-tools button.secondary {
+      background:linear-gradient(180deg, rgba(233,215,181,.94), rgba(207,182,138,.92));
+      color:var(--ink);
+    }
+    .board-tools button.danger {
+      background:linear-gradient(180deg, rgba(139,48,38,.92), rgba(98,28,22,.9));
+    }
+    .legend-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+      gap:12px;
+      margin-top:8px;
+    }
+    .legend-entry {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:rgba(249,236,206,.92);
+      border:1px solid rgba(177,139,73,.38);
+      box-shadow:0 6px 14px rgba(12,7,3,.18);
+      font-size:15px;
+    }
+    .legend-entry span {
+      width:32px;
+      height:32px;
+      border-radius:8px;
+      border:1px solid rgba(54,36,18,.35);
+      box-shadow:inset 0 3px 6px rgba(0,0,0,.18);
+    }
+    @media (max-width: 1024px) {
+      .builder-layout { grid-template-columns:1fr; }
+      header { flex-wrap:wrap; }
+    }
+    @media (max-width: 720px) {
+      nav { width:100%; }
+      nav .nav-btn { flex:1 1 calc(50% - 6px); justify-content:center; text-align:center; }
+      .palette { grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); }
+      .board-status { flex-direction:column; align-items:flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Fable Tactics</h1>
+    <nav>
+      <a href="start.html" class="nav-btn">Start</a>
+      <a href="game-setup.html" class="nav-btn">Game Setup</a>
+      <a href="selector.html" class="nav-btn">Party Builder</a>
+      <a href="combat-sim.html" class="nav-btn">Combat Sim</a>
+      <a href="quickstart.html" class="nav-btn">Quick Start</a>
+      <a href="unit-icons.html" class="nav-btn">Unit Icons</a>
+      <a href="board-builder.html" class="nav-btn active">Map Builder</a>
+    </nav>
+  </header>
+  <main>
+    <section class="panel hero">
+      <div>
+        <h2>Forge Your Battlefield</h2>
+        <p>
+          Assemble bespoke tactical battlemaps in minutes. Sketch the terrain, mark hazards, and export the layout for use in the
+          combat simulator or your tabletop encounters.
+        </p>
+      </div>
+      <div class="board-tools">
+        <button type="button" id="exportButton">Export Map JSON</button>
+        <button type="button" id="copyButton" class="secondary">Copy JSON</button>
+        <button type="button" id="resetButton" class="danger">Clear Map</button>
+      </div>
+    </section>
+    <section class="builder-layout">
+      <aside class="controls">
+        <div class="control-group">
+          <h3>Grid Dimensions</h3>
+          <label>Rows
+            <input type="number" id="rowsInput" min="4" max="30" value="12" />
+          </label>
+          <label>Columns
+            <input type="number" id="colsInput" min="4" max="30" value="12" />
+          </label>
+          <label>Cell Size (px)
+            <input type="number" id="sizeInput" min="24" max="72" value="44" />
+          </label>
+          <div class="board-tools">
+            <button type="button" id="resizeButton" class="secondary">Resize Grid</button>
+          </div>
+        </div>
+        <div class="control-group">
+          <h3>Terrain Palette</h3>
+          <p style="margin:0; font-size:15px; color:var(--muted-strong);">Pick a tile style, then click or drag on the map to paint.</p>
+          <div class="palette" id="palette"></div>
+        </div>
+        <div class="control-group">
+          <h3>Import Map</h3>
+          <label for="importInput">Paste exported JSON</label>
+          <textarea id="importInput" placeholder="Paste map data here…"></textarea>
+          <div class="board-tools">
+            <button type="button" id="importButton" class="secondary">Load Map</button>
+          </div>
+        </div>
+      </aside>
+      <div class="board-panel">
+        <div class="board-shell">
+          <div id="board" role="grid" aria-label="Battlemap grid"></div>
+        </div>
+        <div class="board-status">
+          <div>Selected Terrain: <strong id="selectedTerrainLabel">—</strong></div>
+          <div>Hover: <strong id="hoverLabel">–</strong></div>
+          <div>Tiles Painted: <strong id="paintedCount">0</strong></div>
+        </div>
+        <div class="control-group">
+          <h3>Legend</h3>
+          <div class="legend-grid" id="legend"></div>
+        </div>
+        <div class="control-group">
+          <h3>Exported JSON</h3>
+          <textarea id="exportOutput" readonly placeholder="Click “Export Map JSON” to generate data"></textarea>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const defaultTerrains = [
+      { id: 'plains', name: 'Open Ground', color: '#f3e2c3', accent: '#d3b58a', label: 'P' },
+      { id: 'forest', name: 'Dense Forest', color: '#88a86b', accent: '#587147', label: 'F' },
+      { id: 'water', name: 'Water / River', color: '#6aa7c5', accent: '#3a6b84', label: 'W' },
+      { id: 'stone', name: 'Rocky Ridge', color: '#b7b5ae', accent: '#6e6b65', label: 'R' },
+      { id: 'hazard', name: 'Hazard / Trap', color: '#d27452', accent: '#8f3b22', label: 'H' },
+      { id: 'cover', name: 'Half Cover', color: '#d6c47d', accent: '#9f8541', label: 'C' },
+      { id: 'difficult', name: 'Difficult Ground', color: '#c89d6a', accent: '#815b34', label: 'D' }
+    ];
+
+    const state = {
+      rows: 12,
+      cols: 12,
+      cellSize: 44,
+      palette: [...defaultTerrains],
+      baseTerrainId: defaultTerrains[0].id,
+      selectedId: defaultTerrains[0].id,
+      painting: false,
+      paintId: defaultTerrains[0].id
+    };
+
+    const boardData = Array.from({ length: state.rows }, () => Array(state.cols).fill(state.baseTerrainId));
+
+    const boardEl = document.getElementById('board');
+    const paletteEl = document.getElementById('palette');
+    const legendEl = document.getElementById('legend');
+    const exportOutput = document.getElementById('exportOutput');
+    const importInput = document.getElementById('importInput');
+    const selectedTerrainLabel = document.getElementById('selectedTerrainLabel');
+    const hoverLabel = document.getElementById('hoverLabel');
+    const paintedCount = document.getElementById('paintedCount');
+
+    const rowsInput = document.getElementById('rowsInput');
+    const colsInput = document.getElementById('colsInput');
+    const sizeInput = document.getElementById('sizeInput');
+
+    const resizeButton = document.getElementById('resizeButton');
+    const resetButton = document.getElementById('resetButton');
+    const exportButton = document.getElementById('exportButton');
+    const copyButton = document.getElementById('copyButton');
+    const importButton = document.getElementById('importButton');
+
+    function setBoardDimensions() {
+      boardEl.style.setProperty('--cell-size', `${state.cellSize}px`);
+      boardEl.style.gridTemplateColumns = `repeat(${state.cols}, var(--cell-size))`;
+      boardEl.style.gridTemplateRows = `repeat(${state.rows}, var(--cell-size))`;
+    }
+
+    function rebuildBoard() {
+      boardEl.innerHTML = '';
+      setBoardDimensions();
+      let count = 0;
+      for (let r = 0; r < state.rows; r++) {
+        for (let c = 0; c < state.cols; c++) {
+          const cell = document.createElement('button');
+          cell.className = 'cell';
+          cell.type = 'button';
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          cell.tabIndex = -1;
+          cell.setAttribute('aria-label', `Row ${r + 1}, Column ${c + 1}`);
+          cell.addEventListener('pointerdown', handlePointerDown);
+          cell.addEventListener('pointerenter', handlePointerEnter);
+          cell.addEventListener('pointerup', handlePointerUp);
+          cell.addEventListener('pointerleave', handlePointerLeave);
+          cell.addEventListener('focus', () => updateHover(r, c));
+          cell.addEventListener('blur', () => updateHover());
+          boardEl.appendChild(cell);
+          applyTerrainToCell(cell, boardData[r][c]);
+          if (boardData[r][c] !== state.baseTerrainId) count++;
+        }
+      }
+      paintedCount.textContent = count;
+    }
+
+    function applyTerrainToCell(cell, terrainId) {
+      const terrain = terrainById(terrainId) || terrainById(state.baseTerrainId) || state.palette[0] || defaultTerrains[0];
+      cell.style.background = `linear-gradient(160deg, ${terrain.color}, ${terrain.accent})`;
+      cell.dataset.label = terrain.label || terrain.name.charAt(0).toUpperCase();
+    }
+
+    function setSelectedTerrain(id) {
+      state.selectedId = id;
+      state.paintId = id;
+      const activeTerrain = terrainById(id) || terrainById(state.baseTerrainId) || state.palette[0] || defaultTerrains[0];
+      selectedTerrainLabel.textContent = activeTerrain ? activeTerrain.name : '—';
+      for (const button of paletteEl.querySelectorAll('button')) {
+        button.classList.toggle('active', button.dataset.id === id);
+      }
+    }
+
+    function terrainById(id) {
+      return state.palette.find(t => t.id === id);
+    }
+
+    function updateHover(r, c) {
+      if (r === undefined || c === undefined) {
+        hoverLabel.textContent = '–';
+        return;
+      }
+      hoverLabel.textContent = `Row ${r + 1}, Col ${c + 1}`;
+    }
+
+    function handlePointerDown(event) {
+      if (!(event.target instanceof HTMLElement) || !event.target.dataset) return;
+      event.preventDefault();
+      const row = Number(event.target.dataset.row);
+      const col = Number(event.target.dataset.col);
+      if (Number.isNaN(row) || Number.isNaN(col)) return;
+      state.painting = true;
+      state.paintId = event.button === 2 ? state.baseTerrainId : state.selectedId;
+      updateHover(row, col);
+      applyPaint(row, col, state.paintId);
+      if (event.target.setPointerCapture) {
+        event.target.setPointerCapture(event.pointerId);
+      }
+    }
+
+    function handlePointerEnter(event) {
+      if (!(event.target instanceof HTMLElement)) return;
+      const row = Number(event.target.dataset.row);
+      const col = Number(event.target.dataset.col);
+      updateHover(row, col);
+      if (!state.painting) return;
+      applyPaint(row, col, state.paintId);
+    }
+
+    function handlePointerUp(event) {
+      state.painting = false;
+      if (
+        event.target instanceof HTMLElement &&
+        typeof event.target.hasPointerCapture === 'function' &&
+        event.target.hasPointerCapture(event.pointerId)
+      ) {
+        event.target.releasePointerCapture(event.pointerId);
+      }
+    }
+
+    function handlePointerLeave() {
+      updateHover();
+    }
+
+    function applyPaint(row, col, terrainId) {
+      if (row < 0 || row >= state.rows || col < 0 || col >= state.cols) return;
+      if (boardData[row][col] === terrainId) return;
+      boardData[row][col] = terrainId;
+      const index = row * state.cols + col;
+      const cell = boardEl.children[index];
+      if (cell) {
+        applyTerrainToCell(cell, terrainId);
+      }
+      updatePaintedCount();
+    }
+
+    function updatePaintedCount() {
+      let count = 0;
+      for (let r = 0; r < state.rows; r++) {
+        for (let c = 0; c < state.cols; c++) {
+          if (boardData[r][c] !== state.baseTerrainId) count++;
+        }
+      }
+      paintedCount.textContent = count;
+    }
+
+    function buildPalette() {
+      if (!state.palette.some(t => t.id === state.baseTerrainId)) {
+        state.baseTerrainId = state.palette[0]?.id || defaultTerrains[0].id;
+      }
+      if (!state.palette.some(t => t.id === state.selectedId)) {
+        state.selectedId = state.baseTerrainId;
+      }
+      paletteEl.innerHTML = '';
+      legendEl.innerHTML = '';
+      for (const terrain of state.palette) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.id = terrain.id;
+        button.innerHTML = `
+          <span class="swatch" style="background:linear-gradient(150deg, ${terrain.color}, ${terrain.accent})"></span>
+          <strong style="font-size:16px; letter-spacing:.04em; color:var(--ink-soft);">${terrain.name}</strong>
+          <span style="font-size:13px; letter-spacing:.2em; color:var(--muted-strong);">${terrain.id}</span>
+        `;
+        button.addEventListener('click', () => setSelectedTerrain(terrain.id));
+        paletteEl.appendChild(button);
+
+        const legend = document.createElement('div');
+        legend.className = 'legend-entry';
+        const swatch = document.createElement('span');
+        swatch.style.background = `linear-gradient(150deg, ${terrain.color}, ${terrain.accent})`;
+        legend.appendChild(swatch);
+        const text = document.createElement('div');
+        text.innerHTML = `<strong style="display:block; font-size:15px; letter-spacing:.08em;">${terrain.name}</strong><span style="font-size:13px; color:var(--muted-strong); letter-spacing:.14em; text-transform:uppercase;">${terrain.label || terrain.id}</span>`;
+        legend.appendChild(text);
+        legendEl.appendChild(legend);
+      }
+      setSelectedTerrain(state.selectedId);
+    }
+
+    function resizeBoard(newRows, newCols) {
+      const rows = Math.max(4, Math.min(30, Math.floor(newRows)));
+      const cols = Math.max(4, Math.min(30, Math.floor(newCols)));
+      if (!Number.isFinite(rows) || !Number.isFinite(cols)) return;
+
+      if (rows !== state.rows) {
+        if (rows > state.rows) {
+          for (let r = state.rows; r < rows; r++) {
+            boardData[r] = Array.from({ length: state.cols }, () => state.baseTerrainId);
+          }
+        } else {
+          boardData.length = rows;
+        }
+        state.rows = rows;
+      }
+
+      if (cols !== state.cols) {
+        for (let r = 0; r < state.rows; r++) {
+          if (!boardData[r]) boardData[r] = [];
+          if (cols > state.cols) {
+            for (let c = state.cols; c < cols; c++) {
+              boardData[r][c] = state.baseTerrainId;
+            }
+          } else {
+            boardData[r].length = cols;
+          }
+        }
+        state.cols = cols;
+      }
+      setBoardDimensions();
+      rebuildBoard();
+    }
+
+    function resetBoard() {
+      for (let r = 0; r < state.rows; r++) {
+        for (let c = 0; c < state.cols; c++) {
+          boardData[r][c] = state.baseTerrainId;
+        }
+      }
+      rebuildBoard();
+      exportOutput.value = '';
+    }
+
+    function exportMap() {
+      const payload = {
+        version: 1,
+        rows: state.rows,
+        cols: state.cols,
+        cellSize: state.cellSize,
+        palette: state.palette,
+        defaultTerrainId: state.baseTerrainId,
+        tiles: boardData
+      };
+      const json = JSON.stringify(payload, null, 2);
+      exportOutput.value = json;
+      return json;
+    }
+
+    async function copyMap() {
+      const text = exportOutput.value.trim() || exportMap();
+      try {
+        await navigator.clipboard.writeText(text);
+        copyButton.textContent = 'Copied!';
+        setTimeout(() => (copyButton.textContent = 'Copy JSON'), 1800);
+      } catch (err) {
+        copyButton.textContent = 'Copy Failed';
+        setTimeout(() => (copyButton.textContent = 'Copy JSON'), 2200);
+      }
+    }
+
+    function loadFromJSON(json) {
+      try {
+        const data = JSON.parse(json);
+        if (!Array.isArray(data.tiles) || !Array.isArray(data.palette)) {
+          throw new Error('Invalid map payload.');
+        }
+        state.rows = Math.max(4, Math.min(30, Number(data.rows) || data.tiles.length));
+        state.cols = Math.max(4, Math.min(30, Number(data.cols) || (data.tiles[0] ? data.tiles[0].length : 0)));
+        state.cellSize = Math.max(24, Math.min(72, Number(data.cellSize) || state.cellSize));
+        state.palette = data.palette.map(entry => ({
+          id: entry.id,
+          name: entry.name,
+          color: entry.color,
+          accent: entry.accent,
+          label: entry.label || (entry.name ? entry.name.charAt(0).toUpperCase() : '')
+        })).filter(entry => entry.id && entry.name && entry.color && entry.accent);
+        if (!state.palette.length) {
+          state.palette = [...defaultTerrains];
+        }
+        const importedBase = data.defaultTerrainId && state.palette.some(t => t.id === data.defaultTerrainId)
+          ? data.defaultTerrainId
+          : state.palette[0]?.id || defaultTerrains[0].id;
+        state.baseTerrainId = importedBase || defaultTerrains[0].id;
+        if (!state.palette.some(t => t.id === state.selectedId)) {
+          state.selectedId = state.baseTerrainId;
+        }
+        boardData.length = state.rows;
+        for (let r = 0; r < state.rows; r++) {
+          boardData[r] = Array.from({ length: state.cols }, (_, c) => {
+            const row = data.tiles[r] || [];
+            const tileId = row[c] || state.baseTerrainId;
+            return state.palette.some(t => t.id === tileId) ? tileId : state.baseTerrainId;
+          });
+        }
+        rowsInput.value = state.rows;
+        colsInput.value = state.cols;
+        sizeInput.value = state.cellSize;
+        setBoardDimensions();
+        buildPalette();
+        rebuildBoard();
+        exportOutput.value = JSON.stringify({
+          version: 1,
+          rows: state.rows,
+          cols: state.cols,
+          cellSize: state.cellSize,
+          palette: state.palette,
+          defaultTerrainId: state.baseTerrainId,
+          tiles: boardData
+        }, null, 2);
+      } catch (err) {
+        alert('Unable to parse map data. Please ensure the JSON structure is valid.');
+        console.error(err);
+      }
+    }
+
+    resizeButton.addEventListener('click', () => {
+      const newRows = Number(rowsInput.value);
+      const newCols = Number(colsInput.value);
+      const newSize = Number(sizeInput.value);
+      if (Number.isFinite(newRows) && Number.isFinite(newCols)) {
+        resizeBoard(newRows, newCols);
+      }
+      if (Number.isFinite(newSize)) {
+        state.cellSize = Math.max(24, Math.min(72, Math.floor(newSize)));
+        setBoardDimensions();
+      }
+      rebuildBoard();
+    });
+
+    resetButton.addEventListener('click', () => {
+      if (confirm('Clear the entire map?')) {
+        resetBoard();
+      }
+    });
+
+    exportButton.addEventListener('click', () => {
+      const json = exportMap();
+      exportButton.textContent = 'Exported!';
+      setTimeout(() => (exportButton.textContent = 'Export Map JSON'), 1800);
+      return json;
+    });
+
+    copyButton.addEventListener('click', () => {
+      copyMap();
+    });
+
+    importButton.addEventListener('click', () => {
+      const text = importInput.value.trim();
+      if (!text) return;
+      loadFromJSON(text);
+    });
+
+    boardEl.addEventListener('contextmenu', event => event.preventDefault());
+    boardEl.addEventListener('pointerleave', () => {
+      state.painting = false;
+      updateHover();
+    });
+    boardEl.addEventListener('pointerup', () => {
+      state.painting = false;
+    });
+    boardEl.addEventListener('pointercancel', () => {
+      state.painting = false;
+    });
+
+    buildPalette();
+    setBoardDimensions();
+    rebuildBoard();
+  </script>
+</body>
+</html>
