@@ -385,8 +385,8 @@
       <div>
         <h2>Forge Your Battlefield</h2>
         <p>
-          Assemble bespoke tactical battlemaps in minutes. Sketch the terrain, mark hazards, and export the layout for use in the
-          combat simulator or your tabletop encounters.
+          Assemble bespoke hex battlemaps that line up with the combat simulator. Paint terrain using the shared rules vocabulary
+          (plain, forest, hill, road, swamp, water) and export ready-to-play JSON for the simulator or your tabletop encounters.
         </p>
       </div>
       <div class="board-tools">
@@ -420,7 +420,7 @@
         <div class="control-group">
           <h3>Import Map</h3>
           <label for="importInput">Paste exported JSON</label>
-          <textarea id="importInput" placeholder="Paste map data here…"></textarea>
+          <textarea id="importInput" placeholder="Paste Combat Sim or Battlemap Builder JSON…"></textarea>
           <div class="board-tools">
             <button type="button" id="importButton" class="secondary">Load Map</button>
           </div>
@@ -432,8 +432,8 @@
         </div>
         <div class="board-status">
           <div>Selected Terrain: <strong id="selectedTerrainLabel">—</strong></div>
-          <div>Hover: <strong id="hoverLabel">–</strong></div>
-          <div>Tiles Painted: <strong id="paintedCount">0</strong></div>
+          <div>Hover (Row/Col → Axial): <strong id="hoverLabel">–</strong></div>
+          <div>Hexes Painted: <strong id="paintedCount">0</strong></div>
         </div>
         <div class="control-group">
           <h3>Legend</h3>
@@ -447,14 +447,54 @@
     </section>
   </main>
   <script>
+    const terrainAliases = {
+      plain: 'plain',
+      plains: 'plain',
+      open: 'plain',
+      forest: 'forest',
+      woods: 'forest',
+      cover: 'forest',
+      hill: 'hill',
+      stone: 'hill',
+      rocky: 'hill',
+      road: 'road',
+      path: 'road',
+      trail: 'road',
+      swamp: 'swamp',
+      marsh: 'swamp',
+      hazard: 'swamp',
+      difficult: 'swamp',
+      water: 'water',
+      river: 'water'
+    };
+
+    function normalizeTerrainId(id, fallback = 'plain') {
+      if (!id) return fallback;
+      const safe = String(id).trim().toLowerCase();
+      if (!safe || safe === 'default' || safe === 'null' || safe === 'undefined' || safe === 'base') {
+        return fallback;
+      }
+      return terrainAliases[safe] || safe;
+    }
+
+    function offsetToAxial(col, row) {
+      const q = col;
+      const r = row - (col - (col & 1)) / 2;
+      return { q, r };
+    }
+
+    function formatAxial({ q, r }) {
+      const format = value => `${value >= 0 ? '+' : ''}${value}`;
+      return `q ${format(q)}, r ${format(r)}`;
+    }
+
     const defaultTerrains = [
-      { id: 'plains', name: 'Open Ground', color: '#f3e2c3', accent: '#d3b58a', label: 'P' },
-      { id: 'forest', name: 'Dense Forest', color: '#88a86b', accent: '#587147', label: 'F' },
-      { id: 'water', name: 'Water / River', color: '#6aa7c5', accent: '#3a6b84', label: 'W' },
-      { id: 'stone', name: 'Rocky Ridge', color: '#b7b5ae', accent: '#6e6b65', label: 'R' },
-      { id: 'hazard', name: 'Hazard / Trap', color: '#d27452', accent: '#8f3b22', label: 'H' },
-      { id: 'cover', name: 'Half Cover', color: '#d6c47d', accent: '#9f8541', label: 'C' },
-      { id: 'difficult', name: 'Difficult Ground', color: '#c89d6a', accent: '#815b34', label: 'D' }
+      { id: 'plain', name: 'Open Ground', color: '#f3e2c3', accent: '#d3b58a', label: 'P' },
+      { id: 'forest', name: 'Forest (+2 DEF)', color: '#6f9151', accent: '#455c32', label: 'F' },
+      { id: 'hill', name: 'Hill (+2 ATK)', color: '#c7b082', accent: '#8b6c3f', label: 'H' },
+      { id: 'road', name: 'Road (Cost 1)', color: '#d0c2a2', accent: '#9e8a62', label: 'R' },
+      { id: 'swamp', name: 'Swamp (-2 ATK)', color: '#9a7855', accent: '#664b30', label: 'S' },
+      { id: 'water', name: 'Water (Impassable)', color: '#5f90c1', accent: '#2f5c82', label: 'W' }
     ];
 
     const state = {
@@ -507,7 +547,8 @@
           cell.dataset.row = r;
           cell.dataset.col = c;
           cell.tabIndex = -1;
-          cell.setAttribute('aria-label', `Row ${r + 1}, Column ${c + 1}`);
+          const axial = offsetToAxial(c, r);
+          cell.setAttribute('aria-label', `Row ${r + 1}, Column ${c + 1} (axial ${formatAxial(axial)})`);
           cell.addEventListener('pointerdown', handlePointerDown);
           cell.addEventListener('pointerenter', handlePointerEnter);
           cell.addEventListener('pointerup', handlePointerUp);
@@ -529,12 +570,13 @@
     }
 
     function setSelectedTerrain(id) {
-      state.selectedId = id;
-      state.paintId = id;
-      const activeTerrain = terrainById(id) || terrainById(state.baseTerrainId) || state.palette[0] || defaultTerrains[0];
+      const normalized = normalizeTerrainId(id, state.baseTerrainId);
+      state.selectedId = normalized;
+      state.paintId = normalized;
+      const activeTerrain = terrainById(normalized) || terrainById(state.baseTerrainId) || state.palette[0] || defaultTerrains[0];
       selectedTerrainLabel.textContent = activeTerrain ? activeTerrain.name : '—';
       for (const button of paletteEl.querySelectorAll('button')) {
-        button.classList.toggle('active', button.dataset.id === id);
+        button.classList.toggle('active', button.dataset.id === normalized);
       }
     }
 
@@ -547,7 +589,8 @@
         hoverLabel.textContent = '–';
         return;
       }
-      hoverLabel.textContent = `Row ${r + 1}, Col ${c + 1}`;
+      const axial = offsetToAxial(c, r);
+      hoverLabel.textContent = `Row ${r + 1}, Col ${c + 1} → ${formatAxial(axial)}`;
     }
 
     function handlePointerDown(event) {
@@ -591,12 +634,14 @@
 
     function applyPaint(row, col, terrainId) {
       if (row < 0 || row >= state.rows || col < 0 || col >= state.cols) return;
-      if (boardData[row][col] === terrainId) return;
-      boardData[row][col] = terrainId;
+      const normalized = normalizeTerrainId(terrainId, state.baseTerrainId);
+      if (!terrainById(normalized)) return;
+      if (boardData[row][col] === normalized) return;
+      boardData[row][col] = normalized;
       const index = row * state.cols + col;
       const cell = boardEl.children[index];
       if (cell) {
-        applyTerrainToCell(cell, terrainId);
+        applyTerrainToCell(cell, normalized);
       }
       updatePaintedCount();
     }
@@ -612,6 +657,8 @@
     }
 
     function buildPalette() {
+      state.baseTerrainId = normalizeTerrainId(state.baseTerrainId, defaultTerrains[0].id);
+      state.selectedId = normalizeTerrainId(state.selectedId, state.baseTerrainId);
       if (!state.palette.some(t => t.id === state.baseTerrainId)) {
         state.baseTerrainId = state.palette[0]?.id || defaultTerrains[0].id;
       }
@@ -688,15 +735,48 @@
       exportOutput.value = '';
     }
 
+    function buildTerrainSummary() {
+      const summary = [];
+      for (let r = 0; r < state.rows; r++) {
+        for (let c = 0; c < state.cols; c++) {
+          const id = boardData[r][c];
+          if (id === state.baseTerrainId) continue;
+          const axial = offsetToAxial(c, r);
+          summary.push({
+            id,
+            offset: { x: c, y: r },
+            axial
+          });
+        }
+      }
+      return summary;
+    }
+
     function exportMap() {
       const payload = {
-        version: 1,
-        rows: state.rows,
-        cols: state.cols,
-        cellSize: state.cellSize,
-        palette: state.palette,
+        version: 2,
+        format: 'fable-tactics-hex-offset',
+        grid: {
+          type: 'hex-offset',
+          orientation: 'pointy-top',
+          offset: 'even-q',
+          width: state.cols,
+          height: state.rows,
+          cellSize: state.cellSize
+        },
+        palette: state.palette.map(entry => ({
+          id: entry.id,
+          name: entry.name,
+          color: entry.color,
+          accent: entry.accent,
+          label: entry.label
+        })),
         defaultTerrainId: state.baseTerrainId,
-        tiles: boardData
+        tiles: boardData.map(row => row.slice()),
+        terrain: buildTerrainSummary(),
+        metadata: {
+          exportedAt: new Date().toISOString()
+        }
       };
       const json = JSON.stringify(payload, null, 2);
       exportOutput.value = json;
@@ -717,53 +797,79 @@
 
     function loadFromJSON(json) {
       try {
-        const data = JSON.parse(json);
-        if (!Array.isArray(data.tiles) || !Array.isArray(data.palette)) {
+        const data = typeof json === 'string' ? JSON.parse(json) : json;
+        if (!data || typeof data !== 'object') {
           throw new Error('Invalid map payload.');
         }
-        state.rows = Math.max(4, Math.min(30, Number(data.rows) || data.tiles.length));
-        state.cols = Math.max(4, Math.min(30, Number(data.cols) || (data.tiles[0] ? data.tiles[0].length : 0)));
-        state.cellSize = Math.max(24, Math.min(72, Number(data.cellSize) || state.cellSize));
-        state.palette = data.palette.map(entry => ({
-          id: entry.id,
-          name: entry.name,
-          color: entry.color,
-          accent: entry.accent,
-          label: entry.label || (entry.name ? entry.name.charAt(0).toUpperCase() : '')
-        })).filter(entry => entry.id && entry.name && entry.color && entry.accent);
+        const tiles = Array.isArray(data.tiles) ? data.tiles : [];
+        if (!tiles.length || !Array.isArray(tiles[0])) {
+          throw new Error('Map JSON must include a 2D "tiles" array.');
+        }
+
+        const gridInfo = data.grid || {};
+        const derivedRows = tiles.length;
+        const derivedCols = tiles.reduce((max, row) => {
+          return Math.max(max, Array.isArray(row) ? row.length : 0);
+        }, 0);
+
+        state.rows = Math.max(4, Math.min(30, Number(gridInfo.height ?? data.rows ?? derivedRows) || derivedRows));
+        state.cols = Math.max(4, Math.min(30, Number(gridInfo.width ?? data.cols ?? derivedCols) || derivedCols));
+        const cellSize = Number(gridInfo.cellSize ?? data.cellSize);
+        if (Number.isFinite(cellSize)) {
+          state.cellSize = Math.max(24, Math.min(72, Math.round(cellSize)));
+        }
+
+        const paletteSource = Array.isArray(data.palette) ? data.palette : [];
+        const seenIds = new Set();
+        state.palette = paletteSource.map(entry => {
+          const normalizedId = normalizeTerrainId(entry.id, 'plain');
+          const name = entry.name || normalizedId.charAt(0).toUpperCase() + normalizedId.slice(1);
+          return {
+            id: normalizedId,
+            name,
+            color: entry.color || '#d4c6aa',
+            accent: entry.accent || entry.color || '#a58c63',
+            label: entry.label || (name ? name.charAt(0).toUpperCase() : '')
+          };
+        }).filter(entry => {
+          if (!entry.id || !entry.name || !entry.color || !entry.accent) return false;
+          if (seenIds.has(entry.id)) return false;
+          seenIds.add(entry.id);
+          return true;
+        });
         if (!state.palette.length) {
           state.palette = [...defaultTerrains];
         }
-        const importedBase = data.defaultTerrainId && state.palette.some(t => t.id === data.defaultTerrainId)
-          ? data.defaultTerrainId
+
+        if (!state.palette.some(t => t.id === 'plain')) {
+          state.palette.unshift({ ...defaultTerrains[0] });
+        }
+
+        const baseCandidate = normalizeTerrainId(data.defaultTerrainId, state.palette[0]?.id || defaultTerrains[0].id);
+        state.baseTerrainId = state.palette.some(t => t.id === baseCandidate)
+          ? baseCandidate
           : state.palette[0]?.id || defaultTerrains[0].id;
-        state.baseTerrainId = importedBase || defaultTerrains[0].id;
+
         if (!state.palette.some(t => t.id === state.selectedId)) {
           state.selectedId = state.baseTerrainId;
         }
+
         boardData.length = state.rows;
         for (let r = 0; r < state.rows; r++) {
+          const sourceRow = Array.isArray(tiles[r]) ? tiles[r] : [];
           boardData[r] = Array.from({ length: state.cols }, (_, c) => {
-            const row = data.tiles[r] || [];
-            const tileId = row[c] || state.baseTerrainId;
+            const tileId = normalizeTerrainId(sourceRow[c], state.baseTerrainId);
             return state.palette.some(t => t.id === tileId) ? tileId : state.baseTerrainId;
           });
         }
+
         rowsInput.value = state.rows;
         colsInput.value = state.cols;
         sizeInput.value = state.cellSize;
         setBoardDimensions();
         buildPalette();
         rebuildBoard();
-        exportOutput.value = JSON.stringify({
-          version: 1,
-          rows: state.rows,
-          cols: state.cols,
-          cellSize: state.cellSize,
-          palette: state.palette,
-          defaultTerrainId: state.baseTerrainId,
-          tiles: boardData
-        }, null, 2);
+        exportMap();
       } catch (err) {
         alert('Unable to parse map data. Please ensure the JSON structure is valid.');
         console.error(err);
