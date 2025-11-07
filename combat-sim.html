@@ -476,6 +476,9 @@
   .board-shape-opt { display:none; }
   .board-shape-opt input { width:72px; }
   .board-layout { width:100%; min-height:112px; margin-top:6px; }
+  .map-import { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+  .map-import textarea { min-height:112px; }
+  .map-import .btn-row { gap:10px; }
   .small.muted { color:var(--muted); }
 
   .dot {
@@ -847,8 +850,8 @@
 
       <div class="btn-row" style="flex-wrap:wrap; align-items:center">
         <div class="small">Grid:</div>
-        <label class="small">W <input id="gridW" type="number" min="3" max="15" value="9"></label>
-        <label class="small">H <input id="gridH" type="number" min="3" max="15" value="9"></label>
+        <label class="small">W <input id="gridW" type="number" min="3" max="30" value="9"></label>
+        <label class="small">H <input id="gridH" type="number" min="3" max="30" value="9"></label>
         <button id="applyGridBtn" class="ghost">Apply</button>
 
         <div class="small" style="margin-left:16px">Zoom:</div>
@@ -871,7 +874,17 @@
       <div class="board-shape-opt" data-shape-opt="layout">
         <label for="boardLayout" class="small">Custom Layout (# = tile, . = gap)</label>
         <textarea id="boardLayout" class="board-layout" placeholder="Example:\n..###..\n.#####.\n..###.."></textarea>
-        <div class="small muted">Rows map to offset coordinates; use <strong>#</strong> for playable hexes.</div>
+        <div class="small muted">Rows map to offset coordinates; use <strong>#</strong> for playable hexes or import a JSON layout from the Map Builder.</div>
+      </div>
+
+      <div class="map-import">
+        <label for="mapJsonInput" class="small">Import Map JSON</label>
+        <textarea id="mapJsonInput" placeholder="Paste Battlemap Builder export here…"></textarea>
+        <div class="btn-row" style="flex-wrap:wrap; gap:10px;">
+          <button id="applyMapJsonBtn" class="ghost">Apply Map JSON</button>
+          <button id="clearTerrainBtn" class="ghost">Clear Painted Terrain</button>
+        </div>
+        <div class="small muted">Terrain IDs are normalized to the core set: plain, forest, hill, road, swamp, water.</div>
       </div>
 
       <div class="btn-row">
@@ -1176,6 +1189,17 @@ function computeCustomMask(layout){
   });
   return maskFromOffsets(offsets);
 }
+function computeOffsetRectangleMask(width,height){
+  const w=Math.max(1, Math.floor(width));
+  const h=Math.max(1, Math.floor(height));
+  const offsets=[];
+  for(let y=0; y<h; y++){
+    for(let x=0; x<w; x++){
+      offsets.push({x,y});
+    }
+  }
+  return maskFromOffsets(offsets);
+}
 const BOARD_SHAPES=[
   {
     key:'hex',
@@ -1196,8 +1220,8 @@ const BOARD_SHAPES=[
     controls:['width','height'],
     defaults:{ width:9, height:9 },
     sanitize(options){
-      const width=Math.max(3, Math.min(15, Number.isFinite(options.width)?Math.floor(options.width):9));
-      const height=Math.max(3, Math.min(15, Number.isFinite(options.height)?Math.floor(options.height):9));
+      const width=Math.max(3, Math.min(30, Number.isFinite(options.width)?Math.floor(options.width):9));
+      const height=Math.max(3, Math.min(30, Number.isFinite(options.height)?Math.floor(options.height):9));
       return { width, height };
     },
     create(options){
@@ -1396,6 +1420,125 @@ const TERRAIN = {
   swamp:{cost:3, atk:-2, def:0, pass:true},
   water:{cost:999, atk:0, def:0, pass:false},
 };
+
+const BUILDER_TERRAIN_ALIASES = {
+  plain:'plain',
+  plains:'plain',
+  open:'plain',
+  forest:'forest',
+  woods:'forest',
+  cover:'forest',
+  hill:'hill',
+  stone:'hill',
+  rocky:'hill',
+  road:'road',
+  path:'road',
+  trail:'road',
+  swamp:'swamp',
+  marsh:'swamp',
+  hazard:'swamp',
+  difficult:'swamp',
+  water:'water',
+  river:'water'
+};
+
+function normalizeBuilderTerrainId(id, fallback = 'plain'){
+  if(!id) return fallback;
+  const safe = String(id).trim().toLowerCase();
+  if(!safe || safe === 'default' || safe === 'null' || safe === 'undefined' || safe === 'base'){
+    return fallback;
+  }
+  if(BUILDER_TERRAIN_ALIASES[safe]) return BUILDER_TERRAIN_ALIASES[safe];
+  if(TERRAIN[safe]) return safe;
+  return fallback;
+}
+
+function applyBuilderMap(payload){
+  let data = payload;
+  if(typeof payload === 'string'){
+    try {
+      data = JSON.parse(payload);
+    } catch (err){
+      throw new Error(`Invalid JSON: ${err.message}`);
+    }
+  }
+  if(!data || typeof data !== 'object'){
+    throw new Error('Map payload must be an object.');
+  }
+  const tiles = Array.isArray(data.tiles) ? data.tiles : [];
+  if(!tiles.length || !Array.isArray(tiles[0])){
+    throw new Error('Map JSON must include a 2D "tiles" array.');
+  }
+  const derivedRows = clamp(tiles.length, 1, 30);
+  let derivedCols = 0;
+  for(let r=0; r<derivedRows; r++){
+    const row = Array.isArray(tiles[r]) ? tiles[r] : [];
+    if(row.length > derivedCols) derivedCols = row.length;
+  }
+  derivedCols = clamp(derivedCols, 1, 30);
+
+  const gridInfo = data.grid || {};
+  const rows = clamp(Number(gridInfo.height ?? data.rows ?? derivedRows) || derivedRows, 1, 30);
+  const cols = clamp(Number(gridInfo.width ?? data.cols ?? derivedCols) || derivedCols, 1, 30);
+  const baseId = normalizeBuilderTerrainId(data.defaultTerrainId, 'plain');
+  const cellSizeRaw = Number(gridInfo.cellSize ?? data.cellSize);
+
+  const sanitizedTiles = [];
+  for(let r=0; r<rows; r++){
+    const sourceRow = Array.isArray(tiles[r]) ? tiles[r] : [];
+    sanitizedTiles[r] = [];
+    for(let c=0; c<cols; c++){
+      sanitizedTiles[r][c] = normalizeBuilderTerrainId(sourceRow[c], baseId);
+    }
+  }
+
+  const ok = setGridShape('parallelogram', { width: cols, height: rows });
+  if(!ok){
+    throw new Error('Unable to configure grid shape from imported map.');
+  }
+
+  const builderMask = computeOffsetRectangleMask(cols, rows);
+  if(!builderMask.playable || builderMask.playable.size === 0){
+    throw new Error('Imported map produced no playable cells.');
+  }
+  GRID.originX = builderMask.originX;
+  GRID.originY = builderMask.originY;
+  GRID.w = builderMask.width;
+  GRID.h = builderMask.height;
+  GRID.playable = builderMask.playable;
+
+  GRID.obstacles.clear();
+  GRID.terrain.clear();
+  const base = sanitizeTerrainId(baseId);
+  if(terrainType) terrainType.value = base;
+  for(let r=0; r<rows; r++){
+    for(let c=0; c<cols; c++){
+      const tileId = sanitizeTerrainId(sanitizedTiles[r][c], base);
+      if(tileId !== base){
+        const cellKey = key(c,r);
+        if(GRID.playable.has(cellKey)){
+          GRID.terrain.set(cellKey, tileId);
+        }
+      }
+    }
+  }
+
+  if(Number.isFinite(cellSizeRaw)){
+    const safeSize = clamp(Math.round(cellSizeRaw), 24, 96);
+    GRID.desiredCell = safeSize;
+  }
+
+  clampGridState();
+  syncGridControls();
+  boardHintDefault = 'Map imported from the Battlemap Builder. Terrain IDs were normalized for the simulator.';
+  if(BOARD_HINT) BOARD_HINT.textContent = boardHintDefault;
+  render();
+}
+
+function sanitizeTerrainId(id, fallback = 'plain'){
+  const normalized = normalizeBuilderTerrainId(id, fallback);
+  return TERRAIN[normalized] ? normalized : fallback;
+}
 function tAt(x,y){ return TERRAIN[GRID.terrain.get(key(x,y))||'plain']; }
 function tNameAt(x,y){ return GRID.terrain.get(key(x,y))||'plain'; }
 function shortName(n){ return n.replace(/\(.*?\)/,'').trim().split(' ')[0]; }
@@ -1976,6 +2119,9 @@ const boardRadiusInput = document.getElementById('boardRadius');
 const boardThicknessInput = document.getElementById('boardThickness');
 const boardLayoutInput = document.getElementById('boardLayout');
 const boardShapeOptionEls = [...document.querySelectorAll('[data-shape-opt]')];
+const mapJsonInput = document.getElementById('mapJsonInput');
+const applyMapJsonBtn = document.getElementById('applyMapJsonBtn');
+const clearTerrainBtn = document.getElementById('clearTerrainBtn');
 
 function parsePx(value){
   return typeof value === 'string' ? parseFloat(value) || 0 : 0;
@@ -2296,6 +2442,22 @@ terrainBtn?.addEventListener('click', ()=>{
   render();
 });
 clearObsBtn?.addEventListener('click', ()=>{ GRID.obstacles.clear(); render(); });
+clearTerrainBtn?.addEventListener('click', ()=>{ GRID.terrain.clear(); render(); });
+applyMapJsonBtn?.addEventListener('click', ()=>{
+  if(!mapJsonInput) return;
+  const raw = mapJsonInput.value.trim();
+  if(!raw){
+    alert('Paste map JSON before applying.');
+    return;
+  }
+  try {
+    applyBuilderMap(raw);
+    mapJsonInput.value = '';
+  } catch (err){
+    console.error(err);
+    alert('Unable to import map JSON. Check the console for details.');
+  }
+});
 
 function resetBoardState(){
   G.phase="setup";
